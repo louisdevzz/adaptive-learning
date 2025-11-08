@@ -33,11 +33,13 @@ class MasteryRecord(Base):
         Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,  # Index for faster user queries
     )
     knowledge_point_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("knowledge_points.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,  # Index for faster knowledge point queries
     )
 
     # Mastery metrics

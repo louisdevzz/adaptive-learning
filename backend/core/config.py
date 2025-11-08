@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     GOOGLE_REDIRECT_URI: Optional[str] = None
+    GOOGLE_DEFAULT_ROLE: str = "student"  # Default role for Google OAuth users
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

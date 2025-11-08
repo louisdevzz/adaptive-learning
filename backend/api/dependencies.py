@@ -1,5 +1,7 @@
 """Common dependencies for API endpoints."""
 
+import logging
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -7,9 +9,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from core.errors import errors
 from core.security import verify_token
+from core.token_blacklist import token_blacklist
 from models.user import User, UserRole
 from repositories.user_repo import UserRepository
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # Security scheme for JWT bearer token
 security = HTTPBearer()
@@ -21,6 +28,8 @@ def get_current_user(
 ) -> User:
     """
     Get current authenticated user from JWT token.
+    
+    Checks token validity, blacklist status, and user permissions.
 
     Args:
         credentials: HTTP authorization credentials
@@ -30,25 +39,36 @@ def get_current_user(
         Current user
 
     Raises:
-        HTTPException: If token is invalid or user not found
+        HTTPException: If token is invalid, blacklisted, or user not found
     """
     token = credentials.credentials
+
+    # Check if token is blacklisted
+    if token_blacklist.is_blacklisted(token):
+        logger.warning("Attempted access with blacklisted token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=errors.AUTH_TOKEN_REVOKED,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # Verify token
     payload = verify_token(token, "access")
     if not payload:
+        logger.warning("Token validation failed: Invalid token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail=errors.AUTH_INVALID_TOKEN,
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Get user ID from token
     user_id = payload.get("sub")
     if not user_id:
+        logger.warning("Token validation failed: Missing user ID in token payload")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail=errors.AUTH_INVALID_TOKEN,
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -57,16 +77,32 @@ def get_current_user(
     user = user_repo.get_by_id(user_id)
 
     if not user:
+        logger.warning(f"Token validation failed: User {user_id} not found in database")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            detail=errors.USER_NOT_FOUND,
         )
 
     if not user.is_active:
+        logger.warning(f"Token validation failed: Inactive user {user_id} attempted access")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user",
+            detail=errors.USER_INACTIVE,
         )
+    
+    # Check user-specific revocation timestamp for "logout all devices"
+    revocation_timestamp = token_blacklist.get_user_revocation_timestamp(user_id)
+    if revocation_timestamp:
+        token_issued_at = datetime.fromtimestamp(payload.get("iat", 0), tz=timezone.utc)
+        if token_issued_at < revocation_timestamp:
+            logger.warning(
+                f"Token validation failed: Token issued before user {user_id} revocation timestamp"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=errors.AUTH_TOKEN_REVOKED,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     return user
 
@@ -89,9 +125,13 @@ def require_role(*allowed_roles: UserRole):
 
     def role_checker(current_user: Annotated[User, Depends(get_current_user)]) -> User:
         if current_user.role not in allowed_roles:
+            logger.warning(
+                f"Permission denied: User {current_user.id} ({current_user.role.value}) "
+                f"attempted to access resource requiring {[r.value for r in allowed_roles]}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail=errors.AUTH_INSUFFICIENT_PERMISSIONS,
             )
         return current_user
 

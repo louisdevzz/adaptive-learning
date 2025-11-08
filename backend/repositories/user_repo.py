@@ -5,7 +5,7 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-
+from core.errors import errors
 from models.user import User, UserRole
 from repositories.base_repo import BaseRepository
 
@@ -147,14 +147,29 @@ class UserRepository(BaseRepository[User]):
 
     def get_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> list[User]:
         """
-        Get users by role.
+        Get users by role with validated pagination.
 
         Args:
             role: User role to filter by
-            skip: Number of records to skip
-            limit: Maximum number of records to return
+            skip: Number of records to skip (must be non-negative)
+            limit: Maximum number of records to return (capped at MAX_PAGE_SIZE)
 
         Returns:
             List of users with the specified role
+            
+        Raises:
+            ValueError: If skip or limit is negative
         """
+        # Validate pagination parameters
+        if skip < 0:
+            raise ValueError(errors.VALIDATION_SKIP_NEGATIVE)
+        
+        if limit < 0:
+            raise ValueError(errors.VALIDATION_LIMIT_NEGATIVE)
+        
+        # Enforce maximum page size
+        from core.config import settings
+        from core.errors import errors as err_msgs
+        limit = min(limit, settings.MAX_PAGE_SIZE)
+        
         return self.db.query(User).filter(User.role == role).offset(skip).limit(limit).all()

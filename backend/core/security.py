@@ -1,5 +1,6 @@
 """Security utilities for authentication and authorization."""
 
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -136,12 +137,12 @@ def get_password_hash(password: str) -> str:
     return hashed.decode("utf-8")
 
 
-def create_token_pair(user_id: int, email: str, role: str) -> dict[str, str]:
+def create_token_pair(user_id: uuid.UUID | str, email: str, role: str) -> dict[str, str]:
     """
     Create access and refresh token pair for a user.
 
     Args:
-        user_id: User ID
+        user_id: User ID (UUID or string representation)
         email: User email
         role: User role
 

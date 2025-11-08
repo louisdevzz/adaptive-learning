@@ -26,6 +26,7 @@ class KnowledgePoint(Base):
         Uuid(as_uuid=True),
         ForeignKey("sections.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,  # Index for faster JOIN and filtering operations
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
