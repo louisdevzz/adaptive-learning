@@ -59,8 +59,18 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    OPENAI_EMBEDDING_DIMENSION: int = 1536  # Dimension for text-embedding-3-small
     OPENAI_MAX_TOKENS: int = 2000
     OPENAI_TEMPERATURE: float = 0.7
+
+    # OpenSearch
+    OPENSEARCH_HOST: str = "localhost"
+    OPENSEARCH_PORT: int = 9200
+    OPENSEARCH_USER: Optional[str] = "admin"
+    OPENSEARCH_PASSWORD: Optional[str] = "AdaptiveLearning2025@"
+    OPENSEARCH_USE_SSL: bool = True
+    OPENSEARCH_VERIFY_CERTS: bool = False
+    OPENSEARCH_INDEX_PREFIX: str = "adaptive_learning"
 
     # Mastery Thresholds
     MASTERY_THRESHOLD_LOW: float = 0.4

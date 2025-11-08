@@ -13,6 +13,7 @@ Comprehensive guide for all API endpoints in the Adaptive Learning Platform.
 - [Module Endpoints](#module-endpoints)
 - [Section Endpoints](#section-endpoints)
 - [Knowledge Points & Mastery Endpoints](#knowledge-points--mastery-endpoints)
+- [Search Endpoints](#search-endpoints)
 
 ## Base URL
 
@@ -880,7 +881,7 @@ curl -X POST http://localhost:8000/api/v1/modules/ \
 
 ---
 
-### 2. co
+### 2. Get Module Details
 
 Get all modules for a specific course.
 
@@ -1744,6 +1745,535 @@ The adaptive learning system uses mastery levels (0.0 to 1.0) with the following
 3. **Time Spent**: Efficient vs. struggling
 4. **Recency**: Recent performance weighted higher
 5. **Difficulty**: Performance on harder questions
+
+---
+
+## Search Endpoints
+
+### 1. Semantic Search
+
+Perform semantic search across all content types using vector similarity and text search.
+
+**Endpoint:** `POST /api/v1/search/`
+
+**Authentication:** Required
+
+**Request Headers:**
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "query": "How to declare variables in Python?",
+  "content_types": ["courses", "modules", "sections", "knowledge_points"],
+  "k": 10,
+  "filters": {
+    "metadata.level": "beginner"
+  },
+  "use_hybrid": true
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| query | string | Yes | Search query text |
+| content_types | array | No | Types to search: courses, modules, sections, knowledge_points (default: all) |
+| k | integer | No | Number of results per content type (default: 10) |
+| filters | object | No | Filter conditions on metadata |
+| use_hybrid | boolean | No | Use hybrid search (vector + text) (default: true) |
+
+**Response:** `200 OK`
+
+```json
+{
+  "query": "How to declare variables in Python?",
+  "results": {
+    "sections": [
+      {
+        "id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+        "score": 0.92,
+        "title": "Variables and Data Types",
+        "description": "Learn how to declare and use variables",
+        "content": "In Python, variables are declared by assignment: x = 5",
+        "content_type": "sections",
+        "metadata": {
+          "course_id": "e5e108bd-fc41-484f-b423-2e12c23585be",
+          "module_id": "f7e8d9c0-b1a2-4d5e-9f8a-7b6c5d4e3f2a",
+          "level": "beginner",
+          "order": 1
+        }
+      }
+    ],
+    "knowledge_points": [
+      {
+        "id": "b2c3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
+        "score": 0.89,
+        "title": "Variable Declaration",
+        "description": "Understanding variable declaration syntax",
+        "content": "Variables in Python don't need explicit type declaration",
+        "content_type": "knowledge_points",
+        "metadata": {
+          "section_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+          "difficulty_level": "beginner"
+        }
+      }
+    ]
+  },
+  "total_results": 15,
+  "search_time_ms": 245.5
+}
+```
+
+**Example (curl):**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/search/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How to declare variables in Python?",
+    "content_types": ["sections", "knowledge_points"],
+    "k": 10,
+    "use_hybrid": true
+  }'
+```
+
+**Error Responses:**
+
+```json
+// 401 - Unauthorized
+{
+  "detail": "Could not validate credentials"
+}
+
+// 500 - Search failed
+{
+  "detail": "Search failed: OpenSearch connection error"
+}
+```
+
+---
+
+### 2. Find Similar Documents
+
+Find documents similar to a given document using vector similarity.
+
+**Endpoint:** `POST /api/v1/search/similar`
+
+**Authentication:** Required
+
+**Request Body:**
+
+```json
+{
+  "content_type": "sections",
+  "doc_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "k": 5
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| content_type | string | Yes | Type of content: courses, modules, sections, knowledge_points |
+| doc_id | string | Yes | UUID of the document to find similar to |
+| k | integer | No | Number of similar documents to return (default: 5) |
+
+**Response:** `200 OK`
+
+```json
+{
+  "content_type": "sections",
+  "doc_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "similar_documents": [
+    {
+      "id": "c3d4e5f6-a7b8-4c5d-0e1f-2a3b4c5d6e7f",
+      "score": 0.87,
+      "title": "Variable Assignment",
+      "description": "Learn about assigning values to variables",
+      "content": "Assignment in Python uses the = operator...",
+      "content_type": "sections",
+      "metadata": {
+        "course_id": "e5e108bd-fc41-484f-b423-2e12c23585be",
+        "module_id": "f7e8d9c0-b1a2-4d5e-9f8a-7b6c5d4e3f2a"
+      }
+    }
+  ]
+}
+```
+
+**Example (curl):**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/search/similar \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content_type": "sections",
+    "doc_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "k": 5
+  }'
+```
+
+---
+
+### 3. Search Within Course
+
+Search for content within a specific course.
+
+**Endpoint:** `GET /api/v1/search/courses/{course_id}/search`
+
+**Authentication:** Required
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| course_id | UUID | Course UUID |
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| query | string | Yes | Search query text |
+| k | integer | No | Number of results (default: 10) |
+
+**Request Example:**
+
+```http
+GET /api/v1/search/courses/e5e108bd-fc41-484f-b423-2e12c23585be/search?query=loops&k=10
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "query": "loops",
+  "results": {
+    "modules": [
+      {
+        "id": "f7e8d9c0-b1a2-4d5e-9f8a-7b6c5d4e3f2a",
+        "score": 0.91,
+        "title": "Control Flow",
+        "description": "Learn about loops and conditionals",
+        "content": "Loops allow you to repeat code execution...",
+        "content_type": "modules",
+        "metadata": {
+          "course_id": "e5e108bd-fc41-484f-b423-2e12c23585be"
+        }
+      }
+    ],
+    "sections": [
+      {
+        "id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+        "score": 0.95,
+        "title": "For Loops",
+        "description": "Understanding for loops in Python",
+        "content": "For loops iterate over sequences...",
+        "content_type": "sections",
+        "metadata": {
+          "course_id": "e5e108bd-fc41-484f-b423-2e12c23585be",
+          "module_id": "f7e8d9c0-b1a2-4d5e-9f8a-7b6c5d4e3f2a"
+        }
+      }
+    ]
+  },
+  "total_results": 8,
+  "search_time_ms": 156.3
+}
+```
+
+**Example (curl):**
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/search/courses/e5e108bd-fc41-484f-b423-2e12c23585be/search?query=loops&k=10" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+---
+
+### 4. Index Document
+
+Index a single document in OpenSearch (Admin/Teacher only).
+
+**Endpoint:** `POST /api/v1/search/index`
+
+**Authentication:** Required (teacher or admin)
+
+**Request Body:**
+
+```json
+{
+  "content_type": "sections",
+  "doc_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| content_type | string | Yes | Type: courses, modules, sections, knowledge_points |
+| doc_id | string | Yes | UUID of the document to index |
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "doc_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  "content_type": "sections",
+  "message": "Document indexed successfully"
+}
+```
+
+**Example (curl):**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/search/index \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content_type": "sections",
+    "doc_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d"
+  }'
+```
+
+**Error Responses:**
+
+```json
+// 403 - Insufficient permissions
+{
+  "detail": "Not enough permissions"
+}
+
+// 400 - Invalid content type
+{
+  "detail": "Invalid content type: invalid_type"
+}
+```
+
+---
+
+### 5. Reindex All Content
+
+Reindex all content in OpenSearch (Admin only).
+
+**Endpoint:** `POST /api/v1/search/reindex`
+
+**Authentication:** Required (admin only)
+
+**Request Body:**
+
+```json
+{
+  "content_types": ["courses", "modules", "sections", "knowledge_points"]
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| content_types | array | No | Types to reindex (default: all) |
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "counts": {
+    "courses": 15,
+    "modules": 45,
+    "sections": 180,
+    "knowledge_points": 520
+  },
+  "total_indexed": 760
+}
+```
+
+**Example (curl):**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/search/reindex \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+**Note:** This is a long-running operation that may take several minutes depending on the amount of content.
+
+**Error Responses:**
+
+```json
+// 403 - Insufficient permissions
+{
+  "detail": "Not enough permissions"
+}
+
+// 500 - Reindexing failed
+{
+  "detail": "Reindexing failed: Database connection error"
+}
+```
+
+---
+
+### 6. Health Check
+
+Check OpenSearch cluster health (Admin only).
+
+**Endpoint:** `GET /api/v1/search/health`
+
+**Authentication:** Required (admin only)
+
+**Response:** `200 OK`
+
+```json
+{
+  "opensearch_status": "green",
+  "cluster_name": "opensearch-cluster",
+  "number_of_nodes": 1,
+  "active_shards": 4,
+  "indices": {
+    "courses": true,
+    "modules": true,
+    "sections": true,
+    "knowledge_points": true
+  }
+}
+```
+
+**Status Values:**
+
+| Status | Description |
+|--------|-------------|
+| green | All shards allocated, cluster fully operational |
+| yellow | All primary shards allocated, some replicas not allocated |
+| red | Some primary shards not allocated, cluster partially operational |
+
+**Example (curl):**
+
+```bash
+curl -X GET http://localhost:8000/api/v1/search/health \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Error Responses:**
+
+```json
+// 403 - Insufficient permissions
+{
+  "detail": "Not enough permissions"
+}
+
+// 500 - Health check failed
+{
+  "detail": "Health check failed: Unable to connect to OpenSearch"
+}
+```
+
+---
+
+### 7. Initialize Indices
+
+Initialize OpenSearch indices (Admin only).
+
+**Endpoint:** `POST /api/v1/search/initialize`
+
+**Authentication:** Required (admin only)
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "indices": {
+    "courses": true,
+    "modules": true,
+    "sections": true,
+    "knowledge_points": true
+  }
+}
+```
+
+**Example (curl):**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/search/initialize \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Note:** This endpoint creates all required indices with proper mappings if they don't already exist. It's safe to call multiple times.
+
+**Error Responses:**
+
+```json
+// 403 - Insufficient permissions
+{
+  "detail": "Not enough permissions"
+}
+
+// 500 - Initialization failed
+{
+  "detail": "Failed to initialize indices: Mapping error"
+}
+```
+
+---
+
+## Search Features
+
+### Semantic Search
+
+The search system uses vector embeddings to understand the semantic meaning of queries:
+
+- **Vector Search**: Uses sentence transformers to find conceptually similar content
+- **Text Search**: Traditional keyword matching for exact terms
+- **Hybrid Search**: Combines both approaches for best results
+
+### Search Filters
+
+Apply filters to narrow down search results:
+
+```json
+{
+  "filters": {
+    "metadata.level": "beginner",
+    "metadata.course_id": "e5e108bd-fc41-484f-b423-2e12c23585be",
+    "metadata.difficulty_level": "intermediate"
+  }
+}
+```
+
+### Content Types
+
+Search across different content types:
+
+- **courses**: Course titles, descriptions
+- **modules**: Module titles, descriptions
+- **sections**: Section content, titles
+- **knowledge_points**: Knowledge point content, descriptions
+
+### Scoring
+
+Results are ranked by relevance score (0.0 to 1.0):
+
+| Score Range | Relevance |
+|-------------|-----------|
+| 0.9 - 1.0 | Highly relevant |
+| 0.7 - 0.9 | Very relevant |
+| 0.5 - 0.7 | Relevant |
+| 0.3 - 0.5 | Somewhat relevant |
+| < 0.3 | Low relevance |
 
 ---
 

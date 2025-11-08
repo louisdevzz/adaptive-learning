@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from api.dependencies import RequireTeacher, get_current_user
@@ -11,18 +11,29 @@ from core.database import get_db
 from models.user import User
 from schemas.course_schema import CourseCreate, CourseResponse, CourseUpdate, CourseWithModules
 from services.course_service import CourseService
+from utils.background_tasks import (
+    index_course_background,
+    update_course_index_background,
+    delete_from_index_background,
+)
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
 
 @router.post("/", response_model=CourseResponse, dependencies=[RequireTeacher])
-def create_course(
+async def create_course(
     course_data: CourseCreate,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Create a new course (teacher/admin only)."""
     service = CourseService(db)
-    return service.create_course(course_data)
+    course = service.create_course(course_data)
+    
+    # Index course in OpenSearch in background
+    background_tasks.add_task(index_course_background, db, str(course.id))
+    
+    return course
 
 
 @router.get("/", response_model=list[CourseResponse])
@@ -40,8 +51,7 @@ def list_courses(
 @router.get("/slug/{slug}", response_model=CourseWithModules)
 def get_course_by_slug(
     slug: str,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
 ):
     """Get course details by slug with modules."""
     service = CourseService(db)
@@ -60,24 +70,36 @@ def get_course(
 
 
 @router.put("/{course_id}", response_model=CourseResponse, dependencies=[RequireTeacher])
-def update_course(
+async def update_course(
     course_id: UUID,
     course_data: CourseUpdate,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Update a course (teacher/admin only)."""
     service = CourseService(db)
-    return service.update_course(course_id, course_data)
+    course = service.update_course(course_id, course_data)
+    
+    # Update course in OpenSearch in background
+    background_tasks.add_task(update_course_index_background, db, str(course.id))
+    
+    return course
 
 
 @router.delete("/{course_id}", dependencies=[RequireTeacher])
-def delete_course(
+async def delete_course(
     course_id: UUID,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Delete a course (teacher/admin only)."""
     service = CourseService(db)
-    return service.delete_course(course_id)
+    result = service.delete_course(course_id)
+    
+    # Delete course from OpenSearch in background
+    background_tasks.add_task(delete_from_index_background, "courses", str(course_id))
+    
+    return result
 
 
 @router.get("/search/", response_model=list[CourseResponse])

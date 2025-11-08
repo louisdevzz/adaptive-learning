@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -30,6 +30,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @limiter.limit(RateLimits.AUTH_REGISTER)
 def register(
     request: Request,
+    response: Response,
     user_data: UserRegister,
     db: Annotated[Session, Depends(get_db)],
 ):
@@ -53,6 +54,7 @@ def register(
 @limiter.limit(RateLimits.AUTH_LOGIN)
 def login(
     request: Request,
+    response: Response,
     login_data: UserLogin,
     db: Annotated[Session, Depends(get_db)],
 ):
@@ -76,6 +78,7 @@ def login(
 @limiter.limit(RateLimits.AUTH_GOOGLE)
 def google_login(
     request: Request,
+    response: Response,
     google_data: GoogleLogin,
     db: Annotated[Session, Depends(get_db)],
 ):
@@ -158,6 +161,7 @@ def logout(
 @limiter.limit("3/hour")  # Very restrictive - logout from all devices is sensitive
 def logout_all_devices(
     request: Request,
+    response: Response,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -170,6 +174,7 @@ def logout_all_devices(
     
     Args:
         request: Request object (required for rate limiting)
+        response: Response object (required for rate limiting)
         current_user: Current authenticated user
         
     Returns:
