@@ -42,7 +42,7 @@ class ErrorMessages:
     VALIDATION_LIMIT_NEGATIVE: Final[str] = "Page limit must be non-negative"
     VALIDATION_USERNAME_INVALID: Final[str] = "Username must contain only letters, numbers, underscores, or hyphens"
     VALIDATION_PASSWORD_LENGTH_MIN: Final[str] = "Password must be at least 8 characters long"
-    VALIDATION_PASSWORD_LENGTH_MAX: Final[str] = "Password must not exceed 100 characters"
+    VALIDATION_PASSWORD_LENGTH_MAX: Final[str] = "Password must not exceed 72 characters"
     VALIDATION_PASSWORD_UPPERCASE: Final[str] = "Password must contain at least one uppercase letter"
     VALIDATION_PASSWORD_LOWERCASE: Final[str] = "Password must contain at least one lowercase letter"
     VALIDATION_PASSWORD_DIGIT: Final[str] = "Password must contain at least one digit"

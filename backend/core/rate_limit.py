@@ -71,14 +71,47 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
     )
 
 
-# Create limiter instance
-limiter = Limiter(
-    key_func=get_client_identifier,
-    default_limits=[f"{settings.RATE_LIMIT_PER_MINUTE}/minute"],
-    storage_uri=settings.REDIS_URL,
-    strategy="fixed-window",
-    headers_enabled=True,
-)
+# Create limiter instance with error handling
+try:
+    limiter = Limiter(
+        key_func=get_client_identifier,
+        default_limits=[f"{settings.RATE_LIMIT_PER_MINUTE}/minute"],
+        storage_uri=settings.REDIS_URL,
+        strategy="fixed-window",
+        headers_enabled=True,
+        swallow_errors=not settings.DEBUG,  # Swallow errors in production
+    )
+    logger.info(f"✓ Rate limiter initialized with Redis storage: {settings.REDIS_URL}")
+except Exception as e:
+    logger.error(f"Failed to initialize rate limiter with Redis: {e}")
+    
+    # Fallback to in-memory storage
+    if settings.DEBUG:
+        # In development, use in-memory storage
+        logger.warning("⚠ Using in-memory rate limiting (development mode)")
+        limiter = Limiter(
+            key_func=get_client_identifier,
+            default_limits=[f"{settings.RATE_LIMIT_PER_MINUTE}/minute"],
+            storage_uri="memory://",
+            strategy="fixed-window",
+            headers_enabled=True,
+            swallow_errors=True,
+        )
+    else:
+        # In production, disable rate limiting if Redis is unavailable
+        # This is safer than using in-memory (which doesn't work in multi-process/multi-server setups)
+        logger.critical(
+            "⚠ Redis unavailable in production - Rate limiting DISABLED. "
+            "This is a security risk. Please fix Redis connection immediately!"
+        )
+        limiter = Limiter(
+            key_func=get_client_identifier,
+            default_limits=[],  # No limits - effectively disabled
+            storage_uri="memory://",
+            strategy="fixed-window",
+            headers_enabled=False,
+            swallow_errors=True,
+        )
 
 
 # Rate limit configurations for different endpoint types

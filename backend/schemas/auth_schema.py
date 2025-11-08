@@ -22,7 +22,12 @@ class UserRegister(BaseModel):
 
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(
+        ..., 
+        min_length=8, 
+        max_length=72,  # Bcrypt truncates at 72 bytes
+        description="Password (8-72 characters). Bcrypt hashing truncates at 72 bytes."
+    )
     full_name: str = Field(..., min_length=1, max_length=255)
     role: str = Field(default="student")
 
@@ -52,9 +57,11 @@ class UserRegister(BaseModel):
         if len(v) < 8:
             raise ValueError(errors.VALIDATION_PASSWORD_LENGTH_MIN)
         
-        # Check maximum length
-        if len(v) > 100:
-            raise ValueError(errors.VALIDATION_PASSWORD_LENGTH_MAX)
+        # Check maximum length (bcrypt limitation)
+        if len(v) > 72:
+            raise ValueError(
+                "Password must not exceed 72 characters (bcrypt limitation)"
+            )
         
         # Check for at least one uppercase letter
         if not any(c.isupper() for c in v):
@@ -141,7 +148,12 @@ class PasswordChange(BaseModel):
     """Schema for password change."""
 
     current_password: str
-    new_password: str = Field(..., min_length=8, max_length=100)
+    new_password: str = Field(
+        ..., 
+        min_length=8, 
+        max_length=72,  # Bcrypt truncates at 72 bytes
+        description="New password (8-72 characters)"
+    )
 
     @field_validator("new_password")
     @classmethod
@@ -155,9 +167,11 @@ class PasswordChange(BaseModel):
         if len(v) < 8:
             raise ValueError(errors.VALIDATION_PASSWORD_LENGTH_MIN)
         
-        # Check maximum length
-        if len(v) > 100:
-            raise ValueError(errors.VALIDATION_PASSWORD_LENGTH_MAX)
+        # Check maximum length (bcrypt limitation)
+        if len(v) > 72:
+            raise ValueError(
+                "Password must not exceed 72 characters (bcrypt limitation)"
+            )
         
         # Check for at least one uppercase letter
         if not any(c.isupper() for c in v):
@@ -193,7 +207,12 @@ class PasswordResetConfirm(BaseModel):
     """Schema for password reset confirmation."""
 
     token: str
-    new_password: str = Field(..., min_length=8, max_length=100)
+    new_password: str = Field(
+        ..., 
+        min_length=8, 
+        max_length=72,  # Bcrypt truncates at 72 bytes
+        description="New password (8-72 characters)"
+    )
 
     @field_validator("new_password")
     @classmethod
@@ -207,9 +226,11 @@ class PasswordResetConfirm(BaseModel):
         if len(v) < 8:
             raise ValueError(errors.VALIDATION_PASSWORD_LENGTH_MIN)
         
-        # Check maximum length
-        if len(v) > 100:
-            raise ValueError(errors.VALIDATION_PASSWORD_LENGTH_MAX)
+        # Check maximum length (bcrypt limitation)
+        if len(v) > 72:
+            raise ValueError(
+                "Password must not exceed 72 characters (bcrypt limitation)"
+            )
         
         # Check for at least one uppercase letter
         if not any(c.isupper() for c in v):

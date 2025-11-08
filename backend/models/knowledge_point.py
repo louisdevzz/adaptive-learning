@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -38,10 +39,12 @@ class KnowledgePoint(Base):
     difficulty: Mapped[str | None] = mapped_column(
         String(50), nullable=True
     )  # easy, medium, hard
-    prerequisites: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )  # JSON array of prerequisite KP IDs
-    tags: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of tags
+    prerequisites: Mapped[list[str] | None] = mapped_column(
+        JSON, nullable=True
+    )  # JSON array of prerequisite KP IDs (UUIDs as strings)
+    tags: Mapped[list[str] | None] = mapped_column(
+        JSON, nullable=True
+    )  # JSON array of tags for categorization
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

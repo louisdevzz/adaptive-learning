@@ -44,7 +44,7 @@ class AuthService:
         existing_user = self.user_repo.get_by_email(user_data.email)
         if existing_user:
             logger.warning(
-                f"Registration attempt with existing email: {user_data.email}"
+                "Registration attempt with existing email "
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -75,7 +75,7 @@ class AuthService:
         )
 
         logger.info(
-            f"New user registered: {user.id} ({user.email}), role: {user.role.value}"
+            f"New user registered: user_id={user.id}, role={user.role.value}"
         )
 
         # Generate tokens
@@ -103,7 +103,7 @@ class AuthService:
         user = self.user_repo.get_by_email(login_data.email)
         if not user:
             logger.warning(
-                f"Failed login attempt: User not found for email {login_data.email}"
+                "Failed login attempt: User not found"
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -113,7 +113,7 @@ class AuthService:
         # Check if user has a password (not OAuth-only user)
         if not user.hashed_password:
             logger.warning(
-                f"Failed login attempt: OAuth-only account tried password login ({login_data.email})"
+                "Failed login attempt: OAuth-only account tried password login"
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -123,7 +123,7 @@ class AuthService:
         # Verify password
         if not verify_password(login_data.password, user.hashed_password):
             logger.warning(
-                f"Failed login attempt: Invalid password for user {user.id} ({login_data.email})"
+                f"Failed login attempt: Invalid password for user_id={user.id}"
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -143,7 +143,7 @@ class AuthService:
         # Update last login
         self.user_repo.update_last_login(user.id)
 
-        logger.info(f"Successful login: user {user.id} ({user.email})")
+        logger.info(f"Successful login: user_id={user.id}")
 
         # Generate tokens
         tokens = create_token_pair(user.id, user.email, user.role.value)
@@ -159,7 +159,7 @@ class AuthService:
 
         Args:
             google_data: Google login data with token
-            google_user_info: User info from Google (should be validated before calling)
+            google_user_info: User info from Google
 
         Returns:
             Dict with user info and tokens
@@ -179,7 +179,7 @@ class AuthService:
             if user:
                 # Link Google account to existing user
                 logger.info(
-                    f"Linking Google account {google_id} to existing user {user.id} ({email})"
+                    f"Linking Google account to existing user_id={user.id}"
                 )
                 user.google_id = google_id
                 user.profile_picture = profile_picture
@@ -225,8 +225,8 @@ class AuthService:
                 )
 
                 logger.info(
-                    f"New Google OAuth user registered: {user.id} ({email}), "
-                    f"username: {username}, role: {default_role.value}"
+                    f"New Google OAuth user registered: user_id={user.id}, "
+                    f"role={default_role.value}"
                 )
 
         # Check if user is active
@@ -242,7 +242,7 @@ class AuthService:
         # Update last login
         self.user_repo.update_last_login(user.id)
 
-        logger.info(f"Successful Google OAuth login: user {user.id} ({email})")
+        logger.info(f"Successful Google OAuth login: user_id={user.id}")
 
         # Generate tokens
         tokens = create_token_pair(user.id, user.email, user.role.value)
