@@ -56,6 +56,18 @@ class TokenBlacklist:
             Redis key string
         """
         return f"blacklist:user:{user_id}:tokens"
+    
+    def _get_user_revocation_key(self, user_id: str) -> str:
+        """
+        Generate Redis key for user's revocation timestamp.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            Redis key string
+        """
+        return f"blacklist:user:{user_id}:revoked_at"
 
     def _get_token_expiry(self, token: str) -> Optional[int]:
         """
@@ -142,21 +154,35 @@ class TokenBlacklist:
             True if token is blacklisted, False otherwise
         """
         if not self.redis_client:
-            # If Redis is down, allow access (fail open)
-            # In production, you might want to fail closed instead
-            return False
+            # Security: Fail closed in production when Redis is unavailable
+            # This prevents bypassing token blacklist if Redis is down
+            if not settings.DEBUG:
+                logger.critical(
+                    "Redis unavailable in production - FAILING CLOSED for security. "
+                    "Token validation failed."
+                )
+                return True  # Treat as blacklisted to be safe
+            else:
+                # In development, allow access for easier testing
+                logger.warning("Redis unavailable in dev mode - allowing access (fail open)")
+                return False
 
         try:
             token_key = self._get_token_key(token)
             return self.redis_client.exists(token_key) > 0
         except redis.RedisError as e:
             logger.error(f"Failed to check token blacklist: {e}")
-            # Fail open - allow access if Redis is down
-            return False
+            # Fail closed in production for security
+            if not settings.DEBUG:
+                logger.critical("Redis error in production - FAILING CLOSED for security")
+                return True  # Treat as blacklisted to be safe
+            return False  # Fail open in development
 
     def blacklist_all_user_tokens(self, user_id: str) -> bool:
         """
         Blacklist all tokens for a user (useful for logout from all devices).
+        
+        Sets a revocation timestamp that invalidates all tokens issued before this time.
         
         Args:
             user_id: User ID
@@ -169,6 +195,16 @@ class TokenBlacklist:
             return False
 
         try:
+            # Set revocation timestamp to now
+            revocation_key = self._get_user_revocation_key(user_id)
+            revocation_time = datetime.now(timezone.utc).isoformat()
+            
+            # Store revocation timestamp with TTL equal to refresh token expiry
+            # This ensures even refresh tokens are eventually invalidated
+            ttl = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+            self.redis_client.setex(revocation_key, ttl, revocation_time)
+            
+            # Also blacklist individual tokens if tracked
             user_tokens_key = self._get_user_tokens_key(user_id)
             tokens = self.redis_client.smembers(user_tokens_key)
             
@@ -181,13 +217,105 @@ class TokenBlacklist:
                 # Delete the user's token set
                 self.redis_client.delete(user_tokens_key)
                 
-                logger.info(f"Blacklisted {len(tokens)} tokens for user {user_id}")
-                return True
+                logger.info(
+                    f"Revoked all tokens for user {user_id} at {revocation_time}. "
+                    f"Individually blacklisted {len(tokens)} tracked tokens."
+                )
+            else:
+                logger.info(f"Revoked all tokens for user {user_id} at {revocation_time}")
             
             return True
             
         except redis.RedisError as e:
             logger.error(f"Failed to blacklist user tokens: {e}")
+            return False
+    
+    def get_user_revocation_timestamp(self, user_id: str) -> Optional[datetime]:
+        """
+        Get the revocation timestamp for a user.
+        
+        Tokens issued before this timestamp are considered invalid.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            Revocation timestamp as datetime, or None if not revoked
+        """
+        if not self.redis_client:
+            return None
+        
+        try:
+            revocation_key = self._get_user_revocation_key(user_id)
+            timestamp_str = self.redis_client.get(revocation_key)
+            
+            if timestamp_str:
+                return datetime.fromisoformat(timestamp_str)
+            return None
+            
+        except (redis.RedisError, ValueError) as e:
+            logger.error(f"Failed to get user revocation timestamp: {e}")
+            return None
+    
+    def set_user_revocation_timestamp(
+        self, 
+        user_id: str, 
+        timestamp: Optional[datetime] = None
+    ) -> bool:
+        """
+        Set a revocation timestamp for a user.
+        
+        Args:
+            user_id: User ID
+            timestamp: Revocation timestamp (defaults to now if None)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.redis_client:
+            logger.warning("Redis not available, cannot set revocation timestamp")
+            return False
+        
+        try:
+            revocation_key = self._get_user_revocation_key(user_id)
+            
+            if timestamp is None:
+                timestamp = datetime.now(timezone.utc)
+            
+            timestamp_str = timestamp.isoformat()
+            
+            # Store with TTL equal to refresh token expiry
+            ttl = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+            self.redis_client.setex(revocation_key, ttl, timestamp_str)
+            
+            logger.info(f"Set revocation timestamp for user {user_id}: {timestamp_str}")
+            return True
+            
+        except redis.RedisError as e:
+            logger.error(f"Failed to set user revocation timestamp: {e}")
+            return False
+    
+    def clear_user_revocation(self, user_id: str) -> bool:
+        """
+        Clear the revocation timestamp for a user.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.redis_client:
+            return False
+        
+        try:
+            revocation_key = self._get_user_revocation_key(user_id)
+            self.redis_client.delete(revocation_key)
+            logger.info(f"Cleared revocation timestamp for user {user_id}")
+            return True
+            
+        except redis.RedisError as e:
+            logger.error(f"Failed to clear user revocation: {e}")
             return False
 
     def remove_from_blacklist(self, token: str) -> bool:

@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False
 
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str  # Validated below
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -77,12 +77,80 @@ class Settings(BaseSettings):
     # Roles
     ROLES: List[str] = ["admin", "teacher", "student", "parent"]
 
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        """
+        Validate SECRET_KEY meets security requirements.
+        
+        Requirements:
+        - Minimum 32 characters
+        - Not a common/default value
+        - Not empty or whitespace only
+        """
+        if not v or not v.strip():
+            raise ValueError(
+                "SECRET_KEY cannot be empty. "
+                "Generate a secure key using: openssl rand -hex 32"
+            )
+        
+        # Remove whitespace for length check
+        v = v.strip()
+        
+        if len(v) < 32:
+            raise ValueError(
+                f"SECRET_KEY must be at least 32 characters (got {len(v)}). "
+                "Generate a secure key using: openssl rand -hex 32"
+            )
+        
+        # Check for common/insecure defaults
+        insecure_keys = [
+            "your-secret-key-here",
+            "your-secret-key",
+            "secret",
+            "secretkey",
+            "mysecretkey",
+            "change-me",
+            "changeme",
+            "secret-key",
+            "my-secret-key",
+            "supersecret",
+            "12345678901234567890123456789012",  # Sequential numbers
+        ]
+        
+        if v.lower() in insecure_keys:
+            raise ValueError(
+                f"SECRET_KEY '{v}' is insecure. "
+                "Generate a secure key using: openssl rand -hex 32"
+            )
+        
+        # Warn if key appears to be a common pattern (optional, just log)
+        if v.lower().startswith(("test", "dev", "demo")) and len(v) < 40:
+            import logging
+            logging.warning(
+                f"SECRET_KEY appears to be a test/dev key. "
+                "Use a cryptographically secure key in production!"
+            )
+        
+        return v
+    
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> List[str]:
         """Parse CORS origins from string or list."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
+        return v
+    
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def validate_database_url(cls, v: PostgresDsn) -> PostgresDsn:
+        """Validate DATABASE_URL is properly configured."""
+        if not v:
+            raise ValueError(
+                "DATABASE_URL is required. "
+                "Example: postgresql://user:password@localhost:5432/dbname"
+            )
         return v
 
     @property
