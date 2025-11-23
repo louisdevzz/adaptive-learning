@@ -13,12 +13,14 @@ import {
 import { OverviewSkeleton, AnalyticsSkeleton } from './admin/AdminDashboardSkeleton';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { useAdminOverview } from '@/hooks/use-admin-data';
+import { ModuleManagement } from './admin/ModuleManagement';
+import { SectionManagement } from './admin/SectionManagement';
 
 export const AdminDashboard: React.FC = () => {
   const { profile } = useAuth();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'courses' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'courses' | 'modules' | 'sections' | 'analytics'>('overview');
   const [analyticsTimeRange, setAnalyticsTimeRange] = useState('30d');
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
@@ -138,6 +140,8 @@ export const AdminDashboard: React.FC = () => {
                 {activeTab === 'users' && 'Quản lý người dùng'}
                 {activeTab === 'courses' && 'Quản lý khóa học'}
                 {activeTab === 'analytics' && 'Phân tích'}
+                {activeTab === 'modules' && 'Quản lý chương'}
+                {activeTab === 'sections' && 'Quản lý bài học'}
               </span>
             </header>
             <main className="p-6 flex-1">
@@ -165,6 +169,19 @@ export const AdminDashboard: React.FC = () => {
               {activeTab === 'courses' && (
                 <CourseManagement
                   userStats={userStats || null}
+                  onDataChange={handleDataChange}
+                />
+              )}
+
+              {activeTab === 'modules' && (
+                <ModuleManagement
+                  userStats={userStats || null}
+                  onDataChange={handleDataChange}
+                />
+              )}
+
+              {activeTab === 'sections' && (
+                <SectionManagement
                   onDataChange={handleDataChange}
                 />
               )}

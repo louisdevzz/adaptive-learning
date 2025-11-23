@@ -4,6 +4,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { Chip } from '@heroui/chip';
 import { Button } from '@heroui/button';
 import { Input } from '@heroui/input';
+import { Progress } from '@heroui/progress';
 import {
   Dropdown,
   DropdownTrigger,
@@ -38,22 +39,21 @@ import {
   ToggleRight,
 } from 'lucide-react';
 import { DataTable } from '@/components/ui/DataTable';
-import { courseAPI } from '@/lib/api';
-import { useCourses } from '@/hooks/use-admin-data';
-import type { Course, DifficultyLevel, UserStats } from '@/types';
+import { moduleAPI } from '@/lib/api';
+import { useModules, useCourses } from '@/hooks/use-admin-data';
+import type { Module, Course, DifficultyLevel, UserStats } from '@/types';
 
-interface CourseListItem extends Course {
-  students_count?: number;
-  modules_count?: number;
-  completion_rate?: number;
+interface ModuleListItem extends Module {
+  sections_count?: number;
+  course_name?: string;
 }
 
-interface CourseManagementProps {
+interface ModuleManagementProps {
   userStats: UserStats | null;
   onDataChange?: () => void;
 }
 
-export const CourseManagement: React.FC<CourseManagementProps> = ({
+export const ModuleManagement: React.FC<ModuleManagementProps> = ({
   userStats,
   onDataChange,
 }) => {
@@ -61,12 +61,13 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel | ''>('');
   const [statusFilter, setStatusFilter] = useState<boolean | ''>('');
+  const [courseFilter, setCourseFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<CourseListItem | null>(null);
+  const [selectedModule, setSelectedModule] = useState<ModuleListItem | null>(null);
 
   // Loading states
   const [isCreating, setIsCreating] = useState(false);
@@ -75,51 +76,55 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
 
   const pageSize = 10;
 
-  // Use custom hook for courses data
-  const { data: coursesData, isLoading: coursesLoading, mutate } = useCourses();
+  // Use custom hooks for data
+  const { data: modulesData, isLoading: modulesLoading, mutate } = useModules();
+  const { data: coursesData } = useCourses();
 
   // Derived values
-  const courses = (coursesData?.items || []) as CourseListItem[];
-  const totalCourses = coursesData?.total || 0;
+  const modules = (modulesData?.items || []) as ModuleListItem[];
+  const totalModules = modulesData?.total || 0;
+  const courses = (coursesData?.items || []) as Course[];
 
-  // Filtered courses
-  const filteredCourses = useMemo(() => {
-    if (!courses) return [];
-    return courses.filter(course => {
+  // Filtered modules
+  const filteredModules = useMemo(() => {
+    if (!modules) return [];
+    return modules.filter(module => {
       const matchesSearch = searchQuery === '' ||
-        course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.code.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDifficulty = difficultyFilter === '' || course.difficulty_level === difficultyFilter;
-      const matchesStatus = statusFilter === '' || course.is_active === statusFilter;
-      return matchesSearch && matchesDifficulty && matchesStatus;
+        module.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesDifficulty = difficultyFilter === '' || module.difficulty_level === difficultyFilter;
+      const matchesStatus = statusFilter === '' || module.is_active === statusFilter;
+      const matchesCourse = courseFilter === '' || module.course_id === courseFilter;
+      return matchesSearch && matchesDifficulty && matchesStatus && matchesCourse;
     });
-  }, [courses, searchQuery, difficultyFilter, statusFilter]);
+  }, [modules, searchQuery, difficultyFilter, statusFilter, courseFilter]);
 
-  // Paginated courses
-  const paginatedCourses = useMemo(() => {
-    return filteredCourses.slice(
+  // Paginated modules
+  const paginatedModules = useMemo(() => {
+    return filteredModules.slice(
       (currentPage - 1) * pageSize,
       currentPage * pageSize
     );
-  }, [filteredCourses, currentPage]);
+  }, [filteredModules, currentPage]);
 
-  const totalPages = useMemo(() => Math.ceil(filteredCourses.length / pageSize), [filteredCourses.length]);
+  const totalPages = useMemo(() => Math.ceil(filteredModules.length / pageSize), [filteredModules.length]);
 
-  // Course stats
-  const courseStats = useMemo(() => ({
-    totalCourses: totalCourses,
-    activeCourses: courses?.filter(c => c.is_active).length || 0,
-    totalStudents: userStats?.total_students || 0,
-    avgCompletion: 65,
-  }), [totalCourses, courses, userStats?.total_students]);
+  // Module stats
+  const moduleStats = useMemo(() => ({
+    totalModules: totalModules,
+    activeModules: modules?.filter(m => m.is_active).length || 0,
+    totalCourses: courses?.length || 0,
+    avgEstimatedHours: modules?.length > 0
+      ? Math.round(modules.reduce((sum, m) => sum + (m.estimated_hours || 0), 0) / modules.length)
+      : 0,
+  }), [totalModules, modules, courses]);
 
   // Handlers
-  const handleCreateCourse = useCallback(async (data: {
+  const handleCreateModule = useCallback(async (data: {
     name: string;
     description: string;
-    code: string;
-    grade_level: number;
-    academic_year: number;
+    course_id: string;
+    module_number: number;
+    estimated_hours: number;
     difficulty_level: DifficultyLevel;
     is_active: boolean;
   }) => {
@@ -127,21 +132,21 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
       setIsCreating(true);
       addToast({
         title: 'Đang xử lý',
-        description: 'Đang tạo khóa học mới...',
+        description: 'Đang tạo chương mới...',
         color: 'primary',
       });
-      await courseAPI.createCourse(data);
+      await moduleAPI.createModule(data);
       addToast({
         title: 'Thành công',
-        description: `Đã tạo khóa học "${data.name}" thành công`,
+        description: `Đã tạo chương "${data.name}" thành công`,
         color: 'success',
       });
       setShowCreateModal(false);
       mutate();
       onDataChange?.();
     } catch (error) {
-      console.error('Failed to create course:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Không thể tạo khóa học';
+      console.error('Failed to create module:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể tạo chương';
       addToast({
         title: 'Lỗi',
         description: errorMessage,
@@ -152,36 +157,36 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     }
   }, [mutate, onDataChange]);
 
-  const handleUpdateCourse = useCallback(async (data: {
+  const handleUpdateModule = useCallback(async (data: {
     name: string;
     description: string;
-    code: string;
-    grade_level: number;
-    academic_year: number;
+    course_id: string;
+    module_number: number;
+    estimated_hours: number;
     difficulty_level: DifficultyLevel;
     is_active: boolean;
   }) => {
-    if (!selectedCourse) return;
+    if (!selectedModule) return;
     try {
       setIsUpdating(true);
       addToast({
         title: 'Đang xử lý',
-        description: 'Đang cập nhật khóa học...',
+        description: 'Đang cập nhật chương...',
         color: 'primary',
       });
-      await courseAPI.updateCourse(selectedCourse.id, data);
+      await moduleAPI.updateModule(selectedModule.id, data);
       addToast({
         title: 'Thành công',
-        description: `Đã cập nhật khóa học "${data.name}" thành công`,
+        description: `Đã cập nhật chương "${data.name}" thành công`,
         color: 'success',
       });
       setShowEditModal(false);
-      setSelectedCourse(null);
+      setSelectedModule(null);
       mutate();
       onDataChange?.();
     } catch (error) {
-      console.error('Failed to update course:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Không thể cập nhật khóa học';
+      console.error('Failed to update module:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể cập nhật chương';
       addToast({
         title: 'Lỗi',
         description: errorMessage,
@@ -190,29 +195,29 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [selectedCourse, mutate, onDataChange]);
+  }, [selectedModule, mutate, onDataChange]);
 
-  const handleDeleteCourse = useCallback(async (courseId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa khóa học này?')) return;
-    const course = courses.find(c => c.id === courseId);
+  const handleDeleteModule = useCallback(async (moduleId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa chương này?')) return;
+    const module = modules.find(m => m.id === moduleId);
     try {
       setIsDeleting(true);
       addToast({
         title: 'Đang xử lý',
-        description: 'Đang xóa khóa học...',
+        description: 'Đang xóa chương...',
         color: 'primary',
       });
-      await courseAPI.deleteCourse(courseId);
+      await moduleAPI.deleteModule(moduleId);
       addToast({
         title: 'Thành công',
-        description: `Đã xóa khóa học "${course?.name || ''}" thành công`,
+        description: `Đã xóa chương "${module?.name || ''}" thành công`,
         color: 'success',
       });
       mutate();
       onDataChange?.();
     } catch (error) {
-      console.error('Failed to delete course:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Không thể xóa khóa học';
+      console.error('Failed to delete module:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Không thể xóa chương';
       addToast({
         title: 'Lỗi',
         description: errorMessage,
@@ -221,80 +226,85 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     } finally {
       setIsDeleting(false);
     }
-  }, [courses, mutate, onDataChange]);
+  }, [modules, mutate, onDataChange]);
 
-  const handleToggleCourseStatus = useCallback(async (courseId: string) => {
+  const handleToggleModuleStatus = useCallback(async (moduleId: string) => {
     try {
-      const course = courses.find(c => c.id === courseId);
-      if (course) {
+      const module = modules.find(m => m.id === moduleId);
+      if (module) {
         addToast({
           title: 'Đang xử lý',
-          description: `Đang ${course.is_active ? 'tạm dừng' : 'kích hoạt'} khóa học...`,
+          description: `Đang ${module.is_active ? 'tạm dừng' : 'kích hoạt'} chương...`,
           color: 'primary',
         });
-        await courseAPI.updateCourse(courseId, { is_active: !course.is_active });
+        await moduleAPI.updateModule(moduleId, { is_active: !module.is_active });
         addToast({
           title: 'Thành công',
-          description: `Đã ${course.is_active ? 'tạm dừng' : 'kích hoạt'} khóa học "${course.name}"`,
+          description: `Đã ${module.is_active ? 'tạm dừng' : 'kích hoạt'} chương "${module.name}"`,
           color: 'success',
         });
         mutate();
         onDataChange?.();
       }
     } catch (error) {
-      console.error('Failed to toggle course status:', error);
+      console.error('Failed to toggle module status:', error);
       addToast({
         title: 'Lỗi',
-        description: 'Không thể thay đổi trạng thái khóa học',
+        description: 'Không thể thay đổi trạng thái chương',
         color: 'danger',
       });
     }
-  }, [courses, mutate, onDataChange]);
+  }, [modules, mutate, onDataChange]);
 
-  const handleViewCourse = useCallback((courseId: string) => {
-    window.location.href = `/courses/${courseId}`;
+  const handleViewModule = useCallback((moduleId: string) => {
+    window.location.href = `/modules/${moduleId}`;
   }, []);
 
-  const handleDuplicateCourse = useCallback(async (courseId: string) => {
+  const handleDuplicateModule = useCallback(async (moduleId: string) => {
     try {
-      const course = courses.find(c => c.id === courseId);
-      if (course) {
+      const module = modules.find(m => m.id === moduleId);
+      if (module) {
         addToast({
           title: 'Đang xử lý',
-          description: 'Đang nhân bản khóa học...',
+          description: 'Đang nhân bản chương...',
           color: 'primary',
         });
-        await courseAPI.createCourse({
-          name: `${course.name} (Copy)`,
-          description: course.description,
-          code: `${course.code}-COPY`,
-          grade_level: course.grade_level,
-          academic_year: course.academic_year,
-          difficulty_level: course.difficulty_level,
+        await moduleAPI.createModule({
+          name: `${module.name} (Copy)`,
+          description: module.description,
+          course_id: module.course_id,
+          module_number: module.module_number + 100,
+          estimated_hours: module.estimated_hours,
+          difficulty_level: module.difficulty_level,
           is_active: false,
         });
         addToast({
           title: 'Thành công',
-          description: `Đã nhân bản khóa học "${course.name}"`,
+          description: `Đã nhân bản chương "${module.name}"`,
           color: 'success',
         });
         mutate();
         onDataChange?.();
       }
     } catch (error) {
-      console.error('Failed to duplicate course:', error);
+      console.error('Failed to duplicate module:', error);
       addToast({
         title: 'Lỗi',
-        description: 'Không thể nhân bản khóa học',
+        description: 'Không thể nhân bản chương',
         color: 'danger',
       });
     }
-  }, [courses, mutate, onDataChange]);
+  }, [modules, mutate, onDataChange]);
 
-  const openEditModal = useCallback((course: CourseListItem) => {
-    setSelectedCourse(course);
+  const openEditModal = useCallback((module: ModuleListItem) => {
+    setSelectedModule(module);
     setShowEditModal(true);
   }, []);
+
+  const getCourseName = useCallback((courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    return course?.name || 'N/A';
+  }, [courses]);
 
   const getDifficultyColor = (level: DifficultyLevel): "primary" | "success" | "warning" | "danger" | "default" => {
     const colors: Record<DifficultyLevel, "primary" | "success" | "warning" | "danger" | "default"> = {
@@ -318,16 +328,23 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     return labels[level] || 'N/A';
   };
 
-  const columns: ColumnDef<CourseListItem>[] = useMemo(
+  const columns: ColumnDef<ModuleListItem>[] = useMemo(
     () => [
       {
         accessorKey: 'name',
-        header: 'Khóa học',
+        header: 'Chương',
         cell: ({ row }) => (
           <div className="flex flex-col">
             <span className="font-medium text-gray-900">{row.original.name}</span>
-            <span className="text-sm text-gray-500">{row.original.code}</span>
+            <span className="text-sm text-gray-500">#{row.original.module_number}</span>
           </div>
+        ),
+      },
+      {
+        accessorKey: 'course_id',
+        header: 'Khóa học',
+        cell: ({ row }) => (
+          <span className="text-gray-600">{getCourseName(row.original.course_id)}</span>
         ),
       },
       {
@@ -344,20 +361,10 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
         ),
       },
       {
-        accessorKey: 'modules_count',
-        header: 'Chương',
+        accessorKey: 'estimated_hours',
+        header: 'Thời lượng',
         cell: ({ row }) => (
-          <span className="text-gray-600">{row.original.modules_count || 0}</span>
-        ),
-      },
-      {
-        accessorKey: 'students_count',
-        header: 'Học sinh',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1">
-            <Users className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-600">{row.original.students_count || 0}</span>
-          </div>
+          <span className="text-gray-600">{row.original.estimated_hours || 0}h</span>
         ),
       },
       {
@@ -392,11 +399,11 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                 <MoreVertical className="w-4 h-4 text-gray-600" />
               </Button>
             </DropdownTrigger>
-            <DropdownMenu aria-label="Course actions">
+            <DropdownMenu aria-label="Module actions">
               <DropdownItem
                 key="view"
                 startContent={<Eye className="w-4 h-4" />}
-                onPress={() => handleViewCourse(row.original.id)}
+                onPress={() => handleViewModule(row.original.id)}
               >
                 Xem chi tiết
               </DropdownItem>
@@ -410,14 +417,14 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               <DropdownItem
                 key="duplicate"
                 startContent={<Copy className="w-4 h-4" />}
-                onPress={() => handleDuplicateCourse(row.original.id)}
+                onPress={() => handleDuplicateModule(row.original.id)}
               >
                 Nhân bản
               </DropdownItem>
               <DropdownItem
                 key="toggle"
                 startContent={row.original.is_active ? <ToggleLeft className="w-4 h-4" /> : <ToggleRight className="w-4 h-4" />}
-                onPress={() => handleToggleCourseStatus(row.original.id)}
+                onPress={() => handleToggleModuleStatus(row.original.id)}
               >
                 {row.original.is_active ? 'Tạm dừng' : 'Kích hoạt'}
               </DropdownItem>
@@ -425,7 +432,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                 key="delete"
                 color="danger"
                 startContent={<Trash2 className="w-4 h-4" />}
-                onPress={() => handleDeleteCourse(row.original.id)}
+                onPress={() => handleDeleteModule(row.original.id)}
               >
                 Xóa
               </DropdownItem>
@@ -434,7 +441,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
         ),
       },
     ],
-    [handleViewCourse, openEditModal, handleDuplicateCourse, handleToggleCourseStatus, handleDeleteCourse]
+    [handleViewModule, openEditModal, handleDuplicateModule, handleToggleModuleStatus, handleDeleteModule, getCourseName]
   );
 
   return (
@@ -447,8 +454,8 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               <BookOpen className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{courseStats.totalCourses}</p>
-              <p className="text-gray-600 text-sm">Tổng khóa học</p>
+              <p className="text-2xl font-bold text-gray-900">{moduleStats.totalModules}</p>
+              <p className="text-gray-600 text-sm">Tổng chương</p>
             </div>
           </div>
         </div>
@@ -458,7 +465,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               <GraduationCap className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-600">{courseStats.activeCourses}</p>
+              <p className="text-2xl font-bold text-green-600">{moduleStats.activeModules}</p>
               <p className="text-gray-600 text-sm">Đang hoạt động</p>
             </div>
           </div>
@@ -469,8 +476,8 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               <Users className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-indigo-600">{courseStats.totalStudents}</p>
-              <p className="text-gray-600 text-sm">Tổng học sinh</p>
+              <p className="text-2xl font-bold text-indigo-600">{moduleStats.totalCourses}</p>
+              <p className="text-gray-600 text-sm">Tổng khóa học</p>
             </div>
           </div>
         </div>
@@ -480,20 +487,20 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               <BarChart3 className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-purple-600">{courseStats.avgCompletion}%</p>
-              <p className="text-gray-600 text-sm">Hoàn thành TB</p>
+              <p className="text-2xl font-bold text-purple-600">{moduleStats.avgEstimatedHours}h</p>
+              <p className="text-gray-600 text-sm">Thời lượng TB</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Course Table */}
+      {/* Module Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-gray-600" />
-              Danh sách khóa học
+              Danh sách chương
             </h3>
             <Button
               color="danger"
@@ -501,7 +508,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               startContent={<Plus className="w-4 h-4" />}
               onPress={() => setShowCreateModal(true)}
             >
-              Tạo khóa học
+              Tạo chương
             </Button>
           </div>
 
@@ -510,7 +517,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
             <Input
               isClearable
               className="flex-1"
-              placeholder="Tìm kiếm theo tên hoặc mã khóa học..."
+              placeholder="Tìm kiếm theo tên chương..."
               startContent={<Search className="w-4 h-4 text-gray-400" />}
               value={searchQuery}
               onValueChange={(value) => {
@@ -519,6 +526,31 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               }}
               onClear={() => setSearchQuery('')}
             />
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  variant="flat"
+                  endContent={<ChevronDown className="w-4 h-4" />}
+                >
+                  {courseFilter ? getCourseName(courseFilter) : 'Tất cả khóa học'}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Course filter"
+                selectionMode="single"
+                selectedKeys={courseFilter ? [courseFilter] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string | undefined;
+                  setCourseFilter(selected || '');
+                  setCurrentPage(1);
+                }}
+                items={[{ id: '', name: 'Tất cả khóa học' }, ...courses]}
+              >
+                {(item) => (
+                  <DropdownItem key={item.id}>{item.name}</DropdownItem>
+                )}
+              </DropdownMenu>
+            </Dropdown>
             <Dropdown>
               <DropdownTrigger>
                 <Button
@@ -535,6 +567,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                 onSelectionChange={(keys) => {
                   const selected = Array.from(keys)[0] as string | undefined;
                   setDifficultyFilter(selected ? (parseInt(selected) as DifficultyLevel) : '');
+                  setCurrentPage(1);
                 }}
               >
                 <DropdownItem key="">Tất cả độ khó</DropdownItem>
@@ -565,6 +598,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                   } else {
                     setStatusFilter(selected === 'true');
                   }
+                  setCurrentPage(1);
                 }}
               >
                 <DropdownItem key="">Tất cả trạng thái</DropdownItem>
@@ -577,101 +611,103 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
 
         <div className="p-4">
           <DataTable
-            data={paginatedCourses}
+            data={paginatedModules}
             columns={columns}
-            isLoading={coursesLoading}
+            isLoading={modulesLoading}
             pagination={{
               pageIndex: currentPage - 1,
               pageSize,
               pageCount: totalPages,
-              total: filteredCourses.length,
+              total: filteredModules.length,
               onPageChange: setCurrentPage,
             }}
-            emptyContent="Không tìm thấy khóa học nào"
+            emptyContent="Không tìm thấy chương nào"
             removeWrapper
           />
         </div>
       </div>
 
       {/* Modals */}
-      <CreateCourseModal
+      <CreateModuleModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSubmit={handleCreateCourse}
+        onSubmit={handleCreateModule}
         isLoading={isCreating}
+        courses={courses}
       />
 
-      <EditCourseModal
+      <EditModuleModal
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
-          setSelectedCourse(null);
+          setSelectedModule(null);
         }}
-        onSubmit={handleUpdateCourse}
-        course={selectedCourse}
+        onSubmit={handleUpdateModule}
+        module={selectedModule}
         isLoading={isUpdating}
+        courses={courses}
       />
     </div>
   );
 };
 
-// Course Modal Components
-interface CourseFormData {
+// Module Modal Components
+interface ModuleFormData {
   name: string;
   description: string;
-  code: string;
-  grade_level: number;
-  academic_year: number;
+  course_id: string;
+  module_number: number;
+  estimated_hours: number;
   difficulty_level: DifficultyLevel;
   is_active: boolean;
 }
 
-interface CreateCourseModalProps {
+interface CreateModuleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CourseFormData) => void;
+  onSubmit: (data: ModuleFormData) => void;
   isLoading?: boolean;
+  courses: Course[];
 }
 
-export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
+export const CreateModuleModal: React.FC<CreateModuleModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   isLoading,
+  courses,
 }) => {
-  const [formData, setFormData] = React.useState<CourseFormData>({
+  const [formData, setFormData] = React.useState<ModuleFormData>({
     name: '',
     description: '',
-    code: '',
-    grade_level: 10,
-    academic_year: new Date().getFullYear(),
+    course_id: '',
+    module_number: 1,
+    estimated_hours: 1,
     difficulty_level: 3,
     is_active: true,
   });
 
-  const [errors, setErrors] = React.useState<Partial<Record<keyof CourseFormData, string>>>({});
+  const [errors, setErrors] = React.useState<Partial<Record<keyof ModuleFormData, string>>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof CourseFormData, string>> = {};
+    const newErrors: Partial<Record<keyof ModuleFormData, string>> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Tên khóa học là bắt buộc';
+      newErrors.name = 'Tên chương là bắt buộc';
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Tên khóa học phải có ít nhất 3 ký tự';
+      newErrors.name = 'Tên chương phải có ít nhất 3 ký tự';
     }
 
-    if (!formData.code.trim()) {
-      newErrors.code = 'Mã khóa học là bắt buộc';
-    } else if (!/^[A-Za-z0-9-_]+$/.test(formData.code)) {
-      newErrors.code = 'Mã khóa học chỉ được chứa chữ cái, số, gạch ngang và gạch dưới';
+    if (!formData.course_id) {
+      newErrors.course_id = 'Vui lòng chọn khóa học';
     }
 
-    if (formData.grade_level < 1 || formData.grade_level > 12) {
-      newErrors.grade_level = 'Khối lớp phải từ 1 đến 12';
+    if (formData.module_number < 1) {
+      newErrors.module_number = 'Số thứ tự phải lớn hơn 0';
     }
 
-    if (formData.academic_year < 2000 || formData.academic_year > 2100) {
-      newErrors.academic_year = 'Năm học không hợp lệ';
+    if (formData.estimated_hours < 0) {
+      newErrors.estimated_hours = 'Thời lượng không hợp lệ';
     }
 
     setErrors(newErrors);
@@ -690,9 +726,9 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
       setFormData({
         name: '',
         description: '',
-        code: '',
-        grade_level: 10,
-        academic_year: new Date().getFullYear(),
+        course_id: '',
+        module_number: 1,
+        estimated_hours: 1,
         difficulty_level: 3,
         is_active: true,
       });
@@ -703,12 +739,12 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalContent>
-        <ModalHeader>Tạo khóa học mới</ModalHeader>
+        <ModalHeader>Tạo chương mới</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Input
-              label="Tên khóa học"
-              placeholder="Nhập tên khóa học"
+              label="Tên chương"
+              placeholder="Nhập tên chương"
               value={formData.name}
               onValueChange={(value) => {
                 setFormData({ ...formData, name: value });
@@ -718,48 +754,53 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
               isInvalid={!!errors.name}
               errorMessage={errors.name}
             />
-            <Input
-              label="Mã khóa học"
-              placeholder="VD: MATH-10-2024"
-              value={formData.code}
-              onValueChange={(value) => {
-                setFormData({ ...formData, code: value });
-                if (errors.code) setErrors({ ...errors, code: undefined });
+            <Select
+              label="Khóa học"
+              placeholder="Chọn khóa học"
+              selectedKeys={formData.course_id ? [formData.course_id] : []}
+              onSelectionChange={(keys) => {
+                const value = Array.from(keys)[0] as string;
+                setFormData({ ...formData, course_id: value });
+                if (errors.course_id) setErrors({ ...errors, course_id: undefined });
               }}
               isRequired
-              isInvalid={!!errors.code}
-              errorMessage={errors.code}
-            />
+              isInvalid={!!errors.course_id}
+              errorMessage={errors.course_id}
+            >
+              {courses.map(course => (
+                <SelectItem key={course.id}>{course.name}</SelectItem>
+              ))}
+            </Select>
             <Textarea
               label="Mô tả"
-              placeholder="Nhập mô tả khóa học"
+              placeholder="Nhập mô tả chương"
               value={formData.description}
               onValueChange={(value) => setFormData({ ...formData, description: value })}
             />
             <div className="grid grid-cols-2 gap-4">
               <Input
                 type="number"
-                label="Khối lớp"
-                placeholder="10"
-                value={formData.grade_level.toString()}
+                label="Số thứ tự"
+                placeholder="1"
+                value={formData.module_number.toString()}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, grade_level: parseInt(value) || 10 });
-                  if (errors.grade_level) setErrors({ ...errors, grade_level: undefined });
+                  setFormData({ ...formData, module_number: parseInt(value) || 1 });
+                  if (errors.module_number) setErrors({ ...errors, module_number: undefined });
                 }}
-                isInvalid={!!errors.grade_level}
-                errorMessage={errors.grade_level}
+                isInvalid={!!errors.module_number}
+                errorMessage={errors.module_number}
               />
               <Input
                 type="number"
-                label="Năm học"
-                placeholder="2024"
-                value={formData.academic_year.toString()}
+                label="Thời lượng (giờ)"
+                placeholder="1"
+                value={formData.estimated_hours.toString()}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, academic_year: parseInt(value) || new Date().getFullYear() });
-                  if (errors.academic_year) setErrors({ ...errors, academic_year: undefined });
+                  setFormData({ ...formData, estimated_hours: parseInt(value) || 0 });
+                  if (errors.estimated_hours) setErrors({ ...errors, estimated_hours: undefined });
                 }}
-                isInvalid={!!errors.academic_year}
-                errorMessage={errors.academic_year}
+                isInvalid={!!errors.estimated_hours}
+                errorMessage={errors.estimated_hours}
               />
             </div>
             <Select
@@ -783,7 +824,7 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
             Hủy
           </Button>
           <Button color="danger" onPress={handleSubmit} isLoading={isLoading}>
-            Tạo khóa học
+            Tạo chương
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -791,54 +832,54 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
   );
 };
 
-interface EditCourseModalProps {
+interface EditModuleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CourseFormData) => void;
-  course: CourseListItem | null;
+  onSubmit: (data: ModuleFormData) => void;
+  module: ModuleListItem | null;
   isLoading?: boolean;
+  courses: Course[];
 }
 
-export const EditCourseModal: React.FC<EditCourseModalProps> = ({
+export const EditModuleModal: React.FC<EditModuleModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  course,
+  module,
   isLoading,
+  courses,
 }) => {
-  const [formData, setFormData] = React.useState<CourseFormData>({
+  const [formData, setFormData] = React.useState<ModuleFormData>({
     name: '',
     description: '',
-    code: '',
-    grade_level: 10,
-    academic_year: new Date().getFullYear(),
+    course_id: '',
+    module_number: 1,
+    estimated_hours: 1,
     difficulty_level: 3,
     is_active: true,
   });
 
-  const [errors, setErrors] = React.useState<Partial<Record<keyof CourseFormData, string>>>({});
+  const [errors, setErrors] = React.useState<Partial<Record<keyof ModuleFormData, string>>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof CourseFormData, string>> = {};
+    const newErrors: Partial<Record<keyof ModuleFormData, string>> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Tên khóa học là bắt buộc';
+      newErrors.name = 'Tên chương là bắt buộc';
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Tên khóa học phải có ít nhất 3 ký tự';
+      newErrors.name = 'Tên chương phải có ít nhất 3 ký tự';
     }
 
-    if (!formData.code.trim()) {
-      newErrors.code = 'Mã khóa học là bắt buộc';
-    } else if (!/^[A-Za-z0-9-_]+$/.test(formData.code)) {
-      newErrors.code = 'Mã khóa học chỉ được chứa chữ cái, số, gạch ngang và gạch dưới';
+    if (!formData.course_id) {
+      newErrors.course_id = 'Vui lòng chọn khóa học';
     }
 
-    if (formData.grade_level < 1 || formData.grade_level > 12) {
-      newErrors.grade_level = 'Khối lớp phải từ 1 đến 12';
+    if (formData.module_number < 1) {
+      newErrors.module_number = 'Số thứ tự phải lớn hơn 0';
     }
 
-    if (formData.academic_year < 2000 || formData.academic_year > 2100) {
-      newErrors.academic_year = 'Năm học không hợp lệ';
+    if (formData.estimated_hours < 0) {
+      newErrors.estimated_hours = 'Thời lượng không hợp lệ';
     }
 
     setErrors(newErrors);
@@ -846,19 +887,19 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({
   };
 
   React.useEffect(() => {
-    if (course) {
+    if (module) {
       setFormData({
-        name: course.name,
-        description: course.description || '',
-        code: course.code,
-        grade_level: course.grade_level || 10,
-        academic_year: course.academic_year || new Date().getFullYear(),
-        difficulty_level: course.difficulty_level,
-        is_active: course.is_active,
+        name: module.name,
+        description: module.description || '',
+        course_id: module.course_id,
+        module_number: module.module_number || 1,
+        estimated_hours: module.estimated_hours || 0,
+        difficulty_level: module.difficulty_level,
+        is_active: module.is_active,
       });
       setErrors({});
     }
-  }, [course]);
+  }, [module]);
 
   const handleSubmit = () => {
     if (validateForm()) {
@@ -869,12 +910,12 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalContent>
-        <ModalHeader>Chỉnh sửa khóa học</ModalHeader>
+        <ModalHeader>Chỉnh sửa chương</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Input
-              label="Tên khóa học"
-              placeholder="Nhập tên khóa học"
+              label="Tên chương"
+              placeholder="Nhập tên chương"
               value={formData.name}
               onValueChange={(value) => {
                 setFormData({ ...formData, name: value });
@@ -884,48 +925,53 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({
               isInvalid={!!errors.name}
               errorMessage={errors.name}
             />
-            <Input
-              label="Mã khóa học"
-              placeholder="VD: MATH-10-2024"
-              value={formData.code}
-              onValueChange={(value) => {
-                setFormData({ ...formData, code: value });
-                if (errors.code) setErrors({ ...errors, code: undefined });
+            <Select
+              label="Khóa học"
+              placeholder="Chọn khóa học"
+              selectedKeys={formData.course_id ? [formData.course_id] : []}
+              onSelectionChange={(keys) => {
+                const value = Array.from(keys)[0] as string;
+                setFormData({ ...formData, course_id: value });
+                if (errors.course_id) setErrors({ ...errors, course_id: undefined });
               }}
               isRequired
-              isInvalid={!!errors.code}
-              errorMessage={errors.code}
-            />
+              isInvalid={!!errors.course_id}
+              errorMessage={errors.course_id}
+            >
+              {courses.map(course => (
+                <SelectItem key={course.id}>{course.name}</SelectItem>
+              ))}
+            </Select>
             <Textarea
               label="Mô tả"
-              placeholder="Nhập mô tả khóa học"
+              placeholder="Nhập mô tả chương"
               value={formData.description}
               onValueChange={(value) => setFormData({ ...formData, description: value })}
             />
             <div className="grid grid-cols-2 gap-4">
               <Input
                 type="number"
-                label="Khối lớp"
-                placeholder="10"
-                value={formData.grade_level.toString()}
+                label="Số thứ tự"
+                placeholder="1"
+                value={formData.module_number.toString()}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, grade_level: parseInt(value) || 10 });
-                  if (errors.grade_level) setErrors({ ...errors, grade_level: undefined });
+                  setFormData({ ...formData, module_number: parseInt(value) || 1 });
+                  if (errors.module_number) setErrors({ ...errors, module_number: undefined });
                 }}
-                isInvalid={!!errors.grade_level}
-                errorMessage={errors.grade_level}
+                isInvalid={!!errors.module_number}
+                errorMessage={errors.module_number}
               />
               <Input
                 type="number"
-                label="Năm học"
-                placeholder="2024"
-                value={formData.academic_year.toString()}
+                label="Thời lượng (giờ)"
+                placeholder="1"
+                value={formData.estimated_hours.toString()}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, academic_year: parseInt(value) || new Date().getFullYear() });
-                  if (errors.academic_year) setErrors({ ...errors, academic_year: undefined });
+                  setFormData({ ...formData, estimated_hours: parseInt(value) || 0 });
+                  if (errors.estimated_hours) setErrors({ ...errors, estimated_hours: undefined });
                 }}
-                isInvalid={!!errors.academic_year}
-                errorMessage={errors.academic_year}
+                isInvalid={!!errors.estimated_hours}
+                errorMessage={errors.estimated_hours}
               />
             </div>
             <Select

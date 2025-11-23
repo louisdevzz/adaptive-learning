@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, Users, BookOpen, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, TrendingUp, Package, ScrollText } from 'lucide-react';
 import type { Profile } from '@/types';
 import {
   Sidebar,
@@ -27,8 +27,8 @@ interface SystemHealth {
 
 interface AdminSidebarProps {
   profile: Profile | null;
-  activeTab: 'overview' | 'users' | 'courses' | 'analytics';
-  onTabChange: (tab: 'overview' | 'users' | 'courses' | 'analytics') => void;
+  activeTab: 'overview' | 'users' | 'courses' | 'modules' | 'sections' | 'analytics';
+  onTabChange: (tab: 'overview' | 'users' | 'courses' | 'modules' | 'sections' | 'analytics') => void;
   systemHealth: SystemHealth;
 }
 
@@ -41,6 +41,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { key: 'overview' as const, icon: LayoutDashboard, label: 'Tổng quan' },
     { key: 'users' as const, icon: Users, label: 'Người dùng' },
     { key: 'courses' as const, icon: BookOpen, label: 'Khóa học' },
+    { key: 'modules' as const, icon: Package, label: 'Chương' },
+    { key: 'sections' as const, icon: ScrollText, label: 'Bài học' },
     { key: 'analytics' as const, icon: TrendingUp, label: 'Phân tích' }
   ];
 

@@ -30,7 +30,7 @@ class SectionRepository(BaseRepository[Section]):
         return (
             self.db.query(Section)
             .filter(Section.module_id == normalized_module_id)
-            .order_by(Section.order)
+            .order_by(Section.section_number)
             .all()
         )
 
@@ -64,9 +64,9 @@ class SectionRepository(BaseRepository[Section]):
         """
         normalized_module_id = self._normalize_id(module_id)
         max_order = (
-            self.db.query(Section.order)
+            self.db.query(Section.section_number)
             .filter(Section.module_id == normalized_module_id)
-            .order_by(Section.order.desc())
+            .order_by(Section.section_number.desc())
             .first()
         )
-        return (max_order[0] + 1) if max_order else 0
+        return (max_order[0] + 1) if max_order else 1
