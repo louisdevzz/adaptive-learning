@@ -53,10 +53,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(currentUser);
         setProfile(userProfile);
       } catch (error: any) {
-        // User is not authenticated or token expired
+        // User is not authenticated or token expired/revoked
         console.error('Failed to load user:', error);
         setUser(null);
         setProfile(null);
+
+        // If token was revoked, the error message will contain this info
+        // Clear any stale state to allow fresh login
+        if (error.message?.includes('revoked') || error.message?.includes('Invalid')) {
+          console.log('Token was revoked or invalid, cleared auth state');
+        }
       }
       setLoading(false);
     };

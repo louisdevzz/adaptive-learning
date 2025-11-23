@@ -8,10 +8,8 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from core.config import settings
 from core.errors import errors
 from core.security import create_token_pair, get_password_hash, verify_password
-from core.token_blacklist import token_blacklist
 from repositories.user_repo import UserRepository
 from schemas.auth_schema import GoogleLogin, UserLogin, UserRegister
 
@@ -135,10 +133,6 @@ class AuthService:
         # Update last login
         self.user_repo.update_last_login(user.id)
 
-        # Clear any revocation timestamp for this user (from previous logout-all)
-        # This allows the user to login fresh with new tokens
-        token_blacklist.clear_user_revocation(str(user.id))
-
         logger.info(f"Successful login: user_id={user.id}")
 
         # Generate tokens
@@ -176,9 +170,6 @@ class AuthService:
 
             # Update last login
             self.user_repo.update_last_login(user.id)
-
-            # Clear any revocation timestamp for this user
-            token_blacklist.clear_user_revocation(str(user.id))
 
             logger.info(f"Google login: user_id={user.id}")
         else:

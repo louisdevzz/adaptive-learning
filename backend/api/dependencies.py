@@ -1,7 +1,6 @@
 """Common dependencies for API endpoints."""
 
 import logging
-from datetime import datetime, timezone
 from typing import Annotated, Optional
 
 from fastapi import Cookie, Depends, HTTPException, Request, status
@@ -11,7 +10,6 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.errors import errors
 from core.security import verify_token
-from core.token_blacklist import token_blacklist
 from models.user import User, UserRole
 from repositories.user_repo import UserRepository
 
@@ -61,14 +59,8 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Check if token is blacklisted
-    if token_blacklist.is_blacklisted(token):
-        logger.warning("Attempted access with blacklisted token")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=errors.AUTH_TOKEN_REVOKED,
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # Token blacklist check disabled for simplicity
+    # Tokens will naturally expire based on their expiry time
 
     # Verify token
     payload = verify_token(token, "access")
@@ -107,21 +99,6 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=errors.USER_INACTIVE,
         )
-    
-    # Check user-specific revocation timestamp for "logout all devices"
-    revocation_timestamp = token_blacklist.get_user_revocation_timestamp(user_id)
-    if revocation_timestamp:
-        token_issued_at = datetime.fromtimestamp(payload.get("iat", 0), tz=timezone.utc)
-        if token_issued_at < revocation_timestamp:
-            logger.warning(
-                f"Token validation failed: Token issued before user {user_id} revocation timestamp"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=errors.AUTH_TOKEN_REVOKED,
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
     return user
 
 

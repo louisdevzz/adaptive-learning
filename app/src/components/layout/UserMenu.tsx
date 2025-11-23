@@ -26,8 +26,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onClose }) => {
   }, [onClose]);
 
   const handleLogout = async () => {
-    await logout();
-    router.push('/login');
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Always redirect to login page after logout attempt
+      // Use replace to prevent going back to the previous page
+      router.replace('/login');
+    }
   };
 
   const getRoleLabel = (role?: string) => {
