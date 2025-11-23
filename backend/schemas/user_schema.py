@@ -1,7 +1,7 @@
 """User schemas for admin user management."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -20,6 +20,7 @@ class UserListItem(BaseModel):
     created_at: datetime
     updated_at: datetime
     full_name: Optional[str] = None
+    meta_data: Optional[dict[str, Any]] = None
 
     model_config = {"from_attributes": True}
 
@@ -36,6 +37,7 @@ class UserDetailResponse(BaseModel):
     updated_at: datetime
     full_name: Optional[str] = None
     image: Optional[str] = None
+    meta_data: Optional[dict[str, Any]] = None
 
     model_config = {"from_attributes": True}
 
@@ -70,6 +72,7 @@ class UserCreateRequest(BaseModel):
     password: str = Field(..., min_length=6, description="User password")
     full_name: Optional[str] = Field(None, max_length=255, description="Full name")
     role: UserRole = Field(default=UserRole.STUDENT, description="User role")
+    meta_data: Optional[dict[str, Any]] = Field(None, description="Role-specific metadata")
 
 
 class UserUpdateRequest(BaseModel):
@@ -80,6 +83,7 @@ class UserUpdateRequest(BaseModel):
     full_name: Optional[str] = Field(None, max_length=255)
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
+    meta_data: Optional[dict[str, Any]] = None
 
 
 class ResetPasswordRequest(BaseModel):

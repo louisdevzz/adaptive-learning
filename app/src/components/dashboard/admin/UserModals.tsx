@@ -14,6 +14,7 @@ import { Textarea } from '@heroui/input';
 import { Select, SelectItem } from '@heroui/select';
 import { Checkbox, CheckboxGroup } from '@heroui/checkbox';
 import { Eye, EyeOff } from 'lucide-react';
+import { StudentSearchSelect } from './StudentSearchSelect';
 import type {
   UserListItem,
   UserRole,
@@ -453,21 +454,20 @@ const RoleSpecificFields: React.FC<{
                 <SelectItem key={rel.key}>{rel.label}</SelectItem>
               ))}
             </Select>
-            <Input
-              label="ID học sinh (con)"
-              placeholder="Nhập ID học sinh"
-              value={formData.parent_children[0]?.student_id || ''}
-              onValueChange={(value) => {
+            <StudentSearchSelect
+              selectedStudentId={formData.parent_children[0]?.student_id || ''}
+              onStudentSelect={(studentId) => {
                 setFormData({
                   ...formData,
                   parent_children: [{
-                    student_id: value,
+                    student_id: studentId,
                     relationship: formData.parent_children[0]?.relationship || 'father'
                   }]
                 });
               }}
-              variant="bordered"
               isDisabled={isLoading}
+              label="Chọn học sinh (con)"
+              placeholder="Tìm kiếm học sinh..."
             />
           </div>
         </div>

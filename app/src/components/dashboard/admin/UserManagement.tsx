@@ -39,7 +39,7 @@ import { CreateUserModal, EditUserModal, ResetPasswordModal, getInitialFormData,
 import { adminAPI } from '@/lib/api';
 import { useUsers } from '@/hooks/use-admin-data';
 import { addToast } from '@heroui/toast';
-import type { UserStats, UserListItem, UserRole } from '@/types';
+import type { UserStats, UserListItem, UserRole, AdminMetaData, TeacherMetaData, StudentMetaData, ParentMetaData } from '@/types';
 
 interface UserManagementProps {
   userStats: UserStats | null;
@@ -279,13 +279,66 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
   const openEditModal = useCallback((user: UserListItem) => {
     setSelectedUser(user);
+
+    // Start with initial form data
+    const initialData = getInitialFormData();
+
+    // Parse meta_data based on role
+    let roleSpecificData: Partial<UserFormData> = {};
+
+    if (user.meta_data) {
+      switch (user.role) {
+        case 'admin': {
+          const adminMeta = user.meta_data as AdminMetaData;
+          roleSpecificData = {
+            admin_permissions: adminMeta.permissions || [],
+            admin_level: adminMeta.admin_level || 'support',
+          };
+          break;
+        }
+        case 'teacher': {
+          const teacherMeta = user.meta_data as TeacherMetaData;
+          roleSpecificData = {
+            teacher_phone: teacherMeta.phone || '',
+            teacher_address: teacherMeta.address || '',
+            teacher_bio: teacherMeta.bio || '',
+            teacher_specialization: teacherMeta.specialization || [],
+            teacher_grades: teacherMeta.grades || [],
+          };
+          break;
+        }
+        case 'student': {
+          const studentMeta = user.meta_data as StudentMetaData;
+          roleSpecificData = {
+            student_code: studentMeta.student_code || '',
+            student_grade_level: studentMeta.grade_level || 6,
+            student_class_id: studentMeta.class_id || '',
+            student_learning_style: studentMeta.learning_style || '',
+            student_interests: studentMeta.interests || [],
+            student_notes: studentMeta.notes || '',
+          };
+          break;
+        }
+        case 'parent': {
+          const parentMeta = user.meta_data as ParentMetaData;
+          roleSpecificData = {
+            parent_contact_number: parentMeta.contact_number || '',
+            parent_occupation: parentMeta.occupation || '',
+            parent_children: parentMeta.children || [],
+          };
+          break;
+        }
+      }
+    }
+
     setFormData({
-      ...getInitialFormData(),
+      ...initialData,
       username: user.username,
       email: user.email,
       password: '',
       full_name: user.full_name || '',
       role: user.role,
+      ...roleSpecificData,
     });
     setShowEditModal(true);
   }, []);

@@ -215,6 +215,7 @@ export interface UserListItem {
   created_at: string;
   updated_at: string;
   full_name?: string;
+  meta_data?: AdminMetaData | TeacherMetaData | StudentMetaData | ParentMetaData;
 }
 
 export interface UserStats {

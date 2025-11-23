@@ -82,6 +82,7 @@ class UserService:
                 "created_at": user.created_at,
                 "updated_at": user.updated_at,
                 "full_name": user.profile.full_name if user.profile else None,
+                "meta_data": user.profile.meta_data if user.profile else None,
             }
             items.append(user_data)
 
@@ -122,6 +123,7 @@ class UserService:
             "updated_at": user.updated_at,
             "full_name": user.profile.full_name if user.profile else None,
             "image": user.profile.image if user.profile else None,
+            "meta_data": user.profile.meta_data if user.profile else None,
         }
 
     def get_user_stats(self) -> dict:
@@ -197,6 +199,7 @@ class UserService:
             hash_password=hashed_password,
             full_name=data.full_name,
             role=data.role.value,
+            meta_data=data.meta_data,
         )
 
         logger.info(f"Admin created new user: {user.id}")
@@ -255,6 +258,10 @@ class UserService:
         # Update profile full_name
         if data.full_name is not None and user.profile:
             user.profile.full_name = data.full_name
+
+        # Update profile meta_data
+        if data.meta_data is not None and user.profile:
+            user.profile.meta_data = data.meta_data
 
         self.db.commit()
         self.db.refresh(user)
