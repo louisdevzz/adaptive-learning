@@ -21,17 +21,39 @@ class CourseRepository(BaseRepository[Course]):
         """Initialize course repository."""
         super().__init__(Course, db)
 
-    def get_by_slug(self, slug: str) -> Optional[Course]:
+    def get_by_code(self, code: str) -> Optional[Course]:
         """
-        Get course by slug.
+        Get course by code.
 
         Args:
-            slug: Course slug
+            code: Course code
 
         Returns:
             Course instance or None if not found
         """
-        return self.db.query(Course).filter(Course.slug == slug).first()
+        return self.db.query(Course).filter(Course.code == code).first()
+
+    def get_by_user_id(self, user_id: UUID | str, skip: int = 0, limit: int = 100) -> list[Course]:
+        """
+        Get courses created by a specific user.
+
+        Args:
+            user_id: User ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of courses
+        """
+        normalized_user_id = self._normalize_id(user_id)
+        limit = min(limit, settings.MAX_PAGE_SIZE)
+        return (
+            self.db.query(Course)
+            .filter(Course.user_id == normalized_user_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get_with_modules(self, course_id: UUID | str) -> Optional[Course]:
         """
@@ -51,14 +73,14 @@ class CourseRepository(BaseRepository[Course]):
             .first()
         )
 
-    def get_published(
-        self, 
-        skip: int = 0, 
+    def get_active(
+        self,
+        skip: int = 0,
         limit: int = 100,
         with_modules: bool = False
     ) -> list[Course]:
         """
-        Get all published courses with optional eager loading of modules.
+        Get all active courses with optional eager loading of modules.
 
         Args:
             skip: Number of records to skip (must be non-negative)
@@ -66,13 +88,13 @@ class CourseRepository(BaseRepository[Course]):
             with_modules: Whether to eager load modules (prevents N+1 queries)
 
         Returns:
-            List of published courses
-            
+            List of active courses
+
         Note:
             - Pagination is enforced: limit is capped at MAX_PAGE_SIZE (100)
             - Use with_modules=True when you need to access course modules
               to prevent N+1 query problems.
-              
+
         Raises:
             ValueError: If skip or limit is negative
         """
@@ -88,7 +110,7 @@ class CourseRepository(BaseRepository[Course]):
         
         query = (
             self.db.query(Course)
-            .filter(Course.is_published == True)
+            .filter(Course.is_active == True)
         )
         
         # Eager load modules if requested to prevent N+1 queries
@@ -119,7 +141,7 @@ class CourseRepository(BaseRepository[Course]):
         
         return (
             self.db.query(Course)
-            .filter(Course.is_featured == True, Course.is_published == True)
+            .filter(Course.is_active == True)
             .limit(limit)
             .all()
         )
@@ -152,9 +174,9 @@ class CourseRepository(BaseRepository[Course]):
         )
 
     def search_by_title(
-        self, 
-        search_term: str, 
-        skip: int = 0, 
+        self,
+        search_term: str,
+        skip: int = 0,
         limit: int = 100,
         with_modules: bool = False
     ) -> list[Course]:
@@ -169,27 +191,64 @@ class CourseRepository(BaseRepository[Course]):
 
         Returns:
             List of matching courses
-            
+
         Raises:
             ValueError: If skip or limit is negative
         """
         # Validate pagination parameters
         if skip < 0:
             raise ValueError(errors.VALIDATION_SKIP_NEGATIVE)
-        
+
         if limit < 0:
             raise ValueError(errors.VALIDATION_LIMIT_NEGATIVE)
-        
+
         # Enforce maximum page size
         limit = min(limit, settings.MAX_PAGE_SIZE)
-        
+
         query = (
             self.db.query(Course)
-            .filter(Course.title.ilike(f"%{search_term}%"), Course.is_published == True)
+            .filter(Course.name.ilike(f"%{search_term}%"), Course.is_active == True)
         )
-        
+
         # Eager load modules if requested
         if with_modules:
             query = query.options(selectinload(Course.modules))
-        
+
         return query.offset(skip).limit(limit).all()
+
+    def count_all(self, published_only: bool = False) -> int:
+        """
+        Count total number of courses.
+
+        Args:
+            published_only: If True, count only active/published courses
+
+        Returns:
+            Total count of courses
+        """
+        from sqlalchemy import func
+
+        query = self.db.query(func.count(Course.id))
+        if published_only:
+            query = query.filter(Course.is_active == True)
+        return query.scalar() or 0
+
+    def get_published(self, skip: int = 0, limit: int = 100) -> list[Course]:
+        """
+        Get published/active courses with pagination.
+
+        Args:
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of published courses
+        """
+        limit = min(limit, settings.MAX_PAGE_SIZE)
+        return (
+            self.db.query(Course)
+            .filter(Course.is_active == True)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )

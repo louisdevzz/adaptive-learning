@@ -35,21 +35,25 @@ async def search(
     current_user: User = Depends(get_current_user),
 ) -> SearchResponse:
     """
-    Perform semantic search across content.
-    
-    Searches through courses, modules, sections, and knowledge points
-    using semantic similarity (vector search) combined with text search.
+    Perform search across content with multiple modes.
+
+    Search modes:
+    - "text" (default): Fast BM25 text search, FREE (no embedding cost)
+    - "vector": Semantic search using embeddings (costs ~$0.02/1M tokens)
+    - "hybrid": Combines text + vector for best results (most expensive)
+
+    Searches through courses, modules, sections, and knowledge points.
     """
     try:
         start_time = time.time()
-        
+
         # Perform search
         results = await search_service.search(
             query=request.query,
             content_types=request.content_types,
             k=request.k,
             filters=request.filters,
-            use_hybrid=request.use_hybrid
+            search_mode=request.search_mode
         )
         
         # Convert to response format
@@ -293,26 +297,32 @@ async def search_in_course(
     course_id: str,
     query: str,
     k: int = 10,
+    search_mode: str = "text",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SearchResponse:
     """
     Search within a specific course.
-    
+
     Searches modules, sections, and knowledge points within the given course.
+
+    Search modes:
+    - "text" (default): Fast BM25 text search, FREE
+    - "vector": Semantic search using embeddings (costs money)
+    - "hybrid": Combines both (most expensive)
     """
     try:
         start_time = time.time()
-        
+
         # Search with course filter
         filters = {"metadata.course_id": course_id}
-        
+
         results = await search_service.search(
             query=query,
             content_types=["modules", "sections", "knowledge_points"],
             k=k,
             filters=filters,
-            use_hybrid=True
+            search_mode=search_mode
         )
         
         # Convert to response format

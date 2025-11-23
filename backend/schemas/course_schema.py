@@ -15,39 +15,38 @@ if TYPE_CHECKING:
 class CourseBase(BaseModel):
     """Base schema for Course."""
 
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    slug: str = Field(..., min_length=1, max_length=255)
-    difficulty_level: Optional[str] = Field(None, pattern="^(beginner|intermediate|advanced)$")
-    estimated_hours: Optional[int] = Field(None, ge=0)
-    thumbnail_url: Optional[str] = None
-    is_published: bool = False
-    is_featured: bool = False
+    name: str = Field(..., min_length=1, description="Course name")
+    description: Optional[str] = Field(None, description="Course description")
+    code: str = Field(..., min_length=1, max_length=50, description="Course code")
+    grade_level: Optional[int] = Field(None, ge=1, le=12, description="Grade level (1-12)")
+    academic_year: Optional[int] = Field(None, ge=2020, le=2100, description="Academic year")
+    difficulty_level: int = Field(default=3, ge=1, le=5, description="Difficulty level (1-5)")
+    is_active: bool = Field(default=True, description="Whether course is active")
 
 
 class CourseCreate(CourseBase):
     """Schema for creating a new course."""
 
-    pass
+    user_id: Optional[UUID] = Field(None, description="User ID who created the course (auto-filled from token)")
 
 
 class CourseUpdate(BaseModel):
     """Schema for updating an existing course."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    name: Optional[str] = Field(None, min_length=1)
     description: Optional[str] = None
-    slug: Optional[str] = Field(None, min_length=1, max_length=255)
-    difficulty_level: Optional[str] = Field(None, pattern="^(beginner|intermediate|advanced)$")
-    estimated_hours: Optional[int] = Field(None, ge=0)
-    thumbnail_url: Optional[str] = None
-    is_published: Optional[bool] = None
-    is_featured: Optional[bool] = None
+    code: Optional[str] = Field(None, min_length=1, max_length=50)
+    grade_level: Optional[int] = Field(None, ge=1, le=12)
+    academic_year: Optional[int] = Field(None, ge=2020, le=2100)
+    difficulty_level: Optional[int] = Field(None, ge=1, le=5)
+    is_active: Optional[bool] = None
 
 
 class CourseResponse(CourseBase):
     """Schema for course response."""
 
     id: UUID
+    user_id: UUID
     created_at: datetime
     updated_at: datetime
 
@@ -65,7 +64,5 @@ class CourseWithModules(CourseResponse):
 class CourseListResponse(BaseModel):
     """Schema for paginated course list."""
 
+    items: list[CourseResponse]
     total: int
-    page: int
-    page_size: int
-    courses: list[CourseResponse]

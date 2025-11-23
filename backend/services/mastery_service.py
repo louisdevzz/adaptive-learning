@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from repositories.kp_repo import KnowledgePointRepository
 from repositories.mastery_repo import MasteryRepository
-from schemas.mastery_schema import MasteryProgressRequest, MasteryRecommendation
+from schemas.student_mastery_schema import MasteryProgressRequest, MasteryRecommendation
 
 
 class MasteryService:
@@ -62,43 +62,19 @@ class MasteryService:
         return record
 
     def get_user_progress_summary(self, user_id: UUID | str):
-        """Get overall progress summary for a user."""
-        records = self.mastery_repo.get_user_progress(user_id)
+        """
+        Get overall progress summary for a user.
 
-        # Count by mastery category
-        mastered = sum(1 for r in records if r.mastery_level >= settings.MASTERY_THRESHOLD_HIGH)
-        in_progress = sum(
-            1
-            for r in records
-            if settings.MASTERY_THRESHOLD_LOW
-            <= r.mastery_level
-            < settings.MASTERY_THRESHOLD_HIGH
-        )
-        beginner = sum(1 for r in records if r.mastery_level < settings.MASTERY_THRESHOLD_LOW)
-
-        # Calculate overall mastery
-        total_mastery = sum(r.mastery_level for r in records)
-        overall_mastery = total_mastery / len(records) if records else 0.0
-
-        # Total time spent
-        total_time = sum(r.total_time_spent for r in records)
-
-        # Last activity
-        last_activity = max((r.last_practiced for r in records if r.last_practiced), default=None)
-
-        return {
-            "total_knowledge_points": len(records),
-            "mastered_count": mastered,
-            "in_progress_count": in_progress,
-            "not_started_count": beginner,
-            "overall_mastery": round(overall_mastery, 2),
-            "total_time_spent": total_time,
-            "last_activity": last_activity,
-        }
+        Uses database aggregation for better performance instead of
+        loading all records into memory.
+        """
+        return self.mastery_repo.get_user_progress_summary_aggregated(user_id)
 
     def get_learning_recommendations(self, user_id: UUID | str, limit: int = 5):
         """
         Get personalized learning recommendations based on mastery levels.
+
+        Uses eager-loaded knowledge_point relationship to avoid N+1 queries.
 
         Args:
             user_id: User ID
@@ -111,21 +87,24 @@ class MasteryService:
 
         recommendations = []
         for record, action, priority in recommendations_data:
-            kp = self.kp_repo.get_by_id(record.knowledge_point_id)
+            # Use eager-loaded relationship instead of separate query
+            kp = record.knowledge_point
             if kp:
                 # Estimate time based on difficulty and current mastery
                 base_time = 15  # minutes
                 difficulty_multiplier = {"easy": 1.0, "medium": 1.5, "hard": 2.0}.get(
                     kp.difficulty or "medium", 1.5
                 )
-                mastery_multiplier = 1.0 + (1.0 - record.mastery_level)
+                # Use combined_mastery (0-100 scale) converted to 0-1 scale
+                mastery_ratio = record.combined_mastery / 100.0
+                mastery_multiplier = 1.0 + (1.0 - mastery_ratio)
                 estimated_time = int(base_time * difficulty_multiplier * mastery_multiplier)
 
                 recommendations.append(
                     MasteryRecommendation(
                         knowledge_point_id=kp.id,
-                        title=kp.title,
-                        current_mastery=record.mastery_level,
+                        name=kp.name,
+                        current_mastery=record.combined_mastery,
                         recommended_action=action,
                         priority=priority,
                         estimated_time=estimated_time,

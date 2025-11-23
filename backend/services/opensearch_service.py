@@ -169,7 +169,7 @@ class OpenSearchService:
         self,
         content_type: str,
         doc_id: str,
-        title: str,
+        name: str,
         content: str,
         embedding: List[float],
         description: Optional[str] = None,
@@ -181,7 +181,7 @@ class OpenSearchService:
         Args:
             content_type: Type of content (course, module, section, knowledge_point)
             doc_id: Unique document ID (from PostgreSQL)
-            title: Document title
+            name: Document title
             content: Document content text
             embedding: Embedding vector
             description: Optional description
@@ -204,7 +204,7 @@ class OpenSearchService:
             document = {
                 "id": doc_id,
                 "content_type": content_type,
-                "title": title,
+                "title": name,  # Use 'name' parameter instead of undefined 'title'
                 "description": description or "",
                 "content": content,
                 "embedding": embedding,
@@ -493,7 +493,7 @@ class OpenSearchService:
         
         try:
             # Perform text search
-            text_results = await self._text_search(
+            text_results = await self.text_search(
                 index_name=index_name,
                 query_text=query_text,
                 k=k * 2,  # Get more results to merge with vector search
@@ -527,7 +527,7 @@ class OpenSearchService:
             logger.error(f"Unexpected error in hybrid search: {e}")
             return []
     
-    async def _text_search(
+    async def text_search(
         self,
         index_name: str,
         query_text: str,
@@ -535,14 +535,17 @@ class OpenSearchService:
         filters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
-        Perform text-only search.
-        
+        Perform text-only search using BM25 algorithm (NO EMBEDDING COST).
+
+        This is the most cost-effective search method as it doesn't require
+        generating embeddings. Good for exact keyword matching and general search.
+
         Args:
             index_name: Name of the index to search
             query_text: Text query
             k: Number of results to return
             filters: Optional filters for metadata
-            
+
         Returns:
             List of search results
         """

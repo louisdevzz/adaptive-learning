@@ -10,7 +10,7 @@ from api.dependencies import RequireStudent, RequireTeacher, get_current_user
 from core.database import get_db
 from models.user import User
 from schemas.kp_schema import KnowledgePointCreate, KnowledgePointResponse, KnowledgePointUpdate
-from schemas.mastery_schema import MasteryProgressRequest, MasteryRecordResponse, UserProgressSummary
+from schemas.student_mastery_schema import MasteryProgressRequest, StudentMasteryResponse, UserProgressSummary
 from services.kp_service import KnowledgePointService
 from services.mastery_service import MasteryService
 from utils.background_tasks import (
@@ -93,7 +93,7 @@ async def delete_knowledge_point(
 
 
 # Mastery tracking endpoints
-@router.post("/progress", response_model=MasteryRecordResponse, dependencies=[RequireStudent])
+@router.post("/progress", response_model=StudentMasteryResponse, dependencies=[RequireStudent])
 def track_progress(
     progress_data: MasteryProgressRequest,
     db: Annotated[Session, Depends(get_db)],

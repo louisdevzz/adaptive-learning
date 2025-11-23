@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from api.dependencies import RequireTeacher, get_current_user
 from core.database import get_db
 from models.user import User
-from schemas.course_schema import CourseCreate, CourseResponse, CourseUpdate, CourseWithModules
+from schemas.course_schema import CourseCreate, CourseListResponse, CourseResponse, CourseUpdate, CourseWithModules
 from services.course_service import CourseService
 from utils.background_tasks import (
     index_course_background,
@@ -25,18 +25,22 @@ async def create_course(
     course_data: CourseCreate,
     background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """Create a new course (teacher/admin only)."""
+    # Override user_id from token (security measure)
+    course_data.user_id = current_user.id
+
     service = CourseService(db)
     course = service.create_course(course_data)
-    
+
     # Index course in OpenSearch in background
     background_tasks.add_task(index_course_background, db, str(course.id))
-    
+
     return course
 
 
-@router.get("/", response_model=list[CourseResponse])
+@router.get("/", response_model=CourseListResponse)
 def list_courses(
     db: Annotated[Session, Depends(get_db)],
     skip: int = Query(0, ge=0),
@@ -48,14 +52,14 @@ def list_courses(
     return service.list_courses(skip, limit, published_only)
 
 
-@router.get("/slug/{slug}", response_model=CourseWithModules)
-def get_course_by_slug(
-    slug: str,
+@router.get("/code/{code}", response_model=CourseWithModules)
+def get_course_by_code(
+    code: str,
     db: Annotated[Session, Depends(get_db)]
 ):
-    """Get course details by slug with modules."""
+    """Get course details by code with modules."""
     service = CourseService(db)
-    return service.get_course_by_slug(slug)
+    return service.get_course_by_code(code)
 
 
 @router.get("/{course_id}", response_model=CourseWithModules)

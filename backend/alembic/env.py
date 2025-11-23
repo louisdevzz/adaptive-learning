@@ -11,7 +11,36 @@ from core.config import settings
 from core.database import Base
 
 # Import all models to ensure they're registered with Base
-from models import Course, KnowledgePoint, MasteryRecord, Module, Section, User
+# Import all models so Alembic can detect schema changes
+from models import (
+    AssessmentConfig,
+    Course,
+    DifficultyLevel,
+    Enrollment,
+    EnrollmentStatus,
+    Exercise,
+    ExerciseDifficulty,
+    KnowledgePoint,
+    KnowledgePointPrerequisite,
+    KnowledgePointType,
+    KnowledgePointExercise,
+    KnowledgePointQuestion,
+    KnowledgePointRelation,
+    KnowledgePointResource,
+    MasteryHistory,
+    MasteryGroup,
+    Module,
+    Profile,
+    Question,
+    QuestionDifficulty,
+    QuestionType,
+    Resource,
+    ResourceType,
+    Section,
+    StudentMastery,
+    User,
+    RelationType,
+)
 
 # this is the Alembic Config object
 config = context.config

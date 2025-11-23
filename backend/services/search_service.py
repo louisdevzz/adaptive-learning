@@ -58,12 +58,12 @@ class SearchService:
                 return False
             
             # Prepare content for embedding
-            content = f"{course.title}\n{course.description or ''}"
+            content = f"{course.name}\n{course.description or ''}"
             content_length = len(content)
             
             logger.info(
                 f"📝 Course content prepared | "
-                f"Title: '{course.title}' | "
+                f"Title: '{course.name}' | "
                 f"Content length: {content_length} chars"
             )
             
@@ -87,7 +87,7 @@ class SearchService:
             result = await self.opensearch_service.index_document(
                 content_type="courses",
                 doc_id=str(course.id),
-                title=course.title,
+                name=course.name,
                 content=content,
                 embedding=embedding,
                 description=course.description,
@@ -132,9 +132,9 @@ class SearchService:
                 return False
             
             # Prepare content for embedding
-            content = f"{module.title}\n{module.description or ''}"
+            content = f"{module.name}\n{module.description or ''}"
             
-            logger.info(f"📝 Module: '{module.title}' | Content: {len(content)} chars")
+            logger.info(f"📝 Module: '{module.name}' | Content: {len(content)} chars")
             
             # Generate embedding
             embedding = await self.embedding_service.generate_embedding(content)
@@ -156,7 +156,7 @@ class SearchService:
             result = await self.opensearch_service.index_document(
                 content_type="modules",
                 doc_id=str(module.id),
-                title=module.title,
+                name=module.name,
                 content=content,
                 embedding=embedding,
                 description=module.description,
@@ -199,9 +199,9 @@ class SearchService:
                 return False
             
             # Prepare content for embedding
-            content = f"{section.title}\n{section.content or ''}"
+            content = f"{section.name}\n{section.content or ''}"
             
-            logger.info(f"📝 Section: '{section.title}' | Content: {len(content)} chars")
+            logger.info(f"📝 Section: '{section.name}' | Content: {len(content)} chars")
             
             # Generate embedding
             embedding = await self.embedding_service.generate_embedding(content)
@@ -225,7 +225,7 @@ class SearchService:
             result = await self.opensearch_service.index_document(
                 content_type="sections",
                 doc_id=str(section.id),
-                title=section.title,
+                name=section.name,
                 content=content,
                 embedding=embedding,
                 description=section.content[:200] if section.content else "",
@@ -268,9 +268,9 @@ class SearchService:
                 return False
             
             # Prepare content for embedding
-            content = f"{kp.title}\n{kp.description or ''}\n{kp.content or ''}"
+            content = f"{kp.name}\n{kp.description or ''}\n{kp.content or ''}"
             
-            logger.info(f"📝 KP: '{kp.title}' | Content: {len(content)} chars")
+            logger.info(f"📝 KP: '{kp.name}' | Content: {len(content)} chars")
             
             # Generate embedding
             embedding = await self.embedding_service.generate_embedding(content)
@@ -296,7 +296,7 @@ class SearchService:
             result = await self.opensearch_service.index_document(
                 content_type="knowledge_points",
                 doc_id=str(kp.id),
-                title=kp.title,
+                name=kp.name,
                 content=content,
                 embedding=embedding,
                 description=kp.description[:200] if kp.description else "",
@@ -318,37 +318,62 @@ class SearchService:
         content_types: Optional[List[str]] = None,
         k: int = 10,
         filters: Optional[Dict[str, Any]] = None,
-        use_hybrid: bool = True
+        search_mode: str = "text"
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Perform semantic search across content types.
-        
+        Perform search across content types.
+
         Args:
             query: Search query
             content_types: List of content types to search (default: all)
             k: Number of results per content type
             filters: Optional metadata filters
-            use_hybrid: Whether to use hybrid search (text + vector)
-            
+            search_mode: Search mode - "text" (default, FREE), "vector" (semantic), or "hybrid" (both)
+
         Returns:
             Dictionary mapping content types to search results
+
+        Note:
+            - "text" mode: Uses BM25 text search, NO embedding cost, good for keyword matching
+            - "vector" mode: Uses k-NN semantic search, requires OpenAI embedding ($0.02/1M tokens)
+            - "hybrid" mode: Combines both, best results but most expensive
         """
         if not content_types:
             content_types = ["courses", "modules", "sections", "knowledge_points"]
-        
-        # Generate query embedding
-        query_embedding = await self.embedding_service.generate_query_embedding(query)
-        
-        if not query_embedding:
-            logger.error("Failed to generate query embedding")
-            return {}
-        
+
+        # Validate search mode
+        if search_mode not in ["text", "vector", "hybrid"]:
+            logger.warning(f"Invalid search_mode '{search_mode}', defaulting to 'text'")
+            search_mode = "text"
+
+        # Generate query embedding only if needed (vector or hybrid mode)
+        query_embedding = None
+        if search_mode in ["vector", "hybrid"]:
+            query_embedding = await self.embedding_service.generate_query_embedding(query)
+
+            if not query_embedding:
+                logger.error("Failed to generate query embedding, falling back to text search")
+                search_mode = "text"
+
         # Search across content types
         results = {}
-        
+
         for content_type in content_types:
             try:
-                if use_hybrid:
+                if search_mode == "text":
+                    # Text-only search (FREE - no embedding cost)
+                    index_name = self.opensearch_service.indices.get(content_type)
+                    if index_name:
+                        search_results = await self.opensearch_service.text_search(
+                            index_name=index_name,
+                            query_text=query,
+                            k=k,
+                            filters=filters
+                        )
+                    else:
+                        search_results = []
+
+                elif search_mode == "hybrid":
                     # Hybrid search (text + vector)
                     search_results = await self.opensearch_service.hybrid_search(
                         content_type=content_type,
@@ -357,7 +382,7 @@ class SearchService:
                         k=k,
                         filters=filters
                     )
-                else:
+                else:  # vector mode
                     # Pure vector search
                     search_results = await self.opensearch_service.vector_search(
                         content_type=content_type,
@@ -365,13 +390,13 @@ class SearchService:
                         k=k,
                         filters=filters
                     )
-                
+
                 results[content_type] = search_results
-                
+
             except Exception as e:
                 logger.error(f"Error searching {content_type}: {e}")
                 results[content_type] = []
-        
+
         return results
     
     async def search_by_content_type(
@@ -380,18 +405,18 @@ class SearchService:
         query: str,
         k: int = 10,
         filters: Optional[Dict[str, Any]] = None,
-        use_hybrid: bool = True
+        search_mode: str = "text"
     ) -> List[Dict[str, Any]]:
         """
         Search within a specific content type.
-        
+
         Args:
             content_type: Content type to search
             query: Search query
             k: Number of results
             filters: Optional metadata filters
-            use_hybrid: Whether to use hybrid search
-            
+            search_mode: Search mode - "text" (default, FREE), "vector", or "hybrid"
+
         Returns:
             List of search results
         """
@@ -400,9 +425,9 @@ class SearchService:
             content_types=[content_type],
             k=k,
             filters=filters,
-            use_hybrid=use_hybrid
+            search_mode=search_mode
         )
-        
+
         return results.get(content_type, [])
     
     async def find_similar(

@@ -609,3 +609,9 @@ curl -X POST "http://localhost:8000/api/v1/search/reindex" \
 ## Support
 
 For issues or questions, please refer to the main README or create an issue in the repository.
+
+Lưu ý khi deploy
+1. Set COOKIE_SECURE=true trong production (HTTPS)
+2. Set COOKIE_SAMESITE=strict trong production
+3. Set COOKIE_DOMAIN phù hợp với domain của bạn
+4. Đảm bảo CORS được cấu hình đúng với credentials: true

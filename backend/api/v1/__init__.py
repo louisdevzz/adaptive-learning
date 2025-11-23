@@ -2,12 +2,13 @@
 
 from fastapi import APIRouter
 
-from api.v1 import admin, auth, courses, knowledge_points, modules, sections, search
+from api.v1 import admin, auth, courses, knowledge_points, modules, profile, sections, search
 
 api_router = APIRouter()
 
 # Include all routers
 api_router.include_router(auth.router)
+api_router.include_router(profile.router)
 api_router.include_router(courses.router)
 api_router.include_router(modules.router)
 api_router.include_router(sections.router)

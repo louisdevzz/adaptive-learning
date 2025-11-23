@@ -1,136 +1,137 @@
-"""Pydantic schemas for search operations."""
+"""Search schemas for OpenSearch integration."""
 
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
+from uuid import UUID
+
 from pydantic import BaseModel, Field
-from datetime import datetime
 
 
-class SearchRequest(BaseModel):
-    """Request schema for search."""
-    
-    query: str = Field(..., min_length=1, max_length=500, description="Search query")
-    content_types: Optional[List[str]] = Field(
-        default=None,
-        description="Content types to search (courses, modules, sections, knowledge_points)"
-    )
-    k: int = Field(default=10, ge=1, le=100, description="Number of results per type")
-    use_hybrid: bool = Field(
-        default=True,
-        description="Use hybrid search (text + vector) instead of pure vector search"
-    )
-    filters: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Metadata filters"
-    )
+class SearchQuery(BaseModel):
+    """Schema for search query."""
+
+    query: str = Field(..., min_length=1, description="Search query text")
+    filters: Optional[dict[str, Any]] = Field(None, description="Search filters")
+    page: int = Field(default=1, ge=1, description="Page number")
+    page_size: int = Field(default=10, ge=1, le=100, description="Items per page")
+
+
+class SearchResult(BaseModel):
+    """Schema for a single search result."""
+
+    id: UUID
+    type: str = Field(..., description="Result type (course, module, section, kp)")
+    title: str = Field(..., description="Result title/name")
+    description: Optional[str] = None
+    score: float = Field(..., description="Search relevance score")
+    highlight: Optional[dict[str, list[str]]] = Field(None, description="Highlighted matches")
+    metadata: Optional[dict[str, Any]] = Field(None, description="Additional metadata")
 
 
 class SearchResultItem(BaseModel):
-    """Single search result item."""
-    
-    id: str = Field(..., description="Document ID")
-    score: float = Field(..., description="Relevance score")
-    title: str = Field(..., description="Document title")
-    description: str = Field(..., description="Document description")
-    content: str = Field(..., description="Document content")
-    content_type: str = Field(..., description="Type of content")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Document metadata")
+    """Schema for a single search result item."""
+
+    id: str
+    score: float
+    title: str
+    description: Optional[str] = None
+    content: str
+    content_type: str
+    metadata: Optional[dict[str, Any]] = None
 
 
 class SearchResponse(BaseModel):
-    """Response schema for search."""
-    
-    query: str = Field(..., description="Original search query")
-    results: Dict[str, List[SearchResultItem]] = Field(
-        ...,
+    """Schema for search response."""
+
+    query: str = Field(..., description="Search query")
+    results: dict[str, list[SearchResultItem]] = Field(
+        default_factory=dict,
         description="Search results grouped by content type"
     )
     total_results: int = Field(..., description="Total number of results")
-    search_time_ms: Optional[float] = Field(
-        None,
-        description="Search execution time in milliseconds"
+    search_time_ms: float = Field(..., description="Search time in milliseconds")
+
+
+class IndexDocument(BaseModel):
+    """Schema for indexing a document in OpenSearch."""
+
+    id: UUID
+    type: str = Field(..., description="Document type")
+    title: str
+    content: str
+    metadata: Optional[dict[str, Any]] = None
+
+
+class SearchRequest(BaseModel):
+    """Schema for search request."""
+
+    query: str = Field(..., min_length=1, description="Search query text")
+    content_types: Optional[list[str]] = Field(
+        default=["courses", "modules", "sections", "knowledge_points"],
+        description="Content types to search"
     )
+    k: int = Field(default=10, ge=1, le=100, description="Number of results to return")
+    filters: Optional[dict[str, Any]] = Field(None, description="Search filters")
+    search_mode: str = Field(default="text", description="Search mode: text, vector, or hybrid")
 
 
 class SimilarDocumentsRequest(BaseModel):
-    """Request schema for finding similar documents."""
-    
-    content_type: str = Field(
-        ...,
-        description="Content type (courses, modules, sections, knowledge_points)"
-    )
-    doc_id: str = Field(..., description="Document ID to find similar documents for")
-    k: int = Field(default=5, ge=1, le=50, description="Number of similar documents")
+    """Schema for finding similar documents."""
+
+    content_type: str = Field(..., description="Content type")
+    doc_id: str = Field(..., description="Document ID")
+    k: int = Field(default=10, ge=1, le=100, description="Number of similar documents")
 
 
 class SimilarDocumentsResponse(BaseModel):
-    """Response schema for similar documents."""
-    
-    content_type: str = Field(..., description="Content type")
-    doc_id: str = Field(..., description="Original document ID")
-    similar_documents: List[SearchResultItem] = Field(
-        ...,
-        description="Similar documents"
-    )
+    """Schema for similar documents response."""
+
+    content_type: str
+    doc_id: str
+    similar_documents: list[SearchResultItem]
 
 
 class IndexDocumentRequest(BaseModel):
-    """Request schema for indexing a document."""
-    
-    content_type: str = Field(
-        ...,
-        description="Content type (courses, modules, sections, knowledge_points)"
-    )
+    """Schema for indexing document request."""
+
+    content_type: str = Field(..., description="Content type to index")
     doc_id: str = Field(..., description="Document ID")
 
 
 class IndexDocumentResponse(BaseModel):
-    """Response schema for document indexing."""
-    
-    success: bool = Field(..., description="Whether indexing was successful")
-    doc_id: str = Field(..., description="Document ID")
-    content_type: str = Field(..., description="Content type")
-    message: Optional[str] = Field(None, description="Optional message")
+    """Schema for indexing document response."""
+
+    success: bool
+    doc_id: str
+    content_type: str
+    message: str
 
 
 class ReindexRequest(BaseModel):
-    """Request schema for reindexing."""
-    
-    content_types: Optional[List[str]] = Field(
-        default=None,
-        description="Content types to reindex (default: all)"
-    )
+    """Schema for reindex request."""
+
+    pass
 
 
 class ReindexResponse(BaseModel):
-    """Response schema for reindexing."""
-    
-    success: bool = Field(..., description="Whether reindexing was successful")
-    counts: Dict[str, int] = Field(
-        ...,
-        description="Number of documents indexed per type"
-    )
-    total_indexed: int = Field(..., description="Total documents indexed")
+    """Schema for reindex response."""
+
+    success: bool
+    counts: dict[str, int]
+    total_indexed: int
 
 
 class HealthCheckResponse(BaseModel):
-    """Response schema for health check."""
-    
-    opensearch_status: str = Field(..., description="OpenSearch cluster status")
-    cluster_name: Optional[str] = Field(None, description="Cluster name")
-    number_of_nodes: Optional[int] = Field(None, description="Number of nodes")
-    active_shards: Optional[int] = Field(None, description="Active shards")
-    indices: Dict[str, bool] = Field(
-        default_factory=dict,
-        description="Status of indices"
-    )
+    """Schema for health check response."""
+
+    opensearch_status: str
+    cluster_name: Optional[str] = None
+    number_of_nodes: Optional[int] = None
+    active_shards: Optional[int] = None
+    indices: dict[str, bool]
 
 
 class InitializeIndicesResponse(BaseModel):
-    """Response schema for index initialization."""
-    
-    success: bool = Field(..., description="Whether initialization was successful")
-    indices: Dict[str, bool] = Field(
-        ...,
-        description="Initialization status per content type"
-    )
+    """Schema for initialize indices response."""
 
+    success: bool
+    indices: dict[str, bool]
