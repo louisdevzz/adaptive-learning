@@ -24,12 +24,16 @@ from schemas.kp_schema import (
     KnowledgePointUpdate,
     KnowledgePointWithMastery,
 )
-from schemas.mastery_schema import (
+from schemas.student_mastery_schema import (
+    MasteryHistoryResponse,
     MasteryProgressRequest,
+    MasteryProgressResponse,
     MasteryRecommendation,
-    MasteryRecordCreate,
-    MasteryRecordResponse,
-    MasteryRecordUpdate,
+    MasteryTrendResponse,
+    StudentMasteryCreate,
+    StudentMasteryResponse,
+    StudentMasteryUpdate,
+    StudentMasteryWithHistory,
     UserProgressSummary,
 )
 from schemas.module_schema import (
@@ -77,12 +81,16 @@ __all__ = [
     "KnowledgePointUpdate",
     "KnowledgePointResponse",
     "KnowledgePointWithMastery",
-    # Mastery
-    "MasteryRecordCreate",
-    "MasteryRecordUpdate",
-    "MasteryRecordResponse",
+    # Student Mastery
+    "StudentMasteryCreate",
+    "StudentMasteryUpdate",
+    "StudentMasteryResponse",
+    "StudentMasteryWithHistory",
+    "MasteryHistoryResponse",
     "MasteryProgressRequest",
+    "MasteryProgressResponse",
     "MasteryRecommendation",
+    "MasteryTrendResponse",
     "UserProgressSummary",
 ]
 

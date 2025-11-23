@@ -3,28 +3,38 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from api.dependencies import RequireStudent, RequireTeacher, get_current_user
 from core.database import get_db
 from models.user import User
 from schemas.kp_schema import KnowledgePointCreate, KnowledgePointResponse, KnowledgePointUpdate
-from schemas.mastery_schema import MasteryProgressRequest, MasteryRecordResponse, UserProgressSummary
+from schemas.student_mastery_schema import MasteryProgressRequest, StudentMasteryResponse, UserProgressSummary
 from services.kp_service import KnowledgePointService
 from services.mastery_service import MasteryService
+from utils.background_tasks import (
+    index_knowledge_point_background,
+    delete_from_index_background,
+)
 
 router = APIRouter(prefix="/knowledge-points", tags=["Knowledge Points"])
 
 
 @router.post("/", response_model=KnowledgePointResponse, dependencies=[RequireTeacher])
-def create_knowledge_point(
+async def create_knowledge_point(
     kp_data: KnowledgePointCreate,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Create a new knowledge point (teacher/admin only)."""
     service = KnowledgePointService(db)
-    return service.create_knowledge_point(kp_data)
+    kp = service.create_knowledge_point(kp_data)
+    
+    # Index knowledge point in OpenSearch in background
+    background_tasks.add_task(index_knowledge_point_background, db, str(kp.id))
+    
+    return kp
 
 
 @router.get("/section/{section_id}", response_model=list[KnowledgePointResponse])
@@ -50,28 +60,40 @@ def get_knowledge_point(
 
 
 @router.put("/{kp_id}", response_model=KnowledgePointResponse, dependencies=[RequireTeacher])
-def update_knowledge_point(
+async def update_knowledge_point(
     kp_id: UUID,
     kp_data: KnowledgePointUpdate,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Update a knowledge point (teacher/admin only)."""
     service = KnowledgePointService(db)
-    return service.update_knowledge_point(kp_id, kp_data)
+    kp = service.update_knowledge_point(kp_id, kp_data)
+    
+    # Reindex knowledge point in OpenSearch in background
+    background_tasks.add_task(index_knowledge_point_background, db, str(kp.id))
+    
+    return kp
 
 
 @router.delete("/{kp_id}", dependencies=[RequireTeacher])
-def delete_knowledge_point(
+async def delete_knowledge_point(
     kp_id: UUID,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Delete a knowledge point (teacher/admin only)."""
     service = KnowledgePointService(db)
-    return service.delete_knowledge_point(kp_id)
+    result = service.delete_knowledge_point(kp_id)
+    
+    # Delete knowledge point from OpenSearch in background
+    background_tasks.add_task(delete_from_index_background, "knowledge_points", str(kp_id))
+    
+    return result
 
 
 # Mastery tracking endpoints
-@router.post("/progress", response_model=MasteryRecordResponse, dependencies=[RequireStudent])
+@router.post("/progress", response_model=StudentMasteryResponse, dependencies=[RequireStudent])
 def track_progress(
     progress_data: MasteryProgressRequest,
     db: Annotated[Session, Depends(get_db)],

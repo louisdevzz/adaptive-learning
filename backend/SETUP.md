@@ -79,7 +79,10 @@ backend/
 │   ├── module_service.py   # Module business logic
 │   ├── section_service.py  # Section business logic
 │   ├── kp_service.py       # Knowledge point logic
-│   └── mastery_service.py  # Adaptive learning algorithms
+│   ├── mastery_service.py  # Adaptive learning algorithms
+│   ├── opensearch_service.py  # OpenSearch integration
+│   ├── embedding_service.py   # OpenAI embeddings
+│   └── search_service.py      # Search orchestration
 │
 ├── utils/                   # Utility functions
 │   └── google_oauth.py     # Google OAuth helpers
@@ -100,9 +103,11 @@ backend/
 - Python 3.10+
 - uv (Python package installer) - https://github.com/astral-sh/uv
 - Neon PostgreSQL (cloud database) - https://neon.tech OR local PostgreSQL 14+
-- Redis (optional, for caching)
+- Redis (for caching and session management)
+- OpenSearch (for semantic search)
+- Docker & Docker Compose (for infrastructure)
 - Google OAuth credentials (for Google login)
-- OpenAI API key (for AI features)
+- OpenAI API key (for AI embeddings and features)
 
 ## Installation
 
@@ -139,11 +144,43 @@ cp .env.example .env
 # - DATABASE_URL: Your PostgreSQL connection string
 # - SECRET_KEY: Generate with `openssl rand -hex 32`
 # - GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
-# - OPENAI_API_KEY
+# - OPENAI_API_KEY: For embeddings and AI features
+# - OPENAI_EMBEDDING_MODEL: text-embedding-3-small (default)
+# - OPENAI_EMBEDDING_DIMENSION: 1536 (default)
+# - OPENSEARCH_HOST: localhost (default)
+# - OPENSEARCH_PORT: 9200 (default)
+# - OPENSEARCH_USER: admin (default)
+# - OPENSEARCH_PASSWORD: Admin@123 (default)
 # - Other settings as needed
 ```
 
-### 4. Set Up Database
+### 4. Set Up Infrastructure
+
+#### Start Docker Services
+
+```bash
+# Start all services (PostgreSQL, Redis, OpenSearch)
+cd docker
+docker-compose -f docker-compose.full.yaml up -d
+
+# Or start OpenSearch only (if using Neon for PostgreSQL)
+cd docker/opensearch
+docker-compose up -d
+
+# Verify services are running
+docker ps
+
+# Check OpenSearch health
+curl -k -u admin:Admin@123 http://localhost:9200/_cluster/health
+```
+
+#### Access Services
+- **PostgreSQL**: localhost:5432 (if using local)
+- **Redis**: localhost:6379
+- **OpenSearch**: localhost:9200
+- **OpenSearch Dashboards**: http://localhost:5601 (admin/Admin@123)
+
+### 5. Set Up Database
 
 #### Option A: Using Neon (Cloud PostgreSQL) - Recommended
 
@@ -194,7 +231,24 @@ cp .env.example .env
    uv run alembic upgrade head
    ```
 
-### 5. Run the Application
+### 6. Initialize OpenSearch
+
+After starting the backend, initialize search indices:
+
+```bash
+# Start the backend server first
+uv run uvicorn main:app --reload
+
+# In another terminal, initialize indices (requires admin token)
+curl -X POST "http://localhost:8000/api/v1/search/initialize" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+
+# Index existing content
+curl -X POST "http://localhost:8000/api/v1/search/reindex" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### 7. Run the Application
 
 ```bash
 # Development mode (with auto-reload) - Recommended
@@ -250,6 +304,14 @@ The API will be available at:
 - `GET /api/v1/knowledge-points/mastery/summary` - Get progress summary
 - `GET /api/v1/knowledge-points/mastery/recommendations` - Get learning recommendations
 
+### Search
+- `POST /api/v1/search/` - Semantic search across all content
+- `GET /api/v1/search/courses/{course_id}/search` - Search within a course
+- `POST /api/v1/search/similar` - Find similar content
+- `POST /api/v1/search/initialize` - Initialize search indices (admin)
+- `POST /api/v1/search/reindex` - Reindex all content (admin)
+- `GET /api/v1/search/health` - Check search service health (admin)
+
 ## Key Features
 
 ### 1. Role-Based Access Control (RBAC)
@@ -284,7 +346,35 @@ Course
           └─ Knowledge Point (Concept)
 ```
 
-### 5. Database Schema
+### 5. Semantic Search with OpenSearch
+
+The system uses OpenSearch with OpenAI embeddings for intelligent content discovery:
+
+**How it works:**
+1. User enters search query
+2. Query is converted to vector embedding via OpenAI
+3. OpenSearch performs vector similarity search
+4. Results are retrieved from PostgreSQL
+5. Content is automatically indexed on create/update
+
+**Search Types:**
+- **Vector Search**: Semantic search based on meaning (not exact keywords)
+- **Hybrid Search**: Combines text matching + vector similarity (30% text, 70% vector)
+- **Filtered Search**: Filter by course, difficulty, content type
+
+**Indexed Content:**
+- Courses (title + description)
+- Modules (title + description + learning objectives)
+- Sections (title + content)
+- Knowledge Points (title + explanation + examples)
+
+**Background Indexing:**
+Content is automatically indexed when:
+- Creating new content (courses, modules, sections, knowledge points)
+- Updating existing content
+- Deleted from index when content is removed
+
+### 6. Database Schema
 
 Key relationships:
 - Users have many MasteryRecords
@@ -292,6 +382,10 @@ Key relationships:
 - Modules have many Sections (ordered)
 - Sections have many KnowledgePoints (ordered)
 - KnowledgePoints have many MasteryRecords
+
+Search infrastructure:
+- OpenSearch stores vector embeddings and metadata
+- PostgreSQL remains the source of truth for all data
 
 ## Common Commands
 
@@ -389,6 +483,38 @@ gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bin
 
 ## Troubleshooting
 
+### OpenSearch Issues
+
+**OpenSearch won't start:**
+```bash
+# Check logs
+docker logs adaptive_learning_opensearch
+
+# Increase memory if needed (edit docker-compose.yaml)
+# OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+
+# Restart container
+docker-compose -f docker-compose.full.yaml restart opensearch
+```
+
+**Search returns no results:**
+```bash
+# Check if indices exist
+curl -k -u admin:Admin@123 http://localhost:9200/_cat/indices
+
+# Check document count
+curl -k -u admin:Admin@123 http://localhost:9200/adaptive_learning_courses/_count
+
+# Reindex all content
+curl -X POST "http://localhost:8000/api/v1/search/reindex" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+**OpenAI embedding errors:**
+- Verify OPENAI_API_KEY in .env
+- Check OpenAI API quota and billing
+- Review backend logs: `docker logs adaptive_learning_backend`
+
 ### Database Connection Errors
 
 **Neon (Cloud PostgreSQL):**
@@ -425,17 +551,67 @@ gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bin
 - **Virtual environment issues**: Delete `.venv` and run `uv sync` again
 - **Package not found**: Run `uv pip list` to view installed packages
 
+## Performance & Optimization
+
+### OpenSearch Performance
+- **Batch Indexing**: Use bulk operations for multiple documents
+- **Token Limits**: text-embedding-3-small supports max 8,191 tokens (~32k chars)
+- **Caching**: Search results cached in Redis (1 hour TTL)
+
+### Costs
+**OpenAI Embeddings:**
+- Model: text-embedding-3-small
+- Cost: $0.02 per 1M tokens
+- Average: ~1,000 tokens per document
+- 10,000 documents ≈ $0.20
+
+**Infrastructure:**
+- OpenSearch: 2GB RAM minimum, ~1-2KB per document
+- Redis: Memory-based, size depends on cache usage
+
+## Production Recommendations
+
+### Security
+- Enable SSL/TLS for OpenSearch
+- Use strong passwords for all services
+- Restrict network access to OpenSearch
+- Use environment-specific secrets
+
+### Scaling
+- Multi-node OpenSearch cluster for high availability
+- Separate master and data nodes
+- Use load balancer for API endpoints
+- PostgreSQL read replicas for read-heavy workloads
+
+### Monitoring
+- OpenSearch Dashboards for search analytics
+- Monitor cluster health and search latency
+- Track OpenAI API usage and costs
+- Set up alerts for service failures
+
+### Backup
+- Regular PostgreSQL backups (Neon provides automatic backups)
+- OpenSearch snapshots for indices
+- Can rebuild OpenSearch indices from PostgreSQL if needed
+- Backup embeddings to avoid regeneration costs
+
 ## Next Steps
 
-1. **Set up Redis** for caching and session management
-2. **Implement OpenAI integration** for content generation
-3. **Add email verification** for new users
-4. **Implement password reset** functionality
-5. **Add comprehensive tests** for all endpoints
-6. **Set up CI/CD pipeline** for automated testing and deployment
-7. **Add API rate limiting** with Redis
-8. **Implement WebSocket support** for real-time updates
+1. ✅ **Redis** - Set up for caching and session management
+2. ✅ **OpenSearch** - Semantic search with AI embeddings
+3. **Email verification** - Add for new users
+4. **Password reset** - Implement functionality
+5. **Comprehensive tests** - Add for all endpoints
+6. **CI/CD pipeline** - Automated testing and deployment
+7. **API rate limiting** - Implement with Redis
+8. **WebSocket support** - Real-time updates for progress tracking
 
 ## Support
 
 For issues or questions, please refer to the main README or create an issue in the repository.
+
+Lưu ý khi deploy
+1. Set COOKIE_SECURE=true trong production (HTTPS)
+2. Set COOKIE_SAMESITE=strict trong production
+3. Set COOKIE_DOMAIN phù hợp với domain của bạn
+4. Đảm bảo CORS được cấu hình đúng với credentials: true

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from core.errors import errors
 from core.security import create_token_pair, get_password_hash, verify_password
-from models.user import UserRole
+from core.token_blacklist import token_blacklist
 from repositories.user_repo import UserRepository
 from schemas.auth_schema import GoogleLogin, UserLogin, UserRegister
 
@@ -65,21 +65,23 @@ class AuthService:
         # Hash password
         hashed_password = get_password_hash(user_data.password)
 
-        # Create user
+        # Create user with profile (automatically created)
         user = self.user_repo.create_user(
             email=user_data.email,
             username=user_data.username,
-            full_name=user_data.full_name,
-            hashed_password=hashed_password,
-            role=UserRole(user_data.role),
+            hash_password=hashed_password,
+            full_name=user_data.full_name,  # From user input or Google OAuth
+            role=user_data.role or 'student',  # From user input, defaults to 'student'
+            image=user_data.image,  # Profile image URL (optional)
+            meta_data=user_data.meta_data,  # Additional metadata (optional)
         )
 
         logger.info(
-            f"New user registered: user_id={user.id}, role={user.role.value}"
+            f"New user registered: user_id={user.id}, profile created automatically"
         )
 
         # Generate tokens
-        tokens = create_token_pair(user.id, user.email, user.role.value)
+        tokens = create_token_pair(user.id, user.email, user.role)
 
         return {
             "user": user,
@@ -110,18 +112,8 @@ class AuthService:
                 detail=errors.AUTH_INVALID_CREDENTIALS,
             )
 
-        # Check if user has a password (not OAuth-only user)
-        if not user.hashed_password:
-            logger.warning(
-                "Failed login attempt: OAuth-only account tried password login"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=errors.AUTH_GOOGLE_LOGIN_REQUIRED,
-            )
-
         # Verify password
-        if not verify_password(login_data.password, user.hashed_password):
+        if not verify_password(login_data.password, user.hash_password):
             logger.warning(
                 f"Failed login attempt: Invalid password for user_id={user.id}"
             )
@@ -143,10 +135,14 @@ class AuthService:
         # Update last login
         self.user_repo.update_last_login(user.id)
 
+        # Clear any revocation timestamp for this user (from previous logout-all)
+        # This allows the user to login fresh with new tokens
+        token_blacklist.clear_user_revocation(str(user.id))
+
         logger.info(f"Successful login: user_id={user.id}")
 
         # Generate tokens
-        tokens = create_token_pair(user.id, user.email, user.role.value)
+        tokens = create_token_pair(user.id, user.email, user.role)
 
         return {
             "user": user,
@@ -158,94 +154,54 @@ class AuthService:
         Login or register user with Google OAuth.
 
         Args:
-            google_data: Google login data with token
-            google_user_info: User info from Google
+            google_data: Google login data
+            google_user_info: Verified Google user information
 
         Returns:
             Dict with user info and tokens
         """
-        google_id = google_user_info["sub"]
-        email = google_user_info["email"]
-        full_name = google_user_info.get("name", email.split("@")[0])
-        profile_picture = google_user_info.get("picture")
+        email = google_user_info.get("email")
 
-        # Check if user exists by Google ID
-        user = self.user_repo.get_by_google_id(google_id)
+        # Check if user exists
+        user = self.user_repo.get_by_email(email)
 
-        if not user:
-            # Check if user exists by email
-            user = self.user_repo.get_by_email(email)
-
-            if user:
-                # Link Google account to existing user
-                logger.info(
-                    f"Linking Google account to existing user_id={user.id}"
-                )
-                user.google_id = google_id
-                user.profile_picture = profile_picture
-                user.is_verified = True
-                self.db.commit()
-                self.db.refresh(user)
-            else:
-                # Create new user with Google OAuth
-                username = email.split("@")[0]
-                
-                # Sanitize username: only allow alphanumeric and underscores
-                username = "".join(c if c.isalnum() or c == "_" else "_" for c in username)
-                
-                # Ensure username is unique with maximum retry limit
-                max_attempts = 100
-                counter = 1
-                original_username = username
-                
-                while self.user_repo.get_by_username(username) and counter < max_attempts:
-                    username = f"{original_username}{counter}"
-                    counter += 1
-                
-                # If we hit the retry limit, use UUID fallback
-                if counter >= max_attempts:
-                    # Generate a unique username with UUID suffix
-                    unique_suffix = uuid.uuid4().hex[:6]
-                    username = f"{original_username}_{unique_suffix}"
-                    
-                    # Final check - if still exists (extremely unlikely), use full UUID
-                    if self.user_repo.get_by_username(username):
-                        username = f"user_{uuid.uuid4().hex[:12]}"
-
-                # Use configurable default role for Google OAuth users
-                default_role = UserRole(settings.GOOGLE_DEFAULT_ROLE)
-                
-                user = self.user_repo.create_user(
-                    email=email,
-                    username=username,
-                    full_name=full_name,
-                    google_id=google_id,
-                    profile_picture=profile_picture,
-                    role=default_role,
+        if user:
+            # Existing user - login
+            if not user.is_active:
+                logger.warning(f"Inactive user Google login attempt: {email}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=errors.USER_INACTIVE,
                 )
 
-                logger.info(
-                    f"New Google OAuth user registered: user_id={user.id}, "
-                    f"role={default_role.value}"
-                )
+            # Update last login
+            self.user_repo.update_last_login(user.id)
 
-        # Check if user is active
-        if not user.is_active:
-            logger.warning(
-                f"Failed Google login attempt: Inactive account {user.id} ({email})"
+            # Clear any revocation timestamp for this user
+            token_blacklist.clear_user_revocation(str(user.id))
+
+            logger.info(f"Google login: user_id={user.id}")
+        else:
+            # New user - register
+            username = google_user_info.get("email").split("@")[0]
+            # Ensure unique username
+            counter = 1
+            original_username = username
+            while self.user_repo.get_by_username(username):
+                username = f"{original_username}{counter}"
+                counter += 1
+
+            user = self.user_repo.create_user(
+                email=email,
+                username=username,
+                hash_password=get_password_hash(str(uuid.uuid4())),  # Random password
+                full_name=google_user_info.get("name"),
+                role="student",  # Default role for Google OAuth users
             )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=errors.USER_INACTIVE,
-            )
-
-        # Update last login
-        self.user_repo.update_last_login(user.id)
-
-        logger.info(f"Successful Google OAuth login: user_id={user.id}")
+            logger.info(f"New Google user registered: user_id={user.id}")
 
         # Generate tokens
-        tokens = create_token_pair(user.id, user.email, user.role.value)
+        tokens = create_token_pair(user.id, user.email, user.role)
 
         return {
             "user": user,

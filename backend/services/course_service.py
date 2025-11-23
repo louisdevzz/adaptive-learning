@@ -20,12 +20,12 @@ class CourseService:
 
     def create_course(self, course_data: CourseCreate):
         """Create a new course."""
-        # Check if slug already exists
-        existing = self.repo.get_by_slug(course_data.slug)
+        # Check if code already exists
+        existing = self.repo.get_by_code(course_data.code)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Course with this slug already exists",
+                detail="Course with this code already exists",
             )
 
         return self.repo.create(**course_data.model_dump())
@@ -40,9 +40,9 @@ class CourseService:
             )
         return course
 
-    def get_course_by_slug(self, slug: str):
-        """Get course by slug."""
-        course = self.repo.get_by_slug(slug)
+    def get_course_by_code(self, code: str):
+        """Get course by code."""
+        course = self.repo.get_by_code(code)
         if not course:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -83,8 +83,12 @@ class CourseService:
     def list_courses(self, skip: int = 0, limit: int = 100, published_only: bool = False):
         """List all courses with pagination."""
         if published_only:
-            return self.repo.get_published(skip, limit)
-        return self.repo.get_all(skip, limit)
+            items = self.repo.get_published(skip, limit)
+        else:
+            items = self.repo.get_all(skip, limit)
+
+        total = self.repo.count_all(published_only)
+        return {"items": items, "total": total}
 
     def search_courses(self, query: str, skip: int = 0, limit: int = 100):
         """Search courses by title."""

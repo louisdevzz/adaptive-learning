@@ -27,9 +27,11 @@ class ErrorMessages:
     MODULE_NOT_FOUND: Final[str] = "Module not found"
     SECTION_NOT_FOUND: Final[str] = "Section not found"
     KNOWLEDGE_POINT_NOT_FOUND: Final[str] = "Knowledge point not found"
-    
+    PROFILE_NOT_FOUND: Final[str] = "Profile not found"
+
     # Resource Conflicts
     COURSE_SLUG_EXISTS: Final[str] = "A course with this identifier already exists"
+    PROFILE_ALREADY_EXISTS: Final[str] = "Profile already exists for this user"
     
     # System Errors
     SYSTEM_ERROR: Final[str] = "An internal error occurred. Please try again later"

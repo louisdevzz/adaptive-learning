@@ -1,13 +1,23 @@
 """Admin API endpoints for system monitoring and management."""
 
-from typing import Annotated
+from typing import Annotated, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 from api.dependencies import get_current_user
-from core.database import get_pool_status, log_pool_status
+from core.database import get_db, get_pool_status, log_pool_status
 from core.errors import errors
 from models.user import User, UserRole
+from schemas.user_schema import (
+    UserCreateRequest,
+    UserDetailResponse,
+    UserListResponse,
+    UserStatsResponse,
+    UserUpdateRequest,
+)
+from services.user_service import UserService
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -88,15 +98,15 @@ def get_connection_pool_status(
 def _get_pool_recommendations(status: dict) -> list[str]:
     """
     Generate recommendations based on pool status.
-    
+
     Args:
         status: Pool status dictionary
-        
+
     Returns:
         List of recommendations
     """
     recommendations = []
-    
+
     if status["is_exhausted"]:
         recommendations.append(
             "CRITICAL: Pool is exhausted. Consider increasing DB_POOL_SIZE "
@@ -122,7 +132,7 @@ def _get_pool_recommendations(status: dict) -> list[str]:
         recommendations.append(
             "Pool health is good. Current configuration appears adequate."
         )
-    
+
     # Check for idle overflow connections
     if status["overflow"] > 0 and status["checked_out"] < status["pool_size_limit"]:
         recommendations.append(
@@ -130,6 +140,114 @@ def _get_pool_recommendations(status: dict) -> list[str]:
             f"{status['checked_out']} connections in use. This may indicate "
             "a previous spike in demand."
         )
-    
+
     return recommendations
+
+
+# ============== User Management Endpoints ==============
+
+@router.get("/users", response_model=UserListResponse)
+def get_users(
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    role: Optional[UserRole] = Query(None, description="Filter by role"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    search: Optional[str] = Query(None, description="Search by email or username"),
+):
+    """
+    Get paginated list of users (admin only).
+
+    Supports filtering by role, active status, and search.
+    """
+    user_service = UserService(db)
+    return user_service.get_users(
+        page=page,
+        page_size=page_size,
+        role=role,
+        is_active=is_active,
+        search=search,
+    )
+
+
+@router.get("/users/stats", response_model=UserStatsResponse)
+def get_user_stats(
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Get user statistics (admin only).
+
+    Returns counts by role, active/inactive users, and new users this month.
+    """
+    user_service = UserService(db)
+    return user_service.get_user_stats()
+
+
+@router.get("/users/{user_id}", response_model=UserDetailResponse)
+def get_user(
+    user_id: UUID,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Get user by ID (admin only).
+    """
+    user_service = UserService(db)
+    return user_service.get_user_by_id(user_id)
+
+
+@router.post("/users", response_model=UserDetailResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    data: UserCreateRequest,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Create a new user (admin only).
+    """
+    user_service = UserService(db)
+    return user_service.create_user(data)
+
+
+@router.put("/users/{user_id}", response_model=UserDetailResponse)
+def update_user(
+    user_id: UUID,
+    data: UserUpdateRequest,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Update user (admin only).
+    """
+    user_service = UserService(db)
+    return user_service.update_user(user_id, data)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: UUID,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Delete user (admin only).
+    """
+    user_service = UserService(db)
+    user_service.delete_user(user_id)
+    return None
+
+
+@router.post("/users/{user_id}/toggle-status", response_model=UserDetailResponse)
+def toggle_user_status(
+    user_id: UUID,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Toggle user active status (admin only).
+    """
+    user_service = UserService(db)
+    return user_service.toggle_user_status(user_id)
 

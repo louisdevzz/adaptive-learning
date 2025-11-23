@@ -71,7 +71,7 @@ class KnowledgePointRepository(BaseRepository[KnowledgePoint]):
         """
         return (
             self.db.query(KnowledgePoint)
-            .filter(KnowledgePoint.title.ilike(f"%{search_term}%"))
+            .filter(KnowledgePoint.name.ilike(f"%{search_term}%"))
             .offset(skip)
             .limit(limit)
             .all()

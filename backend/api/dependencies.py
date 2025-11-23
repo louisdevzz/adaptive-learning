@@ -2,9 +2,9 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -18,22 +18,29 @@ from repositories.user_repo import UserRepository
 # Setup logger
 logger = logging.getLogger(__name__)
 
-# Security scheme for JWT bearer token
-security = HTTPBearer()
+# Security scheme for JWT bearer token (optional, for backward compatibility)
+security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
+    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(security)] = None,
+    access_token: Annotated[Optional[str], Cookie()] = None,
 ) -> User:
     """
     Get current authenticated user from JWT token.
-    
+
+    Supports both HttpOnly cookie and Bearer token authentication.
+    Cookie takes precedence over Bearer token.
+
     Checks token validity, blacklist status, and user permissions.
 
     Args:
-        credentials: HTTP authorization credentials
+        request: HTTP request object
         db: Database session
+        credentials: HTTP authorization credentials (optional, for backward compatibility)
+        access_token: Access token from cookie (optional)
 
     Returns:
         Current user
@@ -41,7 +48,18 @@ def get_current_user(
     Raises:
         HTTPException: If token is invalid, blacklisted, or user not found
     """
-    token = credentials.credentials
+    # Get token from cookie first, then fallback to Bearer header
+    token = access_token
+    if not token and credentials:
+        token = credentials.credentials
+
+    if not token:
+        logger.warning("Authentication failed: No token provided")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=errors.AUTH_INVALID_TOKEN,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # Check if token is blacklisted
     if token_blacklist.is_blacklisted(token):

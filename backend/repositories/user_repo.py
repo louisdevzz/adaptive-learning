@@ -5,8 +5,10 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
+
 from core.errors import errors
-from models.user import User, UserRole
+from models.user import User
+from models.profile import Profile
 from repositories.base_repo import BaseRepository
 
 
@@ -41,55 +43,52 @@ class UserRepository(BaseRepository[User]):
         """
         return self.db.query(User).filter(User.username == username).first()
 
-    def get_by_google_id(self, google_id: str) -> Optional[User]:
-        """
-        Get user by Google ID.
-
-        Args:
-            google_id: Google OAuth ID
-
-        Returns:
-            User instance or None if not found
-        """
-        return self.db.query(User).filter(User.google_id == google_id).first()
-
     def create_user(
         self,
         email: str,
         username: str,
-        full_name: str,
-        hashed_password: Optional[str] = None,
-        role: UserRole = UserRole.STUDENT,
-        google_id: Optional[str] = None,
-        profile_picture: Optional[str] = None,
+        hash_password: str,
+        full_name: Optional[str] = None,
+        role: Optional[str] = None,
+        image: Optional[str] = None,
+        meta_data: Optional[dict] = None,
     ) -> User:
         """
-        Create a new user.
+        Create a new user with profile.
 
         Args:
             email: User email
             username: Username
-            full_name: Full name
-            hashed_password: Hashed password (optional for OAuth users)
-            role: User role
-            google_id: Google OAuth ID (optional)
-            profile_picture: Profile picture URL (optional)
+            hash_password: Hashed password
+            full_name: Full name for profile (optional)
+            role: User role for profile (optional, e.g., 'student', 'teacher', 'admin')
+            image: Profile image URL (optional)
+            meta_data: Additional profile metadata (optional)
 
         Returns:
-            Created user instance
+            Created user instance with profile
         """
+        # Create user
         user = User(
             email=email,
             username=username,
-            full_name=full_name,
-            hashed_password=hashed_password,
-            role=role,
-            google_id=google_id,
-            profile_picture=profile_picture,
+            hash_password=hash_password,
+            role=role or 'student',  # Set role on User model
             is_active=True,
-            is_verified=google_id is not None,  # Auto-verify OAuth users
         )
         self.db.add(user)
+        self.db.flush()  # Flush to get user.id before creating profile
+
+        # Automatically create profile
+        profile = Profile(
+            user_id=user.id,
+            full_name=full_name,
+            role=role or 'student',  # Default to student if not specified
+            image=image,
+            meta_data=meta_data or {},
+        )
+        self.db.add(profile)
+
         self.db.commit()
         self.db.refresh(user)
         return user
@@ -106,24 +105,6 @@ class UserRepository(BaseRepository[User]):
         """
         user = self.get_by_id(user_id)
         if user:
-            user.last_login = datetime.now(timezone.utc)
-            self.db.commit()
-            self.db.refresh(user)
-        return user
-
-    def verify_user(self, user_id: UUID | str) -> Optional[User]:
-        """
-        Mark user as verified.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            Updated user instance or None if not found
-        """
-        user = self.get_by_id(user_id)
-        if user:
-            user.is_verified = True
             self.db.commit()
             self.db.refresh(user)
         return user
@@ -145,31 +126,19 @@ class UserRepository(BaseRepository[User]):
             self.db.refresh(user)
         return user
 
-    def get_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> list[User]:
+    def activate_user(self, user_id: UUID | str) -> Optional[User]:
         """
-        Get users by role with validated pagination.
+        Activate a user.
 
         Args:
-            role: User role to filter by
-            skip: Number of records to skip (must be non-negative)
-            limit: Maximum number of records to return (capped at MAX_PAGE_SIZE)
+            user_id: User ID
 
         Returns:
-            List of users with the specified role
-            
-        Raises:
-            ValueError: If skip or limit is negative
+            Updated user instance or None if not found
         """
-        # Validate pagination parameters
-        if skip < 0:
-            raise ValueError(errors.VALIDATION_SKIP_NEGATIVE)
-        
-        if limit < 0:
-            raise ValueError(errors.VALIDATION_LIMIT_NEGATIVE)
-        
-        # Enforce maximum page size
-        from core.config import settings
-        from core.errors import errors as err_msgs
-        limit = min(limit, settings.MAX_PAGE_SIZE)
-        
-        return self.db.query(User).filter(User.role == role).offset(skip).limit(limit).all()
+        user = self.get_by_id(user_id)
+        if user:
+            user.is_active = True
+            self.db.commit()
+            self.db.refresh(user)
+        return user

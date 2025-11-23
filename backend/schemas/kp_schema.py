@@ -1,7 +1,7 @@
 """Knowledge Point schemas for CRUD operations."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -10,31 +10,33 @@ from pydantic import BaseModel, Field
 class KnowledgePointBase(BaseModel):
     """Base schema for Knowledge Point."""
 
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    content: Optional[str] = None
-    order: int = Field(default=0, ge=0)
-    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$")
-    prerequisites: Optional[str] = None  # JSON string of prerequisite IDs
-    tags: Optional[str] = None  # JSON string of tags
+    name: str = Field(..., min_length=1, max_length=255, description="Knowledge point name")
+    description: Optional[str] = Field(None, description="Knowledge point description")
+    code: str = Field(..., min_length=1, max_length=50, description="Knowledge point code")
+    kp_type: str = Field(default="concept", pattern="^(concept|rule|formula|problem_type)$")
+    learning_objectives: Optional[dict[str, Any]] = Field(None, description="Learning objectives (JSON)")
+    difficulty_level: int = Field(default=3, ge=1, le=5, description="Difficulty level (1-5)")
+    estimated_time: Optional[dict[str, Any]] = Field(None, description="Estimated time (JSON)")
 
 
 class KnowledgePointCreate(KnowledgePointBase):
     """Schema for creating a new knowledge point."""
 
-    section_id: UUID
+    section_id: UUID = Field(..., description="Section ID this KP belongs to")
+    module_id: UUID = Field(..., description="Module ID this KP belongs to")
+    course_id: UUID = Field(..., description="Course ID this KP belongs to")
 
 
 class KnowledgePointUpdate(BaseModel):
     """Schema for updating an existing knowledge point."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
-    content: Optional[str] = None
-    order: Optional[int] = Field(None, ge=0)
-    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$")
-    prerequisites: Optional[str] = None
-    tags: Optional[str] = None
+    code: Optional[str] = Field(None, min_length=1, max_length=50)
+    kp_type: Optional[str] = Field(None, pattern="^(concept|rule|formula|problem_type)$")
+    learning_objectives: Optional[dict[str, Any]] = None
+    difficulty_level: Optional[int] = Field(None, ge=1, le=5)
+    estimated_time: Optional[dict[str, Any]] = None
 
 
 class KnowledgePointResponse(KnowledgePointBase):
@@ -42,6 +44,8 @@ class KnowledgePointResponse(KnowledgePointBase):
 
     id: UUID
     section_id: UUID
+    module_id: UUID
+    course_id: UUID
     created_at: datetime
     updated_at: datetime
 
@@ -52,7 +56,7 @@ class KnowledgePointWithMastery(KnowledgePointResponse):
     """Schema for knowledge point with user's mastery level."""
 
     mastery_level: Optional[float] = None
-    mastery_category: Optional[str] = None
-    last_practiced: Optional[datetime] = None
+    mastery_group: Optional[str] = None
+    last_assessed: Optional[datetime] = None
 
     model_config = {"from_attributes": True}

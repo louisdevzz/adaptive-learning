@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from api.dependencies import RequireTeacher, get_current_user
@@ -11,18 +11,28 @@ from core.database import get_db
 from models.user import User
 from schemas.module_schema import ModuleCreate, ModuleResponse, ModuleUpdate, ModuleWithSections
 from services.module_service import ModuleService
+from utils.background_tasks import (
+    index_module_background,
+    delete_from_index_background,
+)
 
 router = APIRouter(prefix="/modules", tags=["Modules"])
 
 
 @router.post("/", response_model=ModuleResponse, dependencies=[RequireTeacher])
-def create_module(
+async def create_module(
     module_data: ModuleCreate,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Create a new module (teacher/admin only)."""
     service = ModuleService(db)
-    return service.create_module(module_data)
+    module = service.create_module(module_data)
+    
+    # Index module in OpenSearch in background
+    background_tasks.add_task(index_module_background, db, str(module.id))
+    
+    return module
 
 
 @router.get("/course/{course_id}", response_model=list[ModuleResponse])
@@ -48,21 +58,33 @@ def get_module(
 
 
 @router.put("/{module_id}", response_model=ModuleResponse, dependencies=[RequireTeacher])
-def update_module(
+async def update_module(
     module_id: UUID,
     module_data: ModuleUpdate,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Update a module (teacher/admin only)."""
     service = ModuleService(db)
-    return service.update_module(module_id, module_data)
+    module = service.update_module(module_id, module_data)
+    
+    # Reindex module in OpenSearch in background
+    background_tasks.add_task(index_module_background, db, str(module.id))
+    
+    return module
 
 
 @router.delete("/{module_id}", dependencies=[RequireTeacher])
-def delete_module(
+async def delete_module(
     module_id: UUID,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Delete a module (teacher/admin only)."""
     service = ModuleService(db)
-    return service.delete_module(module_id)
+    result = service.delete_module(module_id)
+    
+    # Delete module from OpenSearch in background
+    background_tasks.add_task(delete_from_index_background, "modules", str(module_id))
+    
+    return result

@@ -4,10 +4,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
+from models.course import DifficultyLevel
 
 if TYPE_CHECKING:
     from models.course import Course
@@ -26,15 +27,17 @@ class Module(Base):
         Uuid(as_uuid=True),
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,  # Index for faster JOIN and filtering operations
+        index=True,
     )
 
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-
-    # Module metadata
-    estimated_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    module_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    estimated_hours: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    difficulty_level: Mapped[DifficultyLevel] = mapped_column(
+        Enum(DifficultyLevel), nullable=False, index=True
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -50,9 +53,9 @@ class Module(Base):
     # Relationships
     course: Mapped["Course"] = relationship("Course", back_populates="modules")
     sections: Mapped[list["Section"]] = relationship(
-        "Section", back_populates="module", cascade="all, delete-orphan", order_by="Section.order"
+        "Section", back_populates="module", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
         """String representation of Module."""
-        return f"<Module(id={self.id}, title={self.title}, course_id={self.course_id})>"
+        return f"<Module(id={self.id}, name={self.name}, course_id={self.course_id})>"
