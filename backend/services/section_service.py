@@ -19,10 +19,13 @@ class SectionService:
 
     def create_section(self, section_data: SectionCreate):
         """Create a new section."""
-        if section_data.order == 0:
-            section_data.order = self.repo.get_next_order(section_data.module_id)
+        data = section_data.model_dump()
 
-        return self.repo.create(**section_data.model_dump())
+        # Auto-assign section_number if not provided or is 0
+        if data.get('section_number', 0) == 0:
+            data['section_number'] = self.repo.get_next_order(section_data.module_id)
+
+        return self.repo.create(**data)
 
     def get_section(self, section_id: UUID | str):
         """Get section by ID."""

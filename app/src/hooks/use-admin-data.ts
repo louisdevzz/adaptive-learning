@@ -1,6 +1,6 @@
 import useSWR, { SWRConfiguration } from 'swr';
-import { adminAPI, courseAPI } from '@/lib/api';
-import type { UserStats, UserListItem, UserRole, Course } from '@/types';
+import { adminAPI, courseAPI, moduleAPI, sectionAPI } from '@/lib/api';
+import type { UserStats, UserListItem, UserRole, Course, Module, Section } from '@/types';
 
 const defaultConfig: SWRConfiguration = {
   revalidateOnFocus: true,
@@ -13,7 +13,7 @@ export function useUserStats(config?: SWRConfiguration) {
     () => adminAPI.getUserStats(),
     {
       ...defaultConfig,
-      refreshInterval: 30000,
+      refreshInterval: 10000,
       ...config,
     }
   );
@@ -25,7 +25,7 @@ export function useRecentUsers(pageSize = 5, config?: SWRConfiguration) {
     () => adminAPI.getUsers({ page: 1, page_size: pageSize }),
     {
       ...defaultConfig,
-      refreshInterval: 30000,
+      refreshInterval: 10000,
       ...config,
     }
   );
@@ -74,7 +74,7 @@ export function useTotalCourses(config?: SWRConfiguration) {
     () => courseAPI.listCourses({ page: 1, page_size: 1 }),
     {
       ...defaultConfig,
-      refreshInterval: 30000,
+      refreshInterval: 10000,
       ...config,
     }
   );
@@ -84,6 +84,44 @@ export function useCourses(config?: SWRConfiguration) {
   return useSWR(
     'admin-courses',
     () => courseAPI.listCourses({ page: 1, page_size: 100 }),
+    {
+      ...defaultConfig,
+      ...config,
+    }
+  );
+}
+
+export function useModules(courseId?: string, config?: SWRConfiguration) {
+  return useSWR(
+    courseId ? ['admin-modules', courseId] : 'admin-modules',
+    () => moduleAPI.listModules({
+      page: 1,
+      page_size: 100,
+      ...(courseId && { course_id: courseId }),
+    }),
+    {
+      ...defaultConfig,
+      ...config,
+    }
+  );
+}
+
+export function useTotalModules(config?: SWRConfiguration) {
+  return useSWR(
+    'admin-total-modules',
+    () => moduleAPI.listModules({ page: 1, page_size: 1 }),
+    {
+      ...defaultConfig,
+      refreshInterval: 10000,
+      ...config,
+    }
+  );
+}
+
+export function useSections(moduleId?: string, config?: SWRConfiguration) {
+  return useSWR<Section[]>(
+    moduleId ? ['admin-sections', moduleId] : null,
+    () => moduleId ? sectionAPI.listSectionsByModule(moduleId) : Promise.resolve([]),
     {
       ...defaultConfig,
       ...config,

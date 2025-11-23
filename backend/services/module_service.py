@@ -19,10 +19,6 @@ class ModuleService:
 
     def create_module(self, module_data: ModuleCreate):
         """Create a new module."""
-        # Auto-assign order if not specified
-        if module_data.order == 0:
-            module_data.order = self.repo.get_next_order(module_data.course_id)
-
         return self.repo.create(**module_data.model_dump())
 
     def get_module(self, module_id: UUID | str):
@@ -68,3 +64,18 @@ class ModuleService:
     def list_by_course(self, course_id: UUID | str):
         """List all modules for a course."""
         return self.repo.get_by_course(course_id)
+
+    def list_modules(
+        self,
+        page: int = 1,
+        page_size: int = 100,
+        course_id: UUID | str | None = None,
+        is_active: bool | None = None,
+    ):
+        """List all modules with pagination and filtering."""
+        return self.repo.list_all(
+            page=page,
+            page_size=page_size,
+            course_id=course_id,
+            is_active=is_active,
+        )

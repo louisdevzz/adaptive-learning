@@ -57,3 +57,12 @@ class ModuleWithSections(ModuleResponse):
     sections: list[SectionResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
+
+
+class ModuleListResponse(BaseModel):
+    """Schema for paginated module list."""
+
+    items: list[ModuleResponse]
+    total: int
+    page: int
+    page_size: int

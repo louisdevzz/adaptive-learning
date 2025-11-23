@@ -80,3 +80,9 @@ class UserUpdateRequest(BaseModel):
     full_name: Optional[str] = Field(None, max_length=255)
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for resetting user password (admin only)."""
+
+    new_password: str = Field(..., min_length=6, description="New password (minimum 6 characters)")

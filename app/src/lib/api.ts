@@ -88,6 +88,14 @@ export const moduleAPI = {
   createModule: (data: Partial<Module>) =>
     apiClient.post<Module>('/modules/', data),
 
+  listModules: (params?: {
+    page?: number;
+    page_size?: number;
+    course_id?: string;
+    is_active?: boolean;
+  }) =>
+    apiClient.get<PaginatedResponse<Module>>('/modules/', params),
+
   listModulesByCourse: (courseId: string) =>
     apiClient.get<Module[]>(`/modules/course/${courseId}`),
 
@@ -209,4 +217,9 @@ export const adminAPI = {
 
   toggleUserStatus: (userId: string) =>
     apiClient.post<UserListItem>(`/admin/users/${userId}/toggle-status`),
+
+  resetUserPassword: (userId: string, newPassword: string) =>
+    apiClient.post<UserListItem>(`/admin/users/${userId}/reset-password`, {
+      new_password: newPassword,
+    }),
 };

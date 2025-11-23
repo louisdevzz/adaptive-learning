@@ -3,6 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from models.module import Module
@@ -70,3 +71,52 @@ class ModuleRepository(BaseRepository[Module]):
             .first()
         )
         return (max_order[0] + 1) if max_order else 0
+
+    def list_all(
+        self,
+        page: int = 1,
+        page_size: int = 100,
+        course_id: UUID | str | None = None,
+        is_active: bool | None = None,
+    ) -> dict:
+        """
+        List all modules with pagination and filtering.
+
+        Args:
+            page: Page number (1-based)
+            page_size: Number of items per page
+            course_id: Optional filter by course ID
+            is_active: Optional filter by active status
+
+        Returns:
+            Dict with total, page, page_size, and items
+        """
+        query = self.db.query(Module)
+
+        # Apply filters
+        if course_id is not None:
+            normalized_course_id = self._normalize_id(course_id)
+            query = query.filter(Module.course_id == normalized_course_id)
+
+        if is_active is not None:
+            query = query.filter(Module.is_active == is_active)
+
+        # Get total count
+        total = query.count()
+
+        # Apply pagination
+        offset = (page - 1) * page_size
+        items = (
+            query
+            .order_by(Module.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
+
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": items,
+        }

@@ -314,3 +314,40 @@ class UserService:
         logger.info(f"Admin toggled user status: {user_id} -> {user.is_active}")
 
         return self.get_user_by_id(user_id)
+
+    def reset_password(self, user_id: UUID, new_password: str) -> dict:
+        """
+        Reset user password (admin only).
+
+        Args:
+            user_id: User ID
+            new_password: New password
+
+        Returns:
+            Updated user data
+
+        Raises:
+            HTTPException: If user not found or password too short
+        """
+        if len(new_password) < 6:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mật khẩu phải có ít nhất 6 ký tự",
+            )
+
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=errors.USER_NOT_FOUND,
+            )
+
+        # Hash and update password
+        hashed_password = get_password_hash(new_password)
+        user.password_hash = hashed_password
+        self.db.commit()
+        self.db.refresh(user)
+
+        logger.info(f"Admin reset password for user: {user_id}")
+
+        return self.get_user_by_id(user_id)

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from api.dependencies import RequireTeacher, get_current_user
 from core.database import get_db
 from models.user import User
-from schemas.module_schema import ModuleCreate, ModuleResponse, ModuleUpdate, ModuleWithSections
+from schemas.module_schema import ModuleCreate, ModuleListResponse, ModuleResponse, ModuleUpdate, ModuleWithSections
 from services.module_service import ModuleService
 from utils.background_tasks import (
     index_module_background,
@@ -17,6 +17,24 @@ from utils.background_tasks import (
 )
 
 router = APIRouter(prefix="/modules", tags=["Modules"])
+
+
+@router.get("/", response_model=ModuleListResponse, dependencies=[RequireTeacher])
+def list_modules(
+    page: int = 1,
+    page_size: int = 100,
+    course_id: UUID | None = None,
+    is_active: bool | None = None,
+    db: Session = Depends(get_db),
+):
+    """List all modules with optional filtering (teacher/admin only)."""
+    service = ModuleService(db)
+    return service.list_modules(
+        page=page,
+        page_size=page_size,
+        course_id=course_id,
+        is_active=is_active,
+    )
 
 
 @router.post("/", response_model=ModuleResponse, dependencies=[RequireTeacher])

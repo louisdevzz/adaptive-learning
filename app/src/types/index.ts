@@ -228,12 +228,51 @@ export interface UserStats {
   new_users_this_month: number;
 }
 
+// Meta data interfaces for each role
+export interface AdminMetaData {
+  permissions: string[];
+  admin_level: 'super' | 'system' | 'support';
+}
+
+export interface TeacherMetaData {
+  phone?: string;
+  address?: string;
+  bio?: string;
+  specialization: string[];
+  grades: number[];
+  assigned_courses?: string[];
+  homeroom_class?: string;
+}
+
+export interface StudentMetaData {
+  student_code?: string;
+  grade_level: number;
+  class_id?: string;
+  parents?: string[];
+  learning_style?: 'visual' | 'auditory' | 'kinesthetic' | 'reading_writing';
+  interests?: string[];
+  behavior_score?: number;
+  notes?: string;
+}
+
+export interface ParentMetaData {
+  children: {
+    student_id: string;
+    relationship: 'father' | 'mother' | 'guardian';
+  }[];
+  contact_number?: string;
+  occupation?: string;
+}
+
+export type UserMetaData = AdminMetaData | TeacherMetaData | StudentMetaData | ParentMetaData;
+
 export interface UserCreateData {
   email: string;
   username: string;
   password: string;
   full_name?: string;
   role?: UserRole;
+  meta_data?: UserMetaData;
 }
 
 export interface UserUpdateData {
@@ -242,6 +281,7 @@ export interface UserUpdateData {
   full_name?: string;
   role?: UserRole;
   is_active?: boolean;
+  meta_data?: UserMetaData;
 }
 
 // Network Visualization

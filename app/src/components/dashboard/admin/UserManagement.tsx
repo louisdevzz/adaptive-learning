@@ -25,6 +25,7 @@ import {
   ToggleLeft,
   ToggleRight,
   MoreVertical,
+  KeyRound,
 } from 'lucide-react';
 import {
   Modal,
@@ -34,7 +35,7 @@ import {
   ModalFooter,
 } from '@heroui/modal';
 import { DataTable } from '@/components/ui/DataTable';
-import { CreateUserModal, EditUserModal } from './UserModals';
+import { CreateUserModal, EditUserModal, ResetPasswordModal, getInitialFormData, buildMetaData, type UserFormData } from './UserModals';
 import { adminAPI } from '@/lib/api';
 import { useUsers } from '@/hooks/use-admin-data';
 import { addToast } from '@heroui/toast';
@@ -59,20 +60,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserListItem | null>(null);
+  const [userToResetPassword, setUserToResetPassword] = useState<UserListItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Form data
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'student' as UserRole,
-  });
+  const [formData, setFormData] = useState<UserFormData>(getInitialFormData());
 
   const pageSize = 10;
 
@@ -164,7 +162,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       });
 
       const createdUsername = formData.username;
-      await adminAPI.createUser(formData);
+      const meta_data = buildMetaData(formData);
+
+      await adminAPI.createUser({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+        role: formData.role,
+        meta_data,
+      });
 
       addToast({
         title: 'Thành công',
@@ -173,13 +180,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       });
 
       setShowCreateModal(false);
-      setFormData({
-        username: '',
-        email: '',
-        password: '',
-        full_name: '',
-        role: 'student',
-      });
+      setFormData(getInitialFormData());
       mutate();
       onDataChange?.();
     } catch (error: unknown) {
@@ -206,10 +207,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         color: 'default',
       });
 
-      const updateData: { full_name?: string; role?: UserRole; email?: string } = {};
+      const meta_data = buildMetaData(formData);
+      const updateData: {
+        full_name?: string;
+        role?: UserRole;
+        email?: string;
+        meta_data?: typeof meta_data;
+      } = {};
       if (formData.full_name) updateData.full_name = formData.full_name;
       if (formData.role) updateData.role = formData.role;
       if (formData.email) updateData.email = formData.email;
+      if (meta_data) updateData.meta_data = meta_data;
 
       await adminAPI.updateUser(selectedUser.id, updateData);
       addToast({
@@ -233,9 +241,46 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     }
   }, [selectedUser, formData, mutate, onDataChange]);
 
+  const openResetPasswordModal = useCallback((user: UserListItem) => {
+    setUserToResetPassword(user);
+    setShowResetPasswordModal(true);
+  }, []);
+
+  const handleResetPassword = useCallback(async (newPassword: string) => {
+    if (!userToResetPassword) return;
+
+    try {
+      setIsResettingPassword(true);
+      addToast({
+        title: 'Đang xử lý',
+        description: 'Đang đặt lại mật khẩu...',
+        color: 'default',
+      });
+
+      await adminAPI.resetUserPassword(userToResetPassword.id, newPassword);
+      addToast({
+        title: 'Thành công',
+        description: `Đã đặt lại mật khẩu cho "${userToResetPassword.username}"`,
+        color: 'success',
+      });
+      setShowResetPasswordModal(false);
+      setUserToResetPassword(null);
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      addToast({
+        title: 'Lỗi',
+        description: 'Không thể đặt lại mật khẩu',
+        color: 'danger',
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  }, [userToResetPassword]);
+
   const openEditModal = useCallback((user: UserListItem) => {
     setSelectedUser(user);
     setFormData({
+      ...getInitialFormData(),
       username: user.username,
       email: user.email,
       password: '',
@@ -348,6 +393,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                 Chỉnh sửa
               </DropdownItem>
               <DropdownItem
+                key="reset-password"
+                startContent={<KeyRound className="w-4 h-4" />}
+                onPress={() => openResetPasswordModal(row.original)}
+              >
+                Đặt lại mật khẩu
+              </DropdownItem>
+              <DropdownItem
                 key="toggle"
                 startContent={row.original.is_active ? <ToggleLeft className="w-4 h-4" /> : <ToggleRight className="w-4 h-4" />}
                 onPress={() => handleToggleUserStatus(row.original.id)}
@@ -367,7 +419,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         ),
       },
     ],
-    [openEditModal, openDeleteModal, handleToggleUserStatus]
+    [openEditModal, openDeleteModal, openResetPasswordModal, handleToggleUserStatus]
   );
 
   return (
@@ -533,13 +585,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         onClose={() => {
           if (!isCreating) {
             setShowCreateModal(false);
-            setFormData({
-              username: '',
-              email: '',
-              password: '',
-              full_name: '',
-              role: 'student',
-            });
+            setFormData(getInitialFormData());
           }
         }}
         onSubmit={handleCreateUser}
@@ -559,6 +605,19 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         }}
         onSubmit={handleUpdateUser}
         isLoading={isUpdating}
+      />
+
+      <ResetPasswordModal
+        show={showResetPasswordModal}
+        user={userToResetPassword}
+        onClose={() => {
+          if (!isResettingPassword) {
+            setShowResetPasswordModal(false);
+            setUserToResetPassword(null);
+          }
+        }}
+        onSubmit={handleResetPassword}
+        isLoading={isResettingPassword}
       />
 
       {/* Delete Confirmation Modal */}

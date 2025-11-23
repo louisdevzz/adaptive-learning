@@ -11,6 +11,7 @@ from core.database import get_db, get_pool_status, log_pool_status
 from core.errors import errors
 from models.user import User, UserRole
 from schemas.user_schema import (
+    ResetPasswordRequest,
     UserCreateRequest,
     UserDetailResponse,
     UserListResponse,
@@ -250,4 +251,20 @@ def toggle_user_status(
     """
     user_service = UserService(db)
     return user_service.toggle_user_status(user_id)
+
+
+@router.post("/users/{user_id}/reset-password", response_model=UserDetailResponse)
+def reset_user_password(
+    user_id: UUID,
+    data: ResetPasswordRequest,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Reset user password (admin only).
+
+    Admin can reset any user's password without requiring the old password.
+    """
+    user_service = UserService(db)
+    return user_service.reset_password(user_id, data.new_password)
 
