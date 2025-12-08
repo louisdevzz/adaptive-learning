@@ -1,225 +1,99 @@
-import { apiClient } from './api-client';
-import type {
-  AuthResponse,
-  LoginCredentials,
-  RegisterData,
-  User,
-  Profile,
-  Course,
-  Module,
-  Section,
-  KnowledgePoint,
-  StudentMastery,
-  PaginatedResponse,
-  SearchResult,
-  UserListItem,
-  UserStats,
-  UserCreateData,
-  UserUpdateData,
-  UserRole,
-} from '@/types';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
-// Authentication API
-export const authAPI = {
-  login: (credentials: LoginCredentials) =>
-    apiClient.post<AuthResponse>('/auth/login', credentials),
+// API Configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
 
-  register: (data: RegisterData) =>
-    apiClient.post<AuthResponse>('/auth/register', data),
+// Create axios instance
+const apiClient: AxiosInstance = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  withCredentials: true, // Important for cookies
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': API_KEY,
+  },
+});
 
-  googleLogin: (token: string, role?: string) =>
-    apiClient.post<AuthResponse>('/auth/google', { token, role }),
+// Request interceptor
+apiClient.interceptors.request.use(
+  (config) => {
+    // Ensure x-api-key is always included
+    if (API_KEY) {
+      config.headers['x-api-key'] = API_KEY;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-  getCurrentUser: () =>
-    apiClient.get<User>('/auth/me'),
+// Response interceptor
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      // Unauthorized - redirect to login
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
-  logout: () =>
-    apiClient.post<{ message: string }>('/auth/logout'),
+// API Methods
+export const api = {
+  // Auth endpoints
+  auth: {
+    login: async (email: string, password: string) => {
+      const response = await apiClient.post('/auth/login', { email, password });
+      return response.data;
+    },
+
+    register: async (email: string, password: string, name: string) => {
+      const response = await apiClient.post('/auth/register', { email, password, name });
+      return response.data;
+    },
+
+    logout: async () => {
+      const response = await apiClient.post('/auth/logout');
+      return response.data;
+    },
+
+    getProfile: async () => {
+      const response = await apiClient.get('/auth/me');
+      return response.data;
+    },
+  },
+
+  // Generic request methods
+  get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await apiClient.get<T>(url, config);
+    return response.data;
+  },
+
+  post: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await apiClient.post<T>(url, data, config);
+    return response.data;
+  },
+
+  put: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await apiClient.put<T>(url, data, config);
+    return response.data;
+  },
+
+  patch: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await apiClient.patch<T>(url, data, config);
+    return response.data;
+  },
+
+  delete: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    const response = await apiClient.delete<T>(url, config);
+    return response.data;
+  },
 };
 
-// Profile API
-export const profileAPI = {
-  getMyProfile: () =>
-    apiClient.get<Profile>('/profile/me'),
-
-  updateMyProfile: (data: Partial<Profile>) =>
-    apiClient.put<Profile>('/profile/me', data),
-
-  getUserProfile: (userId: string) =>
-    apiClient.get<Profile>(`/profile/${userId}`),
-};
-
-// Course API
-export const courseAPI = {
-  createCourse: (data: Partial<Course>) =>
-    apiClient.post<Course>('/courses/', data),
-
-  listCourses: (params?: {
-    page?: number;
-    page_size?: number;
-    grade_level?: number;
-    difficulty_level?: number;
-    academic_year?: number;
-    is_active?: boolean;
-  }) =>
-    apiClient.get<PaginatedResponse<Course>>('/courses/', params),
-
-  getCourseByCode: (code: string) =>
-    apiClient.get<Course>(`/courses/code/${code}`),
-
-  getCourse: (courseId: string) =>
-    apiClient.get<Course>(`/courses/${courseId}`),
-
-  updateCourse: (courseId: string, data: Partial<Course>) =>
-    apiClient.put<Course>(`/courses/${courseId}`, data),
-
-  deleteCourse: (courseId: string) =>
-    apiClient.delete<void>(`/courses/${courseId}`),
-
-  searchCourses: (query: string, params?: { skip?: number; limit?: number }) =>
-    apiClient.get<{ total: number; query: string; courses: Course[] }>(
-      '/courses/search/',
-      { q: query, ...params }
-    ),
-};
-
-// Module API
-export const moduleAPI = {
-  createModule: (data: Partial<Module>) =>
-    apiClient.post<Module>('/modules/', data),
-
-  listModules: (params?: {
-    page?: number;
-    page_size?: number;
-    course_id?: string;
-    is_active?: boolean;
-  }) =>
-    apiClient.get<PaginatedResponse<Module>>('/modules/', params),
-
-  listModulesByCourse: (courseId: string) =>
-    apiClient.get<Module[]>(`/modules/course/${courseId}`),
-
-  getModule: (moduleId: string) =>
-    apiClient.get<Module>(`/modules/${moduleId}`),
-
-  updateModule: (moduleId: string, data: Partial<Module>) =>
-    apiClient.put<Module>(`/modules/${moduleId}`, data),
-
-  deleteModule: (moduleId: string) =>
-    apiClient.delete<void>(`/modules/${moduleId}`),
-};
-
-// Section API
-export const sectionAPI = {
-  createSection: (data: Partial<Section>) =>
-    apiClient.post<Section>('/sections/', data),
-
-  listSectionsByModule: (moduleId: string) =>
-    apiClient.get<Section[]>(`/sections/module/${moduleId}`),
-
-  getSection: (sectionId: string) =>
-    apiClient.get<Section>(`/sections/${sectionId}`),
-
-  updateSection: (sectionId: string, data: Partial<Section>) =>
-    apiClient.put<Section>(`/sections/${sectionId}`, data),
-
-  deleteSection: (sectionId: string) =>
-    apiClient.delete<void>(`/sections/${sectionId}`),
-};
-
-// Knowledge Point API
-export const knowledgePointAPI = {
-  createKnowledgePoint: (data: Partial<KnowledgePoint>) =>
-    apiClient.post<KnowledgePoint>('/knowledge-points/', data),
-
-  listKnowledgePointsBySection: (sectionId: string) =>
-    apiClient.get<KnowledgePoint[]>(`/knowledge-points/section/${sectionId}`),
-
-  getKnowledgePoint: (kpId: string) =>
-    apiClient.get<KnowledgePoint>(`/knowledge-points/${kpId}`),
-
-  updateKnowledgePoint: (kpId: string, data: Partial<KnowledgePoint>) =>
-    apiClient.put<KnowledgePoint>(`/knowledge-points/${kpId}`, data),
-
-  deleteKnowledgePoint: (kpId: string) =>
-    apiClient.delete<void>(`/knowledge-points/${kpId}`),
-};
-
-// Search API
-export const searchAPI = {
-  search: (query: string, params?: {
-    kp_type?: string;
-    difficulty_level?: number;
-    limit?: number;
-  }) =>
-    apiClient.get<{ total: number; query: string; results: SearchResult[] }>(
-      '/search/',
-      { q: query, ...params }
-    ),
-
-  advancedSearch: (params: {
-    query: string;
-    course_ids?: string[];
-    kp_types?: string[];
-    difficulty_levels?: number[];
-    limit?: number;
-  }) =>
-    apiClient.post<{ total: number; results: SearchResult[] }>(
-      '/search/advanced',
-      params
-    ),
-};
-
-// Mastery API (Note: Will need to be implemented in backend)
-export const masteryAPI = {
-  getStudentMastery: (studentId: string, kpId: string) =>
-    apiClient.get<StudentMastery>(`/mastery/student/${studentId}/kp/${kpId}`),
-
-  listStudentMasteries: (studentId: string, params?: {
-    course_id?: string;
-    module_id?: string;
-  }) =>
-    apiClient.get<StudentMastery[]>(`/mastery/student/${studentId}`, params),
-
-  updateMastery: (studentId: string, kpId: string, data: {
-    accuracy: number;
-    time_spent_minutes: number;
-  }) =>
-    apiClient.post<StudentMastery>(`/mastery/student/${studentId}/kp/${kpId}`, data),
-};
-
-// Admin API
-export const adminAPI = {
-  // User Management
-  getUsers: (params?: {
-    page?: number;
-    page_size?: number;
-    role?: UserRole;
-    is_active?: boolean;
-    search?: string;
-  }) =>
-    apiClient.get<PaginatedResponse<UserListItem>>('/admin/users', params),
-
-  getUserStats: () =>
-    apiClient.get<UserStats>('/admin/users/stats'),
-
-  getUser: (userId: string) =>
-    apiClient.get<UserListItem>(`/admin/users/${userId}`),
-
-  createUser: (data: UserCreateData) =>
-    apiClient.post<UserListItem>('/admin/users', data),
-
-  updateUser: (userId: string, data: UserUpdateData) =>
-    apiClient.put<UserListItem>(`/admin/users/${userId}`, data),
-
-  deleteUser: (userId: string) =>
-    apiClient.delete<void>(`/admin/users/${userId}`),
-
-  toggleUserStatus: (userId: string) =>
-    apiClient.post<UserListItem>(`/admin/users/${userId}/toggle-status`),
-
-  resetUserPassword: (userId: string, newPassword: string) =>
-    apiClient.post<UserListItem>(`/admin/users/${userId}/reset-password`, {
-      new_password: newPassword,
-    }),
-};
+export default apiClient;
