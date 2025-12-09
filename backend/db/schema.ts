@@ -186,10 +186,10 @@ export const kpPrerequisites = pgTable("kp_prerequisites", {
 export const kpResources = pgTable("kp_resources", {
   id: uuid("id").primaryKey().defaultRandom(),
   kpId: uuid("kp_id").notNull().references(() => knowledgePoint.id, { onDelete: "cascade" }),
-  resourceType: varchar("resource_type", { length: 20 }).notNull(), // 'video', 'article', 'interactive'
+  resourceType: varchar("resource_type", { length: 20 }).notNull(), // 'video', 'article', 'interactive', 'quiz', 'other'
   url: text("url").notNull(),
   title: text("title").notNull(),
-  description: text("description").notNull(),
+  description: text("description"), // Made optional
   orderIndex: integer("order_index").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()

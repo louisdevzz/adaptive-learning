@@ -55,14 +55,22 @@ export class KnowledgePointsService {
 
       // 3. Create resources if provided
       if (createKpDto.resources && createKpDto.resources.length > 0) {
-        const resourceValues = createKpDto.resources.map((resource) => ({
-          kpId: kp.id,
-          resourceType: resource.resourceType,
-          url: resource.url,
-          title: resource.title,
-          description: resource.description,
-          orderIndex: resource.orderIndex,
-        }));
+        const resourceValues = createKpDto.resources.map((resource) => {
+          const values: any = {
+            kpId: kp.id,
+            resourceType: resource.resourceType,
+            url: resource.url,
+            title: resource.title,
+            orderIndex: resource.orderIndex,
+          };
+
+          // Only include description if it's defined
+          if (resource.description !== undefined) {
+            values.description = resource.description;
+          }
+
+          return values;
+        });
 
         await tx.insert(kpResources).values(resourceValues);
       }
@@ -178,14 +186,22 @@ export class KnowledgePointsService {
 
         // Insert new resources
         if (updateKpDto.resources.length > 0) {
-          const resourceValues = updateKpDto.resources.map((resource) => ({
-            kpId: id,
-            resourceType: resource.resourceType,
-            url: resource.url,
-            title: resource.title,
-            description: resource.description,
-            orderIndex: resource.orderIndex,
-          }));
+          const resourceValues = updateKpDto.resources.map((resource) => {
+            const values: any = {
+              kpId: id,
+              resourceType: resource.resourceType,
+              url: resource.url,
+              title: resource.title,
+              orderIndex: resource.orderIndex,
+            };
+
+            // Only include description if it's defined
+            if (resource.description !== undefined) {
+              values.description = resource.description;
+            }
+
+            return values;
+          });
 
           await tx.insert(kpResources).values(resourceValues);
         }
@@ -277,10 +293,25 @@ export class KnowledgePointsService {
       .where(eq(sectionKpMap.sectionId, sectionId))
       .orderBy(sectionKpMap.orderIndex);
 
-    return result.map((row) => ({
-      ...row.kp,
-      orderIndex: row.mapping.orderIndex,
-    }));
+    // Fetch prerequisites for each knowledge point
+    const kpsWithPrerequisites = await Promise.all(
+      result.map(async (row) => {
+        const prereqs = await db
+          .select({
+            prerequisiteKpId: kpPrerequisites.prerequisiteKpId,
+          })
+          .from(kpPrerequisites)
+          .where(eq(kpPrerequisites.kpId, row.kp.id));
+
+        return {
+          ...row.kp,
+          orderIndex: row.mapping.orderIndex,
+          prerequisites: prereqs.map((p) => p.prerequisiteKpId),
+        };
+      })
+    );
+
+    return kpsWithPrerequisites;
   }
 
   // ==================== PREREQUISITES ====================

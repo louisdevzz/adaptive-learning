@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { eq, and, desc, SQL } from 'drizzle-orm';
-import { db, courses, modules, sections, sectionKpMap, teacherCourseMap, teachers, knowledgePoint } from '../../db';
+import { db, courses, modules, sections, sectionKpMap, teacherCourseMap, teachers, knowledgePoint, kpPrerequisites } from '../../db';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -170,6 +170,14 @@ export class CoursesService {
           orderIndex: number;
         }> = [];
 
+        // Map to store created knowledge point IDs for prerequisites processing
+        const createdKpIds: string[] = [];
+        const kpPrerequisitesData: Array<{
+          kpId: string;
+          prerequisiteKpId: string;
+        }> = [];
+
+        // First pass: Create all knowledge points
         for (let i = 0; i < createSectionDto.knowledgePoints.length; i++) {
           const kpData = createSectionDto.knowledgePoints[i];
 
@@ -184,17 +192,34 @@ export class CoursesService {
             })
             .returning();
 
+          createdKpIds.push(kp.id);
+
           // Add to section-kp mapping list
           sectionKpValues.push({
             sectionId: section.id,
             kpId: kp.id,
             orderIndex: i,
           });
+
+          // Collect prerequisites data for later processing
+          if (kpData.prerequisites && kpData.prerequisites.length > 0) {
+            for (const prereqId of kpData.prerequisites) {
+              kpPrerequisitesData.push({
+                kpId: kp.id,
+                prerequisiteKpId: prereqId,
+              });
+            }
+          }
         }
 
         // Insert all section-kp mappings
         if (sectionKpValues.length > 0) {
           await tx.insert(sectionKpMap).values(sectionKpValues);
+        }
+
+        // Insert all prerequisites
+        if (kpPrerequisitesData.length > 0) {
+          await tx.insert(kpPrerequisites).values(kpPrerequisitesData);
         }
       }
 
@@ -241,7 +266,24 @@ export class CoursesService {
       .where(eq(sectionKpMap.sectionId, sectionId))
       .orderBy(sectionKpMap.orderIndex);
 
-    return result.map(r => r.knowledgePoint);
+    // Fetch prerequisites for each knowledge point
+    const kpsWithPrerequisites = await Promise.all(
+      result.map(async (row) => {
+        const prereqs = await db
+          .select({
+            prerequisiteKpId: kpPrerequisites.prerequisiteKpId,
+          })
+          .from(kpPrerequisites)
+          .where(eq(kpPrerequisites.kpId, row.knowledgePoint.id));
+
+        return {
+          ...row.knowledgePoint,
+          prerequisites: prereqs.map((p) => p.prerequisiteKpId),
+        };
+      })
+    );
+
+    return kpsWithPrerequisites;
   }
 
   async updateSection(sectionId: string, updateData: Partial<CreateSectionDto>) {

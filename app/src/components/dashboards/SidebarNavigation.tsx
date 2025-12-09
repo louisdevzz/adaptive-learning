@@ -23,6 +23,7 @@ import {
   School,
   FolderOpen,
   Book,
+  Target,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -71,6 +72,7 @@ const courseManagementSubmenu: MenuSubItem[] = [
   { icon: Book, label: "Quản lý môn học", href: "/dashboard/courses" },
   { icon: FolderOpen, label: "Quản lý chủ đề", href: "/dashboard/courses/modules" },
   { icon: FileText, label: "Quản lý bài học", href: "/dashboard/courses/sections" },
+  { icon: Target, label: "Quản lý điểm kiến thức", href: "/dashboard/courses/knowledge-points" },
 ];
 
 // Menu items for each role

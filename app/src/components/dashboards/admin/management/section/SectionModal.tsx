@@ -18,7 +18,7 @@ import {
   DropdownItem,
 } from "@heroui/dropdown";
 import { ChevronDown, X, Plus, Trash2 } from "lucide-react";
-import { Section, SectionFormData, Module, Course, CreateKnowledgePointData } from "@/types/course";
+import { Section, SectionFormData, Module, Course, CreateKnowledgePointData, KnowledgePoint } from "@/types/course";
 import { api } from "@/lib/api";
 
 interface SectionModalProps {
@@ -45,11 +45,14 @@ export function SectionModal({
   const [isModuleOpen, setIsModuleOpen] = useState(false);
   const [modules, setModules] = useState<Module[]>([]);
   const [loadingModules, setLoadingModules] = useState(false);
+  const [allKnowledgePoints, setAllKnowledgePoints] = useState<KnowledgePoint[]>([]);
+  const [loadingKnowledgePoints, setLoadingKnowledgePoints] = useState(false);
 
-  // Fetch modules when modal opens
+  // Fetch modules and knowledge points when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchModules();
+      fetchAllKnowledgePoints();
     }
   }, [isOpen]);
 
@@ -59,7 +62,7 @@ export function SectionModal({
       // Fetch all modules by getting all courses and their modules
       const allCourses = await api.courses.getAll();
       const allModules: Module[] = [];
-      
+
       for (const course of allCourses) {
         try {
           const courseModules = await api.courses.getAllModules(course.id);
@@ -71,12 +74,24 @@ export function SectionModal({
           console.error(`Error fetching modules for course ${course.id}:`, error);
         }
       }
-      
+
       setModules(allModules);
     } catch (error) {
       console.error("Error fetching modules:", error);
     } finally {
       setLoadingModules(false);
+    }
+  };
+
+  const fetchAllKnowledgePoints = async () => {
+    try {
+      setLoadingKnowledgePoints(true);
+      const kps = await api.knowledgePoints.getAll();
+      setAllKnowledgePoints(kps);
+    } catch (error) {
+      console.error("Error fetching knowledge points:", error);
+    } finally {
+      setLoadingKnowledgePoints(false);
     }
   };
 
@@ -86,6 +101,13 @@ export function SectionModal({
     onFormDataChange({ ...formData, ...updates });
   };
 
+  // Debug: Log formData when it changes
+  useEffect(() => {
+    if (formData.knowledgePoints && formData.knowledgePoints.length > 0) {
+      console.log('Knowledge Points in form:', formData.knowledgePoints);
+    }
+  }, [formData]);
+
   const handleAddKnowledgePoint = () => {
     const currentKps = formData.knowledgePoints || [];
     const newKp: CreateKnowledgePointData = {
@@ -93,6 +115,7 @@ export function SectionModal({
       description: "",
       difficultyLevel: 1,
       tags: [],
+      prerequisites: [],
     };
     updateFormData({ knowledgePoints: [...currentKps, newKp] });
   };
@@ -283,6 +306,92 @@ export function SectionModal({
                                 size="sm"
                                 description="Phân cách bằng dấu phẩy"
                               />
+                            </div>
+
+                            {/* Prerequisites Selection */}
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-medium text-[#181d27]">
+                                Kiến thức tiên quyết
+                              </label>
+                              <Dropdown>
+                                <DropdownTrigger>
+                                  <Button
+                                    variant="bordered"
+                                    size="sm"
+                                    className="justify-between border-[#d5d7da]"
+                                    endContent={<ChevronDown className="size-3" />}
+                                    isDisabled={loadingKnowledgePoints}
+                                  >
+                                    {loadingKnowledgePoints
+                                      ? "Đang tải..."
+                                      : kp.prerequisites && kp.prerequisites.length > 0
+                                      ? `Đã chọn ${kp.prerequisites.length} điểm kiến thức`
+                                      : "Chọn kiến thức tiên quyết"}
+                                  </Button>
+                                </DropdownTrigger>
+                                <DropdownMenu
+                                  aria-label="Prerequisites selection"
+                                  selectionMode="multiple"
+                                  selectedKeys={kp.prerequisites ? new Set(kp.prerequisites) : new Set()}
+                                  onSelectionChange={(keys) => {
+                                    const selectedIds = Array.from(keys) as string[];
+                                    handleUpdateKnowledgePoint(index, {
+                                      prerequisites: selectedIds,
+                                    });
+                                  }}
+                                  closeOnSelect={false}
+                                >
+                                  {allKnowledgePoints
+                                    .filter((prereqKp) => prereqKp.id !== kp.id) // Don't allow selecting self
+                                    .map((prereqKp) => (
+                                      <DropdownItem key={prereqKp.id} textValue={prereqKp.title}>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="text-xs font-medium text-[#181d27]">
+                                            {prereqKp.title}
+                                          </span>
+                                          <span className="text-[10px] text-[#535862]">
+                                            Độ khó: {prereqKp.difficultyLevel}
+                                          </span>
+                                        </div>
+                                      </DropdownItem>
+                                    ))}
+                                </DropdownMenu>
+                              </Dropdown>
+                              {kp.prerequisites && kp.prerequisites.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                  {kp.prerequisites.map((prereqId) => {
+                                    const prereqKp = allKnowledgePoints.find(
+                                      (p) => p.id === prereqId
+                                    );
+                                    if (!prereqKp) return null;
+                                    return (
+                                      <div
+                                        key={prereqId}
+                                        className="flex items-center gap-1 px-2 py-0.5 bg-[#f2f4f7] rounded text-[10px] text-[#535862]"
+                                      >
+                                        <span>{prereqKp.title}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newPrereqs = (kp.prerequisites || []).filter(
+                                              (id) => id !== prereqId
+                                            );
+                                            handleUpdateKnowledgePoint(index, {
+                                              prerequisites: newPrereqs,
+                                            });
+                                          }}
+                                          className="hover:text-[#b42318]"
+                                        >
+                                          <X className="size-2.5" />
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              <p className="text-[10px] text-[#667085]">
+                                Chọn các điểm kiến thức cần học trước
+                              </p>
                             </div>
                           </div>
                         </div>

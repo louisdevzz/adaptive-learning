@@ -66,10 +66,22 @@ export interface Section {
 }
 
 export interface CreateKnowledgePointData {
+  id?: string; // ID for editing existing KPs
   title: string;
   description: string;
   difficultyLevel: number;
   tags?: string[];
+  prerequisites?: string[];
+}
+
+export interface KnowledgePoint {
+  id: string;
+  title: string;
+  description: string;
+  difficultyLevel: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SectionFormData {

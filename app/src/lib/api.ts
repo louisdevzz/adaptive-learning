@@ -488,6 +488,11 @@ export const api = {
       return response.data;
     },
 
+    getByIdWithDetails: async (id: string) => {
+      const response = await apiClient.get(`/knowledge-points/${id}/details`);
+      return response.data;
+    },
+
     getBySection: async (sectionId: string) => {
       const response = await apiClient.get(`/knowledge-points/sections/${sectionId}/kps`);
       return response.data;
@@ -499,6 +504,13 @@ export const api = {
       difficultyLevel: number;
       tags?: string[];
       prerequisites?: string[];
+      resources?: {
+        resourceType: 'video' | 'article' | 'interactive' | 'quiz' | 'other';
+        url: string;
+        title: string;
+        description: string;
+        orderIndex: number;
+      }[];
     }) => {
       const response = await apiClient.post('/knowledge-points', data);
       return response.data;
@@ -510,6 +522,13 @@ export const api = {
       difficultyLevel?: number;
       tags?: string[];
       prerequisites?: string[];
+      resources?: {
+        resourceType: 'video' | 'article' | 'interactive' | 'quiz' | 'other';
+        url: string;
+        title: string;
+        description: string;
+        orderIndex: number;
+      }[];
     }) => {
       const response = await apiClient.patch(`/knowledge-points/${id}`, data);
       return response.data;

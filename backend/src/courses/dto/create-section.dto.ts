@@ -18,6 +18,11 @@ export class CreateKnowledgePointData {
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  prerequisites?: string[];
 }
 
 export class CreateSectionDto {

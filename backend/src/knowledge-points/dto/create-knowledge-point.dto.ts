@@ -10,11 +10,11 @@ import {
   IsUUID,
   IsEnum,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 class KpResourceDto {
-  @IsEnum(['video', 'article', 'interactive'])
-  resourceType: 'video' | 'article' | 'interactive';
+  @IsEnum(['video', 'article', 'interactive', 'quiz', 'other'])
+  resourceType: 'video' | 'article' | 'interactive' | 'quiz' | 'other';
 
   @IsString()
   @IsNotEmpty()
@@ -24,9 +24,10 @@ class KpResourceDto {
   @IsNotEmpty()
   title: string;
 
+  @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  description?: string;
 
   @IsInt()
   @Min(0)

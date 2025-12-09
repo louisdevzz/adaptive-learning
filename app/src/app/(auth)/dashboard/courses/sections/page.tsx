@@ -147,10 +147,12 @@ export default function SectionsPage() {
         summary: section.summary,
         orderIndex: section.orderIndex,
         knowledgePoints: knowledgePoints.map((kp: any) => ({
+          id: kp.id, // Store ID for editing
           title: kp.title,
           description: kp.description,
           difficultyLevel: kp.difficultyLevel,
           tags: kp.tags || [],
+          prerequisites: kp.prerequisites || [],
         })),
       });
     } catch (error) {
@@ -205,11 +207,30 @@ export default function SectionsPage() {
       setIsSubmitting(true);
       if (isEditMode && editingSection) {
         toastId = toast.loading("Đang cập nhật bài học...");
+
+        // Update section basic info
         await api.courses.updateSection(editingSection.id, {
           title: formData.title,
           summary: formData.summary,
           orderIndex: formData.orderIndex,
         });
+
+        // Update knowledge points prerequisites
+        if (formData.knowledgePoints && formData.knowledgePoints.length > 0) {
+          for (const kp of formData.knowledgePoints) {
+            if (kp.id) {
+              // Update existing knowledge point
+              await api.knowledgePoints.update(kp.id, {
+                title: kp.title,
+                description: kp.description,
+                difficultyLevel: kp.difficultyLevel,
+                tags: kp.tags,
+                prerequisites: kp.prerequisites,
+              });
+            }
+          }
+        }
+
         toast.success("Cập nhật bài học thành công", { id: toastId });
       } else {
         toastId = toast.loading("Đang tạo bài học mới...");
