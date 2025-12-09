@@ -12,7 +12,7 @@ import {
 } from "@heroui/modal";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
-import { AdminHeader, AdminMetrics, AdminFilters, AdminTable, AdminPagination, AdminModal } from "@/components/dashboards/admin";
+import { AdminHeader, AdminMetrics, AdminTable, AdminModal } from "@/components/dashboards/admin";
 import { Admin, AdminFormData, AdminStats } from "@/types/admin";
 import { toast } from "sonner";
 
@@ -211,13 +211,6 @@ export default function AdminsPage() {
 
         <AdminMetrics stats={stats} />
 
-        <AdminFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedCount={selectedAdmins.length}
-          onClearSelection={() => setSelectedAdmins([])}
-        />
-
         <AdminTable
           admins={paginatedAdmins}
           loading={loading}
@@ -227,9 +220,9 @@ export default function AdminsPage() {
           onSelectAdmin={toggleSelectAdmin}
           onEdit={handleEdit}
           onDelete={handleDelete}
-        />
-
-        <AdminPagination
+          onSearchChange={setSearchQuery}
+          selectedCount={selectedAdmins.length}
+          onClearSelection={() => setSelectedAdmins([])}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

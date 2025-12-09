@@ -36,9 +36,32 @@ export class ParentsController {
     return this.parentsService.findOne(id);
   }
 
+  @Get(':id/students')
+  getParentStudents(@Param('id') id: string) {
+    return this.parentsService.getParentStudents(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateParentDto: UpdateParentDto) {
     return this.parentsService.update(id, updateParentDto);
+  }
+
+  @Post(':id/students/:studentId')
+  @HttpCode(HttpStatus.CREATED)
+  addStudentToParent(
+    @Param('id') parentId: string,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.parentsService.addStudentToParent(parentId, studentId);
+  }
+
+  @Delete(':id/students/:studentId')
+  @HttpCode(HttpStatus.OK)
+  removeStudentFromParent(
+    @Param('id') parentId: string,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.parentsService.removeStudentFromParent(parentId, studentId);
   }
 
   @Delete(':id')

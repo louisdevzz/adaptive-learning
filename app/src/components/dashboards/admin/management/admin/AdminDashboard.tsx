@@ -2,8 +2,7 @@
 
 import { MetricCard } from "../../../MetricCard";
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
-import { BookOpen, Users, GraduationCap, UserCheck, TrendingUp, Activity } from "lucide-react";
+import { BookOpen, Users, Activity } from "lucide-react";
 
 export function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -28,103 +27,98 @@ export function AdminDashboard() {
     });
   }, []);
 
+  // System overview cards data
+  const overviewCards = [
+    {
+      icon: BookOpen,
+      title: "Khóa học",
+      description: "Quản lý và theo dõi tất cả các khóa học trong hệ thống",
+    },
+    {
+      icon: Users,
+      title: "Người dùng",
+      description: "Quản lý tất cả người dùng: học sinh, giáo viên, phụ huynh",
+    },
+    {
+      icon: Activity,
+      title: "Hoạt động hệ thống",
+      description: "Theo dõi hiệu suất và hoạt động của hệ thống",
+    },
+  ];
+
+  // Metrics configuration
+  const metrics = [
+    {
+      title: "Tổng người dùng",
+      value: stats.totalUsers.toLocaleString("vi-VN"),
+      change: `${stats.systemGrowth}%`,
+    },
+    {
+      title: "Tổng học sinh",
+      value: stats.totalStudents.toLocaleString("vi-VN"),
+      change: "25%",
+    },
+    {
+      title: "Tổng giáo viên",
+      value: stats.totalTeachers.toLocaleString("vi-VN"),
+      change: "15%",
+    },
+    {
+      title: "Tổng khóa học",
+      value: stats.totalCourses.toLocaleString("vi-VN"),
+      change: "30%",
+    },
+    {
+      title: "Người dùng đang hoạt động",
+      value: stats.activeUsers.toLocaleString("vi-VN"),
+      change: "20%",
+    },
+    {
+      title: "Tăng trưởng hệ thống",
+      value: `${stats.systemGrowth}%`,
+      change: "5%",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6 items-start relative shrink-0 w-full">
       {/* Metrics Section */}
-      <div className="flex flex-col items-start relative shrink-0 w-full">
-        <div className="flex flex-col items-start px-6 py-0 relative shrink-0 w-full">
-          <div className="flex gap-4 items-center relative shrink-0 w-full flex-wrap">
+      <div className="flex flex-col items-start px-6 py-0 relative shrink-0 w-full">
+        <div className="flex gap-4 items-center relative shrink-0 w-full flex-wrap">
+          {metrics.map((metric, index) => (
             <MetricCard
-              title="Tổng người dùng"
-              value={stats.totalUsers.toLocaleString("vi-VN")}
-              change={`${stats.systemGrowth}%`}
+              key={index}
+              title={metric.title}
+              value={metric.value}
+              change={metric.change}
               changeType="up"
               changeColor="#027a48"
             />
-            <MetricCard
-              title="Tổng học sinh"
-              value={stats.totalStudents.toLocaleString("vi-VN")}
-              change="25%"
-              changeType="up"
-              changeColor="#027a48"
-            />
-            <MetricCard
-              title="Tổng giáo viên"
-              value={stats.totalTeachers.toLocaleString("vi-VN")}
-              change="15%"
-              changeType="up"
-              changeColor="#027a48"
-            />
-            <MetricCard
-              title="Tổng khóa học"
-              value={stats.totalCourses.toLocaleString("vi-VN")}
-              change="30%"
-              changeType="up"
-              changeColor="#027a48"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Stats */}
-      <div className="flex flex-col items-start relative shrink-0 w-full">
-        <div className="flex flex-col items-start px-6 py-0 relative shrink-0 w-full">
-          <div className="flex gap-4 items-center relative shrink-0 w-full flex-wrap">
-            <MetricCard
-              title="Người dùng đang hoạt động"
-              value={stats.activeUsers.toLocaleString("vi-VN")}
-              change="20%"
-              changeType="up"
-              changeColor="#027a48"
-            />
-            <MetricCard
-              title="Tăng trưởng hệ thống"
-              value={`${stats.systemGrowth}%`}
-              change="5%"
-              changeType="up"
-              changeColor="#027a48"
-            />
-          </div>
+          ))}
         </div>
       </div>
 
       {/* System Overview Cards */}
-      <div className="flex flex-col gap-4 items-start relative shrink-0 w-full">
-        <div className="flex flex-col items-start px-6 py-0 relative shrink-0 w-full">
-          <h2 className="font-semibold leading-6 text-[#181d27] text-lg mb-4">
-            Tổng quan hệ thống
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            <div className="bg-white border border-[#e9eaeb] border-solid flex flex-col gap-3 items-start p-4 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]">
-              <div className="flex gap-2 items-center relative shrink-0 w-full">
-                <BookOpen className="size-5 text-[#7f56d9]" />
-                <p className="font-semibold leading-5 text-[#181d27] text-sm">Khóa học</p>
+      <div className="flex flex-col gap-4 items-start px-6 py-0 relative shrink-0 w-full">
+        <h2 className="font-semibold leading-6 text-[#181d27] text-lg mb-4">
+          Tổng quan hệ thống
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+          {overviewCards.map((card, index) => {
+            const IconComponent = card.icon;
+            return (
+              <div
+                key={index}
+                className="bg-white border border-[#e9eaeb] border-solid flex flex-col gap-3 items-start p-4 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]"
+              >
+                <div className="flex gap-2 items-center relative shrink-0 w-full">
+                  <IconComponent className="size-5 text-[#7f56d9]" />
+                  <p className="font-semibold leading-5 text-[#181d27] text-sm">{card.title}</p>
+                </div>
+                <p className="font-normal leading-5 text-[#535862] text-sm">{card.description}</p>
               </div>
-              <p className="font-normal leading-5 text-[#535862] text-sm">
-                Quản lý và theo dõi tất cả các khóa học trong hệ thống
-              </p>
-            </div>
-
-            <div className="bg-white border border-[#e9eaeb] border-solid flex flex-col gap-3 items-start p-4 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]">
-              <div className="flex gap-2 items-center relative shrink-0 w-full">
-                <Users className="size-5 text-[#7f56d9]" />
-                <p className="font-semibold leading-5 text-[#181d27] text-sm">Người dùng</p>
-              </div>
-              <p className="font-normal leading-5 text-[#535862] text-sm">
-                Quản lý tất cả người dùng: học sinh, giáo viên, phụ huynh
-              </p>
-            </div>
-
-            <div className="bg-white border border-[#e9eaeb] border-solid flex flex-col gap-3 items-start p-4 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]">
-              <div className="flex gap-2 items-center relative shrink-0 w-full">
-                <Activity className="size-5 text-[#7f56d9]" />
-                <p className="font-semibold leading-5 text-[#181d27] text-sm">Hoạt động hệ thống</p>
-              </div>
-              <p className="font-normal leading-5 text-[#535862] text-sm">
-                Theo dõi hiệu suất và hoạt động của hệ thống
-              </p>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>

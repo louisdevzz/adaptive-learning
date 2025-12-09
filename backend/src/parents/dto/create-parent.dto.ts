@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional, IsArray, IsUUID, ArrayMinSize } from 'class-validator';
 
 export enum RelationshipType {
   FATHER = 'father',
@@ -35,4 +35,10 @@ export class CreateParentDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
+
+  @IsArray()
+  @IsUUID(4, { each: true })
+  @IsNotEmpty()
+  @ArrayMinSize(1, { message: 'At least one student must be selected' })
+  studentIds: string[];
 }

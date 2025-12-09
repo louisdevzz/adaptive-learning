@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsArray, IsUUID } from 'class-validator';
 import { RelationshipType } from './create-parent.dto';
 
 export class UpdateParentDto {
@@ -21,4 +21,9 @@ export class UpdateParentDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
+
+  @IsArray()
+  @IsUUID(4, { each: true })
+  @IsOptional()
+  studentIds?: string[];
 }

@@ -20,6 +20,9 @@ import {
   GraduationCap,
   UserCheck,
   UserCog,
+  School,
+  FolderOpen,
+  Book,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -63,12 +66,20 @@ const userManagementSubmenu: MenuSubItem[] = [
   { icon: UserCog, label: "Quản lý quản trị viên", href: "/dashboard/users/admins" },
 ];
 
+// Submenu items for course management
+const courseManagementSubmenu: MenuSubItem[] = [
+  { icon: Book, label: "Quản lý môn học", href: "/dashboard/courses" },
+  { icon: FolderOpen, label: "Quản lý chủ đề", href: "/dashboard/courses/modules" },
+  { icon: FileText, label: "Quản lý bài học", href: "/dashboard/courses/sections" },
+];
+
 // Menu items for each role
 const menuItems: Record<string, MenuItem[]> = {
   admin: [
     { icon: BarChart3, label: "Bảng điều khiển", href: "/dashboard" },
     { icon: Users, label: "Quản lý người dùng", href: "/dashboard/users", hasSubmenu: true, submenu: userManagementSubmenu },
-    { icon: BookOpen, label: "Quản lý khóa học", href: "/dashboard/courses" },
+    { icon: BookOpen, label: "Quản lý khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    { icon: School, label: "Quản lý lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo hệ thống", href: "/dashboard/reports" },
   ],
   teacher: [

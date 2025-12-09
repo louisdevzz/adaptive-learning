@@ -12,7 +12,7 @@ import {
 } from "@heroui/modal";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
-import { TeacherHeader, TeacherMetrics, TeacherFilters, TeacherTable, TeacherPagination, TeacherModal } from "@/components/dashboards/admin/management/teacher";
+import { TeacherHeader, TeacherMetrics, TeacherTable, TeacherModal } from "@/components/dashboards/admin/management/teacher";
 import { Teacher, TeacherFormData, TeacherStats } from "@/types/teacher";
 import { toast } from "sonner";
 
@@ -226,13 +226,6 @@ export default function TeachersPage() {
 
         <TeacherMetrics stats={stats} />
 
-        <TeacherFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedCount={selectedTeachers.length}
-          onClearSelection={() => setSelectedTeachers([])}
-        />
-
         <TeacherTable
           teachers={paginatedTeachers}
           loading={loading}
@@ -242,9 +235,9 @@ export default function TeachersPage() {
           onSelectTeacher={toggleSelectTeacher}
           onEdit={handleEdit}
           onDelete={handleDelete}
-        />
-
-        <TeacherPagination
+          onSearchChange={setSearchQuery}
+          selectedCount={selectedTeachers.length}
+          onClearSelection={() => setSelectedTeachers([])}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
