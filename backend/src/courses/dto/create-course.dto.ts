@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, IsBoolean, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsBoolean, IsOptional, Min, Max, IsIn } from 'class-validator';
 
 export class CreateCourseDto {
   @IsString()
@@ -25,4 +25,9 @@ export class CreateCourseDto {
   @IsBoolean()
   @IsOptional()
   active?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['public', 'private'])
+  visibility?: 'public' | 'private';
 }

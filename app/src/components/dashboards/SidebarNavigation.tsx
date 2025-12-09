@@ -24,6 +24,7 @@ import {
   FolderOpen,
   Book,
   Target,
+  Compass,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -73,6 +74,7 @@ const courseManagementSubmenu: MenuSubItem[] = [
   { icon: FolderOpen, label: "Quản lý chủ đề", href: "/dashboard/courses/modules" },
   { icon: FileText, label: "Quản lý bài học", href: "/dashboard/courses/sections" },
   { icon: Target, label: "Quản lý điểm kiến thức", href: "/dashboard/courses/knowledge-points" },
+  { icon: Compass, label: "Khám phá khóa học", href: "/dashboard/courses/explorer" },
 ];
 
 // Menu items for each role
@@ -86,9 +88,9 @@ const menuItems: Record<string, MenuItem[]> = {
   ],
   teacher: [
     { icon: BarChart3, label: "Bảng điều khiển", href: "/dashboard" },
-    { icon: BookOpen, label: "Khóa học của tôi", href: "/dashboard/my-courses" },
-    { icon: Users, label: "Học sinh", href: "/dashboard/students" },
-    { icon: FileText, label: "Tạo nội dung", href: "/dashboard/create-content" },
+    { icon: BookOpen, label: "Quản lý khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    { icon: Users, label: "Quản lý học sinh", href: "/dashboard/students" },
+    { icon: School, label: "Quản lý lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
   student: [
@@ -211,7 +213,31 @@ export function SidebarNavigation() {
         <nav className="flex gap-12 items-end relative shrink-0">
           {currentMenuItems.map((item) => {
             const IconComponent = item.icon;
-            const isActive = pathname === item.href || (item.hasSubmenu && item.submenu?.some((sub: MenuSubItem) => pathname === sub.href));
+            
+            // Check if pathname matches any submenu item first
+            const matchesSubmenu = item.hasSubmenu && item.submenu?.some((sub: MenuSubItem) => 
+              pathname === sub.href || pathname?.startsWith(sub.href + '/')
+            );
+            
+            let isActive = false;
+            if (item.hasSubmenu) {
+              // For items with submenu, check if pathname matches any submenu item
+              isActive = matchesSubmenu || pathname === item.href;
+            } else {
+              // For items without submenu, check exact match first
+              if (pathname === item.href) {
+                isActive = true;
+              } else if (pathname?.startsWith(item.href + '/')) {
+                // Only active if no other menu item with a longer matching href exists
+                const hasMoreSpecificMatch = currentMenuItems.some((otherItem) => {
+                  if (otherItem.href === item.href) return false; // Skip self
+                  // Check if other item's href is more specific and matches current pathname
+                  return pathname?.startsWith(otherItem.href + '/') && 
+                         otherItem.href.startsWith(item.href + '/');
+                });
+                isActive = !hasMoreSpecificMatch;
+              }
+            }
             
             // If item has submenu, render as dropdown
             if (item.hasSubmenu && item.submenu) {

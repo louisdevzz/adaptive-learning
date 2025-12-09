@@ -6,6 +6,8 @@ export interface Course {
   subject: string;
   gradeLevel: number;
   active: boolean;
+  visibility?: 'public' | 'private';
+  originCourseId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +19,7 @@ export interface CourseFormData {
   subject: string;
   gradeLevel: number;
   active?: boolean;
+  visibility?: 'public' | 'private';
 }
 
 export interface CourseStats {

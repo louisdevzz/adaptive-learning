@@ -1,17 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and, desc, SQL } from 'drizzle-orm';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { eq, and, desc, SQL, or, inArray } from 'drizzle-orm';
 import { db, courses, modules, sections, sectionKpMap, teacherCourseMap, teachers, knowledgePoint, kpPrerequisites } from '../../db';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
+import { hasCourseAccess, hasCourseWriteAccess, getAccessibleCourseIds, getAccessibleModuleIds, getAccessibleSectionIds } from './helpers/course-access.helper';
 
 @Injectable()
 export class CoursesService {
   // ==================== COURSES ====================
 
-  async create(createCourseDto: CreateCourseDto) {
-    const [course] = await db
+  async create(createCourseDto: CreateCourseDto, userId?: string) {
+    const result = await db
       .insert(courses)
       .values({
         title: createCourseDto.title,
@@ -20,16 +21,29 @@ export class CoursesService {
         subject: createCourseDto.subject,
         gradeLevel: createCourseDto.gradeLevel,
         active: createCourseDto.active ?? true,
+        visibility: createCourseDto.visibility ?? 'public',
+        createdBy: userId ?? null,
+        updatedBy: userId ?? null,
       })
       .returning();
 
-    return course;
+    return result[0];
   }
 
-  async findAll(gradeLevel?: number, subject?: string, active?: boolean) {
+  async findAll(gradeLevel?: number, subject?: string, active?: boolean, userId?: string, userRole?: string) {
     let query = db.select().from(courses);
 
     const conditions: SQL[] = [];
+    
+    // Filter by role: teacher only sees their courses
+    if (userRole === 'teacher' && userId) {
+      const accessibleCourseIds = await getAccessibleCourseIds(userId, userRole);
+      if (accessibleCourseIds.length === 0) {
+        return [];
+      }
+      conditions.push(inArray(courses.id, accessibleCourseIds));
+    }
+    
     if (gradeLevel) conditions.push(eq(courses.gradeLevel, gradeLevel));
     if (subject) conditions.push(eq(courses.subject, subject));
     if (active !== undefined) conditions.push(eq(courses.active, active));
@@ -42,7 +56,7 @@ export class CoursesService {
     return result;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId?: string, userRole?: string) {
     const result = await db
       .select()
       .from(courses)
@@ -53,13 +67,33 @@ export class CoursesService {
       throw new NotFoundException('Course not found');
     }
 
+    // Check access permission for teachers
+    if (userRole === 'teacher' && userId) {
+      const hasAccess = await hasCourseAccess(id, userId, userRole);
+      if (!hasAccess) {
+        throw new ForbiddenException('You do not have access to this course');
+      }
+    }
+
     return result[0];
   }
 
-  async update(id: string, updateCourseDto: UpdateCourseDto) {
-    await this.findOne(id);
+  async update(id: string, updateCourseDto: UpdateCourseDto, userId?: string, userRole?: string) {
+    // Check read access first
+    await this.findOne(id, userId, userRole);
+    
+    // Check write access for teachers (can't edit public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(id, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to edit this course');
+      }
+    }
 
     const updateData: any = { ...updateCourseDto, updatedAt: new Date() };
+    if (userId) {
+      updateData.updatedBy = userId;
+    }
 
     const [updated] = await db
       .update(courses)
@@ -70,8 +104,17 @@ export class CoursesService {
     return updated;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId?: string, userRole?: string) {
+    // Check read access first
+    await this.findOne(id, userId, userRole);
+    
+    // Check write access for teachers (can't delete public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(id, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to delete this course');
+      }
+    }
 
     await db.delete(courses).where(eq(courses.id, id));
 
@@ -80,9 +123,17 @@ export class CoursesService {
 
   // ==================== MODULES ====================
 
-  async createModule(createModuleDto: CreateModuleDto) {
-    // Validate course exists
-    await this.findOne(createModuleDto.courseId);
+  async createModule(createModuleDto: CreateModuleDto, userId?: string, userRole?: string) {
+    // Validate course exists and check read access
+    await this.findOne(createModuleDto.courseId, userId, userRole);
+    
+    // Check write access for teachers (can't create modules in public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(createModuleDto.courseId, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to create modules in this course');
+      }
+    }
 
     const [module] = await db
       .insert(modules)
@@ -91,14 +142,15 @@ export class CoursesService {
         title: createModuleDto.title,
         description: createModuleDto.description,
         orderIndex: createModuleDto.orderIndex,
+        createdBy: userId ?? null,
       })
       .returning();
 
     return module;
   }
 
-  async findModulesByCourse(courseId: string) {
-    await this.findOne(courseId);
+  async findModulesByCourse(courseId: string, userId?: string, userRole?: string) {
+    await this.findOne(courseId, userId, userRole);
 
     const result = await db
       .select()
@@ -109,7 +161,7 @@ export class CoursesService {
     return result;
   }
 
-  async findModule(moduleId: string) {
+  async findModule(moduleId: string, userId?: string, userRole?: string) {
     const result = await db
       .select()
       .from(modules)
@@ -120,11 +172,28 @@ export class CoursesService {
       throw new NotFoundException('Module not found');
     }
 
+    // Check access permission for teachers
+    if (userRole === 'teacher' && userId) {
+      const module = result[0];
+      const hasAccess = await hasCourseAccess(module.courseId, userId, userRole);
+      if (!hasAccess) {
+        throw new ForbiddenException('You do not have access to this module');
+      }
+    }
+
     return result[0];
   }
 
-  async updateModule(moduleId: string, updateData: Partial<CreateModuleDto>) {
-    await this.findModule(moduleId);
+  async updateModule(moduleId: string, updateData: Partial<CreateModuleDto>, userId?: string, userRole?: string) {
+    const module = await this.findModule(moduleId, userId, userRole);
+    
+    // Check write access for teachers (can't edit modules in public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to edit this module');
+      }
+    }
 
     const [updated] = await db
       .update(modules)
@@ -135,8 +204,16 @@ export class CoursesService {
     return updated;
   }
 
-  async removeModule(moduleId: string) {
-    await this.findModule(moduleId);
+  async removeModule(moduleId: string, userId?: string, userRole?: string) {
+    const module = await this.findModule(moduleId, userId, userRole);
+    
+    // Check write access for teachers (can't delete modules in public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to delete this module');
+      }
+    }
 
     await db.delete(modules).where(eq(modules.id, moduleId));
 
@@ -145,9 +222,17 @@ export class CoursesService {
 
   // ==================== SECTIONS ====================
 
-  async createSection(createSectionDto: CreateSectionDto) {
-    // Validate module exists
-    await this.findModule(createSectionDto.moduleId);
+  async createSection(createSectionDto: CreateSectionDto, userId?: string, userRole?: string) {
+    // Validate module exists and check read access
+    const module = await this.findModule(createSectionDto.moduleId, userId, userRole);
+    
+    // Check write access for teachers (can't create sections in public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to create sections in this course');
+      }
+    }
 
     // Use transaction to create section, knowledge points, and section-kp mappings
     return await db.transaction(async (tx) => {
@@ -159,6 +244,7 @@ export class CoursesService {
           title: createSectionDto.title,
           summary: createSectionDto.summary,
           orderIndex: createSectionDto.orderIndex,
+          createdBy: userId ?? null,
         })
         .returning();
 
@@ -189,6 +275,7 @@ export class CoursesService {
               description: kpData.description,
               difficultyLevel: kpData.difficultyLevel,
               tags: kpData.tags || [],
+              createdBy: userId ?? null,
             })
             .returning();
 
@@ -227,8 +314,8 @@ export class CoursesService {
     });
   }
 
-  async findSectionsByModule(moduleId: string) {
-    await this.findModule(moduleId);
+  async findSectionsByModule(moduleId: string, userId?: string, userRole?: string) {
+    await this.findModule(moduleId, userId, userRole);
 
     const result = await db
       .select()
@@ -239,7 +326,7 @@ export class CoursesService {
     return result;
   }
 
-  async findSection(sectionId: string) {
+  async findSection(sectionId: string, userId?: string, userRole?: string) {
     const result = await db
       .select()
       .from(sections)
@@ -250,11 +337,18 @@ export class CoursesService {
       throw new NotFoundException('Section not found');
     }
 
+    // Check access permission for teachers
+    if (userRole === 'teacher' && userId) {
+      const section = result[0];
+      const module = await this.findModule(section.moduleId, userId, userRole);
+      // findModule already checks course access
+    }
+
     return result[0];
   }
 
-  async getSectionKnowledgePoints(sectionId: string) {
-    await this.findSection(sectionId);
+  async getSectionKnowledgePoints(sectionId: string, userId?: string, userRole?: string) {
+    await this.findSection(sectionId, userId, userRole);
 
     const result = await db
       .select({
@@ -286,8 +380,17 @@ export class CoursesService {
     return kpsWithPrerequisites;
   }
 
-  async updateSection(sectionId: string, updateData: Partial<CreateSectionDto>) {
-    await this.findSection(sectionId);
+  async updateSection(sectionId: string, updateData: Partial<CreateSectionDto>, userId?: string, userRole?: string) {
+    const section = await this.findSection(sectionId, userId, userRole);
+    const module = await this.findModule(section.moduleId, userId, userRole);
+    
+    // Check write access for teachers (can't edit sections in public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to edit this section');
+      }
+    }
 
     const [updated] = await db
       .update(sections)
@@ -298,8 +401,17 @@ export class CoursesService {
     return updated;
   }
 
-  async removeSection(sectionId: string) {
-    await this.findSection(sectionId);
+  async removeSection(sectionId: string, userId?: string, userRole?: string) {
+    const section = await this.findSection(sectionId, userId, userRole);
+    const module = await this.findModule(section.moduleId, userId, userRole);
+    
+    // Check write access for teachers (can't delete sections in public courses they don't own)
+    if (userRole === 'teacher' && userId) {
+      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      if (!hasWriteAccess) {
+        throw new ForbiddenException('You do not have permission to delete this section');
+      }
+    }
 
     await db.delete(sections).where(eq(sections.id, sectionId));
 
@@ -308,8 +420,8 @@ export class CoursesService {
 
   // ==================== COURSE STRUCTURE ====================
 
-  async getCourseStructure(courseId: string) {
-    const course = await this.findOne(courseId);
+  async getCourseStructure(courseId: string, userId?: string, userRole?: string) {
+    const course = await this.findOne(courseId, userId, userRole);
 
     const courseModules = await db
       .select()
@@ -383,8 +495,8 @@ export class CoursesService {
     return assignment;
   }
 
-  async getCourseTeachers(courseId: string) {
-    await this.findOne(courseId);
+  async getCourseTeachers(courseId: string, userId?: string, userRole?: string) {
+    await this.findOne(courseId, userId, userRole);
 
     const result = await db
       .select({

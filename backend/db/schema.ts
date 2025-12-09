@@ -102,12 +102,19 @@ export const courses = pgTable("courses", {
   subject: varchar("subject", { length: 50 }).notNull(),
   gradeLevel: integer("grade_level").notNull(),
   active: boolean("active").notNull().default(true),
+  visibility: varchar("visibility", { length: 20 }).notNull().default("public"), // 'public', 'private'
+  originCourseId: uuid("origin_course_id").references(() => courses.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
   subjectIdx: index("courses_subject_idx").on(table.subject),
   gradeLevelIdx: index("courses_grade_idx").on(table.gradeLevel),
-  activeIdx: index("courses_active_idx").on(table.active)
+  activeIdx: index("courses_active_idx").on(table.active),
+  visibilityIdx: index("courses_visibility_idx").on(table.visibility),
+  createdByIdx: index("courses_created_by_idx").on(table.createdBy),
+  originCourseIdx: index("courses_origin_course_idx").on(table.originCourseId)
 }));
 
 export const modules = pgTable("modules", {
@@ -116,11 +123,13 @@ export const modules = pgTable("modules", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   orderIndex: integer("order_index").notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
   courseIdIdx: index("modules_course_idx").on(table.courseId),
-  orderIdx: index("modules_order_idx").on(table.courseId, table.orderIndex)
+  orderIdx: index("modules_order_idx").on(table.courseId, table.orderIndex),
+  createdByIdx: index("modules_created_by_idx").on(table.createdBy)
 }));
 
 export const sections = pgTable("sections", {
@@ -129,11 +138,13 @@ export const sections = pgTable("sections", {
   title: text("title").notNull(),
   summary: text("summary").notNull(),
   orderIndex: integer("order_index").notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
   moduleIdIdx: index("sections_module_idx").on(table.moduleId),
-  orderIdx: index("sections_order_idx").on(table.moduleId, table.orderIndex)
+  orderIdx: index("sections_order_idx").on(table.moduleId, table.orderIndex),
+  createdByIdx: index("sections_created_by_idx").on(table.createdBy)
 }));
 
 export const teacherCourseMap = pgTable("teacher_course_map", {
@@ -170,10 +181,12 @@ export const knowledgePoint = pgTable("knowledge_point", {
   description: text("description").notNull(),
   difficultyLevel: integer("difficulty_level").notNull(), // 1-5
   tags: json("tags").notNull(), // array of tags
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
-  difficultyIdx: index("kp_difficulty_idx").on(table.difficultyLevel)
+  difficultyIdx: index("kp_difficulty_idx").on(table.difficultyLevel),
+  createdByIdx: index("kp_created_by_idx").on(table.createdBy)
 }));
 
 export const kpPrerequisites = pgTable("kp_prerequisites", {
@@ -192,11 +205,13 @@ export const kpResources = pgTable("kp_resources", {
   title: text("title").notNull(),
   description: text("description"), // Made optional
   orderIndex: integer("order_index").notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
   kpIdIdx: index("kp_resources_kp_idx").on(table.kpId),
-  orderIdx: index("kp_resources_order_idx").on(table.kpId, table.orderIndex)
+  orderIdx: index("kp_resources_order_idx").on(table.kpId, table.orderIndex),
+  createdByIdx: index("kp_resources_created_by_idx").on(table.createdBy)
 }));
 
 export const sectionKpMap = pgTable("section_kp_map", {
@@ -220,11 +235,13 @@ export const questionBank = pgTable("question_bank", {
   correctAnswer: text("correct_answer").notNull(),
   questionType: varchar("question_type", { length: 100 }).notNull(), // 'multiple_choice', 'true_false', 'short_answer'
   isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({
   typeIdx: index("question_type_idx").on(table.questionType),
-  activeIdx: index("question_active_idx").on(table.isActive)
+  activeIdx: index("question_active_idx").on(table.isActive),
+  createdByIdx: index("question_bank_created_by_idx").on(table.createdBy)
 }));
 
 export const questionMetadata = pgTable("question_metadata", {
@@ -491,6 +508,20 @@ export const teacherClassMap = pgTable("teacher_class_map", {
 }, (table) => ({
   teacherClassIdx: index("teacher_class_map_teacher_class_idx").on(table.teacherId, table.classId),
   roleIdx: index("teacher_class_map_role_idx").on(table.role)
+}));
+
+export const classCourses = pgTable("class_courses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
+  courseId: uuid("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  assignedBy: uuid("assigned_by").references(() => users.id, { onDelete: "set null" }),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  status: varchar("status", { length: 20 }).notNull().default("active") // 'active', 'inactive'
+}, (table) => ({
+  classCourseIdx: index("class_courses_class_course_idx").on(table.classId, table.courseId),
+  classIdx: index("class_courses_class_idx").on(table.classId),
+  courseIdx: index("class_courses_course_idx").on(table.courseId),
+  statusIdx: index("class_courses_status_idx").on(table.status)
 }));
 
 // =============================================

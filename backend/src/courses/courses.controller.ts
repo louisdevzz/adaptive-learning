@@ -16,9 +16,12 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
 
 @Controller('courses')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
@@ -26,8 +29,8 @@ export class CoursesController {
 
   @Post()
   @Roles('admin', 'teacher')
-  create(@Body() createCourseDto: CreateCourseDto) {
-    return this.coursesService.create(createCourseDto);
+  create(@Body() createCourseDto: CreateCourseDto, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.create(createCourseDto, user.userId);
   }
 
   @Get()
@@ -35,52 +38,55 @@ export class CoursesController {
     @Query('gradeLevel') gradeLevel?: string,
     @Query('subject') subject?: string,
     @Query('active') active?: string,
+    @CurrentUser() user?: ICurrentUser,
   ) {
     return this.coursesService.findAll(
       gradeLevel ? parseInt(gradeLevel) : undefined,
       subject,
       active ? active === 'true' : undefined,
+      user?.userId,
+      user?.role,
     );
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.findOne(id, user?.userId, user?.role);
   }
 
   @Get(':id/structure')
-  getCourseStructure(@Param('id') id: string) {
-    return this.coursesService.getCourseStructure(id);
+  getCourseStructure(@Param('id') id: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.getCourseStructure(id, user?.userId, user?.role);
   }
 
   @Patch(':id')
   @Roles('admin', 'teacher')
-  update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
-    return this.coursesService.update(id, updateCourseDto);
+  update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.update(id, updateCourseDto, user.userId, user.role);
   }
 
   @Delete(':id')
-  @Roles('admin')
-  remove(@Param('id') id: string) {
-    return this.coursesService.remove(id);
+  @Roles('admin', 'teacher')
+  remove(@Param('id') id: string, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.remove(id, user.userId, user.role);
   }
 
   // ==================== MODULES ====================
 
   @Post('modules')
   @Roles('admin', 'teacher')
-  createModule(@Body() createModuleDto: CreateModuleDto) {
-    return this.coursesService.createModule(createModuleDto);
+  createModule(@Body() createModuleDto: CreateModuleDto, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.createModule(createModuleDto, user.userId, user.role);
   }
 
   @Get(':courseId/modules')
-  findModulesByCourse(@Param('courseId') courseId: string) {
-    return this.coursesService.findModulesByCourse(courseId);
+  findModulesByCourse(@Param('courseId') courseId: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.findModulesByCourse(courseId, user?.userId, user?.role);
   }
 
   @Get('modules/:moduleId')
-  findModule(@Param('moduleId') moduleId: string) {
-    return this.coursesService.findModule(moduleId);
+  findModule(@Param('moduleId') moduleId: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.findModule(moduleId, user?.userId, user?.role);
   }
 
   @Patch('modules/:moduleId')
@@ -88,37 +94,38 @@ export class CoursesController {
   updateModule(
     @Param('moduleId') moduleId: string,
     @Body() updateData: Partial<CreateModuleDto>,
+    @CurrentUser() user: ICurrentUser,
   ) {
-    return this.coursesService.updateModule(moduleId, updateData);
+    return this.coursesService.updateModule(moduleId, updateData, user.userId, user.role);
   }
 
   @Delete('modules/:moduleId')
   @Roles('admin', 'teacher')
-  removeModule(@Param('moduleId') moduleId: string) {
-    return this.coursesService.removeModule(moduleId);
+  removeModule(@Param('moduleId') moduleId: string, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.removeModule(moduleId, user.userId, user.role);
   }
 
   // ==================== SECTIONS ====================
 
   @Post('sections')
   @Roles('admin', 'teacher')
-  createSection(@Body() createSectionDto: CreateSectionDto) {
-    return this.coursesService.createSection(createSectionDto);
+  createSection(@Body() createSectionDto: CreateSectionDto, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.createSection(createSectionDto, user.userId, user.role);
   }
 
   @Get('modules/:moduleId/sections')
-  findSectionsByModule(@Param('moduleId') moduleId: string) {
-    return this.coursesService.findSectionsByModule(moduleId);
+  findSectionsByModule(@Param('moduleId') moduleId: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.findSectionsByModule(moduleId, user?.userId, user?.role);
   }
 
   @Get('sections/:sectionId')
-  findSection(@Param('sectionId') sectionId: string) {
-    return this.coursesService.findSection(sectionId);
+  findSection(@Param('sectionId') sectionId: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.findSection(sectionId, user?.userId, user?.role);
   }
 
   @Get('sections/:sectionId/knowledge-points')
-  getSectionKnowledgePoints(@Param('sectionId') sectionId: string) {
-    return this.coursesService.getSectionKnowledgePoints(sectionId);
+  getSectionKnowledgePoints(@Param('sectionId') sectionId: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.getSectionKnowledgePoints(sectionId, user?.userId, user?.role);
   }
 
   @Patch('sections/:sectionId')
@@ -126,14 +133,15 @@ export class CoursesController {
   updateSection(
     @Param('sectionId') sectionId: string,
     @Body() updateData: Partial<CreateSectionDto>,
+    @CurrentUser() user: ICurrentUser,
   ) {
-    return this.coursesService.updateSection(sectionId, updateData);
+    return this.coursesService.updateSection(sectionId, updateData, user.userId, user.role);
   }
 
   @Delete('sections/:sectionId')
   @Roles('admin', 'teacher')
-  removeSection(@Param('sectionId') sectionId: string) {
-    return this.coursesService.removeSection(sectionId);
+  removeSection(@Param('sectionId') sectionId: string, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.removeSection(sectionId, user.userId, user.role);
   }
 
   // ==================== TEACHER ASSIGNMENTS ====================
@@ -150,7 +158,7 @@ export class CoursesController {
 
   @Get(':courseId/teachers')
   @Roles('admin', 'teacher')
-  getCourseTeachers(@Param('courseId') courseId: string) {
-    return this.coursesService.getCourseTeachers(courseId);
+  getCourseTeachers(@Param('courseId') courseId: string, @CurrentUser() user: ICurrentUser) {
+    return this.coursesService.getCourseTeachers(courseId, user.userId, user.role);
   }
 }

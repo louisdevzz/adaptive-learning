@@ -343,6 +343,34 @@ export const api = {
       const response = await apiClient.delete(`/classes/${classId}/teachers/${teacherId}`);
       return response.data;
     },
+
+    // Course Assignment
+    assignCourse: async (classId: string, data: {
+      courseId: string;
+      assignedBy?: string;
+      status?: 'active' | 'inactive';
+    }) => {
+      const response = await apiClient.post(`/classes/${classId}/courses`, data);
+      return response.data;
+    },
+
+    getClassCourses: async (classId: string, status?: 'active' | 'inactive') => {
+      const url = status 
+        ? `/classes/${classId}/courses?status=${status}`
+        : `/classes/${classId}/courses`;
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    updateClassCourseStatus: async (classId: string, courseId: string, status: 'active' | 'inactive') => {
+      const response = await apiClient.patch(`/classes/${classId}/courses/${courseId}/status`, { status });
+      return response.data;
+    },
+
+    removeCourse: async (classId: string, courseId: string) => {
+      const response = await apiClient.delete(`/classes/${classId}/courses/${courseId}`);
+      return response.data;
+    },
   },
 
   // Courses endpoints
@@ -380,6 +408,7 @@ export const api = {
       subject: string;
       gradeLevel: number;
       active?: boolean;
+      visibility?: 'public' | 'private' | 'school_only';
     }) => {
       const response = await apiClient.post('/courses', data);
       return response.data;
@@ -392,6 +421,7 @@ export const api = {
       subject?: string;
       gradeLevel?: number;
       active?: boolean;
+      visibility?: 'public' | 'private' | 'school_only';
     }) => {
       const response = await apiClient.patch(`/courses/${id}`, data);
       return response.data;
@@ -692,6 +722,33 @@ export const api = {
           'x-api-key': API_KEY,
         },
       });
+      return response.data;
+    },
+  },
+
+  // Explorer endpoints
+  explorer: {
+    getPublicCourses: async (params?: {
+      gradeLevel?: number;
+      subject?: string;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.gradeLevel) queryParams.append('gradeLevel', params.gradeLevel.toString());
+      if (params?.subject) queryParams.append('subject', params.subject);
+      
+      const queryString = queryParams.toString();
+      const url = queryString ? `/explorer/courses?${queryString}` : '/explorer/courses';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getPublicCourseDetails: async (id: string) => {
+      const response = await apiClient.get(`/explorer/courses/${id}`);
+      return response.data;
+    },
+
+    cloneCourse: async (courseId: string) => {
+      const response = await apiClient.post(`/explorer/courses/${courseId}/clone`);
       return response.data;
     },
   },

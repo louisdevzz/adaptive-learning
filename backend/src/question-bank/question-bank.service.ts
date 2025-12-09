@@ -19,7 +19,7 @@ import { HumanMessage } from '@langchain/core/messages';
 export class QuestionBankService {
   // ==================== QUESTIONS ====================
 
-  async create(createQuestionDto: CreateQuestionDto) {
+  async create(createQuestionDto: CreateQuestionDto, userId?: string) {
     // Validate that the skill (KP) exists
     const kpResult = await db
       .select()
@@ -42,6 +42,7 @@ export class QuestionBankService {
           correctAnswer: createQuestionDto.correctAnswer,
           questionType: createQuestionDto.questionType,
           isActive: createQuestionDto.isActive ?? true,
+          createdBy: userId ?? null,
         })
         .returning();
 

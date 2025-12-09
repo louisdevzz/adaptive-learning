@@ -9,12 +9,14 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { EnrollStudentDto } from './dto/enroll-student.dto';
 import { AssignTeacherToClassDto } from './dto/assign-teacher.dto';
+import { AssignCourseToClassDto } from './dto/assign-course.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @Controller('classes')
@@ -83,5 +85,38 @@ export class ClassesController {
   @HttpCode(HttpStatus.OK)
   removeTeacherFromClass(@Param('id') id: string, @Param('teacherId') teacherId: string) {
     return this.classesService.removeTeacherFromClass(id, teacherId);
+  }
+
+  // Course Assignment Endpoints
+  @Post(':id/courses')
+  @HttpCode(HttpStatus.CREATED)
+  assignCourse(@Param('id') id: string, @Body() assignCourseDto: AssignCourseToClassDto) {
+    return this.classesService.assignCourse(id, assignCourseDto);
+  }
+
+  @Get(':id/courses')
+  getClassCourses(
+    @Param('id') id: string,
+    @Query('status') status?: string
+  ) {
+    if (status) {
+      return this.classesService.getClassCoursesByStatus(id, status);
+    }
+    return this.classesService.getClassCourses(id);
+  }
+
+  @Patch(':id/courses/:courseId/status')
+  updateClassCourseStatus(
+    @Param('id') id: string,
+    @Param('courseId') courseId: string,
+    @Body('status') status: string
+  ) {
+    return this.classesService.updateClassCourseStatus(id, courseId, status);
+  }
+
+  @Delete(':id/courses/:courseId')
+  @HttpCode(HttpStatus.OK)
+  removeCourseFromClass(@Param('id') id: string, @Param('courseId') courseId: string) {
+    return this.classesService.removeCourseFromClass(id, courseId);
   }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Checkbox } from "@heroui/checkbox";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -9,7 +10,7 @@ import {
   DropdownMenu,
   DropdownItem,
 } from "@heroui/dropdown";
-import { MoreVertical, Edit, Trash2, ChevronDown, Search } from "lucide-react";
+import { MoreVertical, Edit, Trash2, ChevronDown, Search, Eye } from "lucide-react";
 import { Class } from "@/types/class";
 
 interface ClassTableProps {
@@ -47,6 +48,11 @@ export function ClassTable({
   totalPages,
   onPageChange,
 }: ClassTableProps) {
+  const router = useRouter();
+
+  const handleViewClass = (classId: string) => {
+    router.push(`/dashboard/classes/${classId}`);
+  };
   // Inline Filters Component
   const renderFilters = () => {
     if (!onSearchChange) return null;
@@ -94,9 +100,15 @@ export function ClassTable({
           size="sm"
         />
         <div className="flex gap-3 items-center flex-1 min-w-0">
-          <p className="font-medium leading-4 text-[#181d27] text-sm truncate w-full">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewClass(classItem.id);
+            }}
+            className="font-medium leading-4 text-[#181d27] text-sm truncate w-full text-left hover:text-[#7f56d9] transition-colors cursor-pointer"
+          >
             {classItem.className}
-          </p>
+          </button>
         </div>
         <div className="w-24">
           <p className="font-medium text-xs text-[#181d27]">
@@ -140,6 +152,14 @@ export function ClassTable({
                 base: "bg-white border border-[#e9eaeb] rounded-xl shadow-[0px_12px_16px_-4px_rgba(10,13,18,0.08),0px_4px_6px_-2px_rgba(10,13,18,0.03)] min-w-[150px]",
               }}
             >
+              <DropdownItem
+                key="view"
+                textValue="View"
+                startContent={<Eye className="size-4 text-[#535862]" />}
+                onPress={() => handleViewClass(classItem.id)}
+              >
+                <span className="text-[#181d27]">Xem chi tiết</span>
+              </DropdownItem>
               <DropdownItem
                 key="edit"
                 textValue="Edit"

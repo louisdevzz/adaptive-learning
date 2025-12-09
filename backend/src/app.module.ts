@@ -14,6 +14,7 @@ import { QuestionBankModule } from './question-bank/question-bank.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { StudentProgressModule } from './student-progress/student-progress.module';
 import { LearningPathsModule } from './learning-paths/learning-paths.module';
+import { ExplorerModule } from './explorer/explorer.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { LearningPathsModule } from './learning-paths/learning-paths.module';
     AssignmentsModule,
     StudentProgressModule,
     LearningPathsModule,
+    ExplorerModule,
   ],
 })
 export class AppModule {}

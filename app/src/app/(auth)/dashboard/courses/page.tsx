@@ -42,6 +42,7 @@ export default function CoursesPage() {
     subject: "",
     gradeLevel: 10,
     active: true,
+    visibility: 'public',
   });
 
   // Fetch courses
@@ -110,6 +111,7 @@ export default function CoursesPage() {
       subject: "",
       gradeLevel: 10,
       active: true,
+      visibility: 'public',
     });
     onOpen();
   };
@@ -124,6 +126,7 @@ export default function CoursesPage() {
       subject: course.subject,
       gradeLevel: course.gradeLevel,
       active: course.active,
+      visibility: course.visibility || 'public',
     });
     onOpen();
   };
@@ -171,6 +174,7 @@ export default function CoursesPage() {
           subject: formData.subject,
           gradeLevel: formData.gradeLevel,
           active: formData.active,
+          visibility: formData.visibility,
         });
         toast.success("Cập nhật môn học thành công", { id: toastId });
       } else {
@@ -182,6 +186,7 @@ export default function CoursesPage() {
           subject: formData.subject,
           gradeLevel: formData.gradeLevel,
           active: formData.active,
+          visibility: formData.visibility,
         });
         toast.success("Tạo môn học thành công", { id: toastId });
       }

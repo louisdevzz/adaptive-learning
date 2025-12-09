@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and, inArray } from 'drizzle-orm';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { eq, and, inArray, or } from 'drizzle-orm';
 import {
   db,
   knowledgePoint,
@@ -12,12 +12,13 @@ import {
 import { CreateKnowledgePointDto } from './dto/create-knowledge-point.dto';
 import { UpdateKnowledgePointDto } from './dto/update-knowledge-point.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
+import { getAccessibleKnowledgePointIds, getAccessibleSectionIds } from '../courses/helpers/course-access.helper';
 
 @Injectable()
 export class KnowledgePointsService {
   // ==================== KNOWLEDGE POINTS ====================
 
-  async create(createKpDto: CreateKnowledgePointDto) {
+  async create(createKpDto: CreateKnowledgePointDto, userId?: string) {
     // Validate prerequisite KPs exist if provided
     if (createKpDto.prerequisites && createKpDto.prerequisites.length > 0) {
       const existingKps = await db
@@ -40,6 +41,7 @@ export class KnowledgePointsService {
           description: createKpDto.description,
           difficultyLevel: createKpDto.difficultyLevel,
           tags: createKpDto.tags,
+          createdBy: userId ?? null,
         })
         .returning();
 
@@ -62,6 +64,7 @@ export class KnowledgePointsService {
             url: resource.url,
             title: resource.title,
             orderIndex: resource.orderIndex,
+            createdBy: userId ?? null,
           };
 
           // Only include description if it's defined
@@ -79,12 +82,26 @@ export class KnowledgePointsService {
     });
   }
 
-  async findAll() {
+  async findAll(userId?: string, userRole?: string) {
+    // Filter by role: teacher only sees their KPs or KPs from accessible sections
+    if (userRole === 'teacher' && userId) {
+      const accessibleKpIds = await getAccessibleKnowledgePointIds(userId, userRole);
+      if (accessibleKpIds.length === 0) {
+        return [];
+      }
+      const result = await db
+        .select()
+        .from(knowledgePoint)
+        .where(inArray(knowledgePoint.id, accessibleKpIds));
+      return result;
+    }
+
+    // Admin sees all
     const result = await db.select().from(knowledgePoint);
     return result;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId?: string, userRole?: string) {
     const result = await db
       .select()
       .from(knowledgePoint)
@@ -95,11 +112,19 @@ export class KnowledgePointsService {
       throw new NotFoundException('Knowledge Point not found');
     }
 
+    // Check access permission for teachers
+    if (userRole === 'teacher' && userId) {
+      const accessibleKpIds = await getAccessibleKnowledgePointIds(userId, userRole);
+      if (!accessibleKpIds.includes(id)) {
+        throw new ForbiddenException('You do not have access to this knowledge point');
+      }
+    }
+
     return result[0];
   }
 
-  async findOneWithDetails(id: string) {
-    const kp = await this.findOne(id);
+  async findOneWithDetails(id: string, userId?: string, userRole?: string) {
+    const kp = await this.findOne(id, userId, userRole);
 
     // Get prerequisites
     const prereqs = await db
@@ -134,8 +159,8 @@ export class KnowledgePointsService {
     };
   }
 
-  async update(id: string, updateKpDto: UpdateKnowledgePointDto) {
-    await this.findOne(id);
+  async update(id: string, updateKpDto: UpdateKnowledgePointDto, userId?: string, userRole?: string) {
+    await this.findOne(id, userId, userRole);
 
     // Validate prerequisite KPs if provided
     if (updateKpDto.prerequisites && updateKpDto.prerequisites.length > 0) {
@@ -193,6 +218,7 @@ export class KnowledgePointsService {
               url: resource.url,
               title: resource.title,
               orderIndex: resource.orderIndex,
+              createdBy: userId ?? null,
             };
 
             // Only include description if it's defined
@@ -211,8 +237,8 @@ export class KnowledgePointsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId?: string, userRole?: string) {
+    await this.findOne(id, userId, userRole);
 
     await db.delete(knowledgePoint).where(eq(knowledgePoint.id, id));
 
@@ -221,8 +247,8 @@ export class KnowledgePointsService {
 
   // ==================== SECTION ASSIGNMENTS ====================
 
-  async assignToSection(assignDto: AssignToSectionDto) {
-    // Validate section exists
+  async assignToSection(assignDto: AssignToSectionDto, userId?: string, userRole?: string) {
+    // Validate section exists and check access
     const sectionResult = await db
       .select()
       .from(sections)
@@ -233,8 +259,16 @@ export class KnowledgePointsService {
       throw new NotFoundException('Section not found');
     }
 
-    // Validate KP exists
-    await this.findOne(assignDto.kpId);
+    // Check section access for teachers
+    if (userRole === 'teacher' && userId) {
+      const accessibleSectionIds = await getAccessibleSectionIds(userId, userRole);
+      if (!accessibleSectionIds.includes(assignDto.sectionId)) {
+        throw new ForbiddenException('You do not have access to this section');
+      }
+    }
+
+    // Validate KP exists and check access
+    await this.findOne(assignDto.kpId, userId, userRole);
 
     // Check if already assigned
     const existing = await db
@@ -264,7 +298,14 @@ export class KnowledgePointsService {
     return assignment;
   }
 
-  async removeFromSection(sectionId: string, kpId: string) {
+  async removeFromSection(sectionId: string, kpId: string, userId?: string, userRole?: string) {
+    // Check section access for teachers
+    if (userRole === 'teacher' && userId) {
+      const accessibleSectionIds = await getAccessibleSectionIds(userId, userRole);
+      if (!accessibleSectionIds.includes(sectionId)) {
+        throw new ForbiddenException('You do not have access to this section');
+      }
+    }
     const result = await db
       .delete(sectionKpMap)
       .where(
@@ -282,7 +323,14 @@ export class KnowledgePointsService {
     return { message: 'KP removed from section successfully' };
   }
 
-  async getKpsBySection(sectionId: string) {
+  async getKpsBySection(sectionId: string, userId?: string, userRole?: string) {
+    // Check section access for teachers
+    if (userRole === 'teacher' && userId) {
+      const accessibleSectionIds = await getAccessibleSectionIds(userId, userRole);
+      if (!accessibleSectionIds.includes(sectionId)) {
+        throw new ForbiddenException('You do not have access to this section');
+      }
+    }
     const result = await db
       .select({
         kp: knowledgePoint,
@@ -316,8 +364,8 @@ export class KnowledgePointsService {
 
   // ==================== PREREQUISITES ====================
 
-  async getPrerequisites(kpId: string) {
-    await this.findOne(kpId);
+  async getPrerequisites(kpId: string, userId?: string, userRole?: string) {
+    await this.findOne(kpId, userId, userRole);
 
     const result = await db
       .select({
@@ -333,8 +381,8 @@ export class KnowledgePointsService {
     return result.map((row) => row.prerequisite);
   }
 
-  async getDependents(kpId: string) {
-    await this.findOne(kpId);
+  async getDependents(kpId: string, userId?: string, userRole?: string) {
+    await this.findOne(kpId, userId, userRole);
 
     const result = await db
       .select({
@@ -349,8 +397,8 @@ export class KnowledgePointsService {
 
   // ==================== RESOURCES ====================
 
-  async getResources(kpId: string) {
-    await this.findOne(kpId);
+  async getResources(kpId: string, userId?: string, userRole?: string) {
+    await this.findOne(kpId, userId, userRole);
 
     const resources = await db
       .select()

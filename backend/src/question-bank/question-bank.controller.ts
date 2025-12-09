@@ -16,6 +16,8 @@ import { AssignToKpDto } from './dto/assign-to-kp.dto';
 import { GenerateQuestionDto } from './dto/generate-question.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
 
 @Controller('question-bank')
 @UseGuards(JwtAuthGuard)
@@ -24,8 +26,8 @@ export class QuestionBankController {
 
   @Post()
   @Roles('admin', 'teacher')
-  create(@Body() createQuestionDto: CreateQuestionDto) {
-    return this.questionBankService.create(createQuestionDto);
+  create(@Body() createQuestionDto: CreateQuestionDto, @CurrentUser() user: ICurrentUser) {
+    return this.questionBankService.create(createQuestionDto, user.userId);
   }
 
   @Get()

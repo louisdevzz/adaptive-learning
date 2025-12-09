@@ -51,6 +51,11 @@ const SUBJECTS = [
   "Âm nhạc",
 ];
 
+const VISIBILITY_OPTIONS = [
+  { value: 'public' as const, label: 'Công khai' },
+  { value: 'private' as const, label: 'Riêng tư' },
+];
+
 export function CourseModal({
   isOpen,
   onOpenChange,
@@ -63,6 +68,7 @@ export function CourseModal({
 }: CourseModalProps) {
   const [isGradeOpen, setIsGradeOpen] = useState(false);
   const [isSubjectOpen, setIsSubjectOpen] = useState(false);
+  const [isVisibilityOpen, setIsVisibilityOpen] = useState(false);
 
   const updateFormData = (updates: Partial<CourseFormData>) => {
     onFormDataChange({ ...formData, ...updates });
@@ -170,6 +176,41 @@ export function CourseModal({
                   </Dropdown>
                 </div>
 
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#181d27]">
+                    Hiển thị <span className="text-red-500">*</span>
+                  </label>
+                  <Dropdown isOpen={isVisibilityOpen} onOpenChange={setIsVisibilityOpen}>
+                    <DropdownTrigger>
+                      <Button
+                        variant="bordered"
+                        className="justify-between border-[#d5d7da]"
+                        endContent={<ChevronDown className="size-4" />}
+                      >
+                        {formData.visibility
+                          ? VISIBILITY_OPTIONS.find((opt) => opt.value === formData.visibility)?.label || "Chọn hiển thị"
+                          : "Chọn hiển thị"}
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      aria-label="Visibility selection"
+                      selectedKeys={formData.visibility ? new Set([formData.visibility]) : new Set()}
+                      selectionMode="single"
+                      onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0] as 'public' | 'private';
+                        updateFormData({ visibility: value });
+                        setIsVisibilityOpen(false);
+                      }}
+                    >
+                      {VISIBILITY_OPTIONS.map((option) => (
+                        <DropdownItem key={option.value} textValue={option.label}>
+                          {option.label}
+                        </DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
+
                 <Switch
                   isSelected={formData.active ?? true}
                   onValueChange={(value) => updateFormData({ active: value })}
@@ -201,7 +242,8 @@ export function CourseModal({
                   !formData.description ||
                   !formData.thumbnailUrl ||
                   !formData.subject ||
-                  !formData.gradeLevel
+                  !formData.gradeLevel ||
+                  !formData.visibility
                 }
                 isLoading={isSubmitting}
               >

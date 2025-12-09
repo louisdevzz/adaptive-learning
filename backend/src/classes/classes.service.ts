@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
-import { db, classes, classEnrollment, teacherClassMap, students, teachers, users } from '../../db';
+import { db, classes, classEnrollment, teacherClassMap, students, teachers, users, classCourses, courses } from '../../db';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { EnrollStudentDto } from './dto/enroll-student.dto';
 import { AssignTeacherToClassDto } from './dto/assign-teacher.dto';
+import { AssignCourseToClassDto } from './dto/assign-course.dto';
 
 @Injectable()
 export class ClassesService {
@@ -303,5 +304,175 @@ export class ClassesService {
     }
 
     return { message: 'Teacher removed from class successfully' };
+  }
+
+  // Course Assignment
+  async assignCourse(classId: string, assignCourseDto: AssignCourseToClassDto) {
+    // Check if class exists
+    await this.findOne(classId);
+
+    // Check if course exists
+    const course = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, assignCourseDto.courseId))
+      .limit(1);
+
+    if (course.length === 0) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Check if already assigned
+    const existing = await db
+      .select()
+      .from(classCourses)
+      .where(
+        and(
+          eq(classCourses.classId, classId),
+          eq(classCourses.courseId, assignCourseDto.courseId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      throw new BadRequestException('Course already assigned to this class');
+    }
+
+    const [assignment] = await db
+      .insert(classCourses)
+      .values({
+        classId,
+        courseId: assignCourseDto.courseId,
+        assignedBy: assignCourseDto.assignedBy || null,
+        status: assignCourseDto.status || 'active',
+      })
+      .returning();
+
+    return assignment;
+  }
+
+  async getClassCourses(classId: string) {
+    await this.findOne(classId);
+
+    const result = await db
+      .select({
+        assignment: classCourses,
+        course: courses,
+        assignedByUser: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+        },
+      })
+      .from(classCourses)
+      .innerJoin(courses, eq(classCourses.courseId, courses.id))
+      .leftJoin(users, eq(classCourses.assignedBy, users.id))
+      .where(eq(classCourses.classId, classId));
+
+    return result.map((row) => ({
+      assignmentId: row.assignment.id,
+      status: row.assignment.status,
+      assignedAt: row.assignment.assignedAt,
+      assignedBy: row.assignedByUser?.id ? row.assignedByUser : null,
+      course: row.course,
+    }));
+  }
+
+  async getClassCoursesByStatus(classId: string, status: string) {
+    await this.findOne(classId);
+
+    const result = await db
+      .select({
+        assignment: classCourses,
+        course: courses,
+        assignedByUser: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+        },
+      })
+      .from(classCourses)
+      .innerJoin(courses, eq(classCourses.courseId, courses.id))
+      .leftJoin(users, eq(classCourses.assignedBy, users.id))
+      .where(
+        and(
+          eq(classCourses.classId, classId),
+          eq(classCourses.status, status)
+        )
+      );
+
+    return result.map((row) => ({
+      assignmentId: row.assignment.id,
+      status: row.assignment.status,
+      assignedAt: row.assignment.assignedAt,
+      assignedBy: row.assignedByUser?.id ? row.assignedByUser : null,
+      course: row.course,
+    }));
+  }
+
+  async updateClassCourseStatus(classId: string, courseId: string, status: string) {
+    await this.findOne(classId);
+
+    // Check if course exists
+    const course = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, courseId))
+      .limit(1);
+
+    if (course.length === 0) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Check if assignment exists
+    const existing = await db
+      .select()
+      .from(classCourses)
+      .where(
+        and(
+          eq(classCourses.classId, classId),
+          eq(classCourses.courseId, courseId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new NotFoundException('Course not assigned to this class');
+    }
+
+    const [updated] = await db
+      .update(classCourses)
+      .set({
+        status,
+      })
+      .where(
+        and(
+          eq(classCourses.classId, classId),
+          eq(classCourses.courseId, courseId)
+        )
+      )
+      .returning();
+
+    return updated;
+  }
+
+  async removeCourseFromClass(classId: string, courseId: string) {
+    await this.findOne(classId);
+
+    const result = await db
+      .delete(classCourses)
+      .where(
+        and(
+          eq(classCourses.classId, classId),
+          eq(classCourses.courseId, courseId)
+        )
+      )
+      .returning();
+
+    if (result.length === 0) {
+      throw new NotFoundException('Course not assigned to this class');
+    }
+
+    return { message: 'Course removed from class successfully' };
   }
 }
