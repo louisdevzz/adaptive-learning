@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/react";
 import {
@@ -10,6 +10,7 @@ import {
   DropdownItem,
 } from "@heroui/dropdown";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronUp,
@@ -18,8 +19,13 @@ import {
   PlayCircle,
   FileText,
   LifeBuoy,
+  User,
+  LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 import { InteractiveHoverButtonCustom } from "./InteractiveHoverButtonCustom";
+import { useUser } from "@/hooks/useUser";
+import { api } from "@/lib/api";
 
 // Resources menu items
 const resourcesItems = [
@@ -65,44 +71,41 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
 export function Header() {
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { user, loading } = useUser();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await api.auth.logout();
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
-    <header className="border-b border-neutral-100 h-20 w-full z-[2] bg-white">
+    <header className="border-b border-neutral-100 h-20 w-full z-2 bg-white">
       <div className="absolute flex flex-col h-20 items-center justify-center left-0 right-0 top-0">
         <div className="flex items-center justify-between px-8 py-0 w-full max-w-[1280px]">
           <div className="flex gap-8 items-center">
             {/* Logo */}
-            <div className="relative">
+            <Link href={"/"} className="relative">
               <span className="text-xl font-semibold text-[#181d27]">Adaptive Learning</span>
-            </div>
+            </Link>
 
             {/* Navigation */}
             <nav className="flex gap-5 items-center">
               <Button variant="light" className="text-[#535862] font-semibold">
-                Trang chủ
+                <Link href={"/"}>Trang chủ</Link>
               </Button>
-              
-              {/* Products Dropdown */}
-              <Dropdown
-                isOpen={isProductsOpen}
-                onOpenChange={setIsProductsOpen}
-                placement="bottom-start"
-              >
-                <DropdownTrigger>
-                  <Button
-                    variant="light"
-                    className="text-[#535862] font-semibold"
-                    endContent={<ChevronIcon isOpen={isProductsOpen} />}
-                  >
-                    Nền tảng
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu aria-label="Platform menu">
-                  <DropdownItem key="overview">Tổng quan</DropdownItem>
-                  <DropdownItem key="features">Tính năng</DropdownItem>
-                  <DropdownItem key="courses">Khóa học</DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
+              <Button variant="light" className="text-[#535862] font-semibold">
+                <Link href={"/about"}>Giới thiệu</Link>
+              </Button>
+              <Button variant="light" className="text-[#535862] font-semibold">
+                <Link href={"/contact"}>Liên hệ</Link>
+              </Button>
 
               {/* Resources Dropdown */}
               <Dropdown
@@ -155,22 +158,74 @@ export function Header() {
                 </DropdownMenu>
               </Dropdown>
 
-              <Button variant="light" className="text-[#535862] font-semibold">
-                Giới thiệu
-              </Button>
+              
             </nav>
           </div>
 
           {/* Actions */}
           <div className="flex gap-3 items-center">
-            <InteractiveHoverButtonCustom className="text-sm bg-[#6941c6] text-white [&>div:first-child>div:first-child]:bg-white [&>div:last-child]:text-[#6941c6] [&>div:last-child]:border-none">
-              <Link href="/login">Đăng nhập</Link>
-            </InteractiveHoverButtonCustom>
-            <Avatar
-              src="https://www.figma.com/api/mcp/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703"
-              size="md"
-              className="rounded-full"
-            />
+            {loading || !user ? (
+              <InteractiveHoverButtonCustom className="text-sm bg-[#6941c6] text-white [&>div:first-child>div:first-child]:bg-white [&>div:last-child]:text-[#6941c6] [&>div:last-child]:border-none">
+                <Link href="/login">Đăng nhập</Link>
+              </InteractiveHoverButtonCustom>
+            ) : (
+              <Dropdown
+                isOpen={isUserMenuOpen}
+                onOpenChange={setIsUserMenuOpen}
+                placement="bottom-end"
+              >
+                <DropdownTrigger className="cursor-pointer">
+                  <button className="flex gap-2 items-center hover:opacity-80 transition-opacity">
+                    <Avatar
+                      src={user.avatarUrl || "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"}
+                      size="md"
+                      className="rounded-full"
+                    />
+                    <div className="flex flex-col items-start text-left">
+                      <p className="font-semibold leading-4 text-[#181d27] text-sm">
+                        {user.fullName}
+                      </p>
+                      <p className="font-normal leading-4 text-[#535862] text-xs">
+                        {user.email}
+                      </p>
+                    </div>
+                    <ChevronDown className="size-4 text-[#535862]" />
+                  </button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  aria-label="User menu"
+                  classNames={{
+                    base: "bg-white border border-[#e9eaeb] rounded-xl shadow-[0px_12px_16px_-4px_rgba(10,13,18,0.08),0px_4px_6px_-2px_rgba(10,13,18,0.03)] min-w-[200px]",
+                  }}
+                >
+                  <DropdownItem
+                    key="settings"
+                    textValue="Settings"
+                    startContent={<LayoutDashboard className="size-4 text-[#535862]" />}
+                    onPress={() => router.push("/dashboard")}
+                  >
+                    <span className="text-[#181d27]">Bảng điều khiển</span>
+                  </DropdownItem>
+                  <DropdownItem
+                    key="profile"
+                    textValue="Profile"
+                    startContent={<User className="size-4 text-[#535862]" />}
+                    onPress={() => router.push("/profile")}
+                  >
+                    <span className="text-[#181d27]">Thông tin cá nhân</span>
+                  </DropdownItem>
+                  <DropdownItem
+                    key="logout"
+                    textValue="Logout"
+                    startContent={<LogOut className="size-4 text-[#b42318]" />}
+                    onPress={handleLogout}
+                    className="text-[#b42318]"
+                  >
+                    <span className="text-[#b42318]">Đăng xuất</span>
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            )}
           </div>
         </div>
       </div>

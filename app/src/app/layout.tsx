@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Provider from "@/components/Provider";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -74,6 +75,7 @@ export default function RootLayout({
       >
         <Provider>
           {children}
+          <Toaster position="bottom-right"/>
         </Provider>
       </body>
     </html>

@@ -1227,3 +1227,191 @@ curl -X GET http://localhost:3000/api/v1/teachers/TEACHER_ID/courses \
 - `collaborator` - Collaborating teacher
 
 ---
+
+## File Upload (Cloudflare R2)
+
+### Upload Avatar
+
+**Endpoint:** `POST /api/upload/avatar`
+
+**Description:** Upload an avatar image to Cloudflare R2 storage. The uploaded file will be stored securely and a public URL will be returned.
+
+**Headers:**
+```
+x-api-key: your-api-key-here
+Cookie: access_token=<automatically_set_by_browser>
+Content-Type: multipart/form-data
+```
+
+**Request:**
+- Method: `POST`
+- Body: Form data with file field named `file`
+
+**Supported File Types:**
+- JPEG (image/jpeg)
+- PNG (image/png)
+- GIF (image/gif)
+- WebP (image/webp)
+
+**File Size Limit:** 5MB maximum
+
+**Response (200 OK):**
+```json
+{
+  "message": "Avatar uploaded successfully",
+  "url": "https://your-bucket.r2.dev/avatars/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg"
+}
+```
+
+**Error Responses:**
+
+**400 Bad Request - No file provided:**
+```json
+{
+  "statusCode": 400,
+  "message": "No file uploaded",
+  "error": "Bad Request"
+}
+```
+
+**400 Bad Request - Invalid file type:**
+```json
+{
+  "statusCode": 400,
+  "message": "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed",
+  "error": "Bad Request"
+}
+```
+
+**400 Bad Request - File too large:**
+```json
+{
+  "statusCode": 400,
+  "message": "File size exceeds 5MB limit",
+  "error": "Bad Request"
+}
+```
+
+**400 Bad Request - Upload failed:**
+```json
+{
+  "statusCode": 400,
+  "message": "Failed to upload file: <error details>",
+  "error": "Bad Request"
+}
+```
+
+**401 Unauthorized:**
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
+---
+
+### Upload General File
+
+**Endpoint:** `POST /api/upload/file`
+
+**Description:** Upload any file to Cloudflare R2 storage. Same validation rules apply as avatar upload.
+
+**Headers:**
+```
+x-api-key: your-api-key-here
+Cookie: access_token=<automatically_set_by_browser>
+Content-Type: multipart/form-data
+```
+
+**Request:**
+- Method: `POST`
+- Body: Form data with file field named `file`
+
+**Response (200 OK):**
+```json
+{
+  "message": "File uploaded successfully",
+  "url": "https://your-bucket.r2.dev/<folder>/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg"
+}
+```
+
+---
+
+### Testing Upload Endpoints
+
+#### Upload Avatar with cURL
+```bash
+curl -X POST http://localhost:8000/api/upload/avatar \
+  -H "x-api-key: your-api-key-here" \
+  -b cookies.txt \
+  -F "file=@/path/to/your/avatar.jpg"
+```
+
+#### Upload Avatar with JavaScript (Frontend)
+```javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+
+const response = await fetch('http://localhost:8000/api/upload/avatar', {
+  method: 'POST',
+  headers: {
+    'x-api-key': 'your-api-key-here',
+  },
+  credentials: 'include', // Important: sends cookies
+  body: formData,
+});
+
+const data = await response.json();
+console.log('Avatar URL:', data.url);
+```
+
+#### Update User Avatar after Upload
+```bash
+# 1. First upload the avatar
+curl -X POST http://localhost:8000/api/upload/avatar \
+  -H "x-api-key: your-api-key-here" \
+  -b cookies.txt \
+  -F "file=@avatar.jpg"
+
+# Response: { "url": "https://your-bucket.r2.dev/avatars/..." }
+
+# 2. Then update user with the new avatar URL
+curl -X PATCH http://localhost:8000/api/users/USER_ID \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-api-key-here" \
+  -b cookies.txt \
+  -d '{
+    "avatarUrl": "https://your-bucket.r2.dev/avatars/..."
+  }'
+```
+
+---
+
+### Cloudflare R2 Configuration
+
+To enable file uploads, configure the following environment variables in your `.env` file:
+
+```env
+# Cloudflare R2 Configuration
+R2_ACCOUNT_ID=your_account_id
+R2_ACCESS_KEY_ID=your_access_key_id
+R2_SECRET_ACCESS_KEY=your_secret_access_key
+R2_BUCKET_NAME=your_bucket_name
+R2_PUBLIC_URL=https://your-bucket.r2.dev
+```
+
+**How to get Cloudflare R2 credentials:**
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Navigate to R2 Object Storage
+3. Create a new bucket (or use existing)
+4. Generate API tokens with read/write permissions
+5. Set up a public domain for your bucket (optional but recommended)
+
+**Required permissions for R2 API token:**
+- Object Read
+- Object Write
+
+---

@@ -7,15 +7,11 @@ import { Input } from "@heroui/input";
 import { Checkbox } from "@heroui/checkbox";
 import Image from "next/image";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
 
 // Image assets from Figma
 const imgScreenMockupReplaceFill = "https://www.figma.com/api/mcp/asset/29b09a43-a041-46a3-878a-c7bf26444b65";
-const imgGrid = "https://www.figma.com/api/mcp/asset/067cc687-0a7c-426a-b712-d86250427f5d";
-const imgReflection = "https://www.figma.com/api/mcp/asset/d0699b9f-9e7e-4049-8a5f-40f71dac1857";
-const imgVector2 = "https://www.figma.com/api/mcp/asset/5cec5328-0084-4911-b649-59f7720de5d6";
-const imgGridMobile = "https://www.figma.com/api/mcp/asset/df5f8e34-e92e-4d79-9e5c-6568fe73cd09";
-const imgReflectionMobile = "https://www.figma.com/api/mcp/asset/22235135-1fe2-4616-ac33-88a7b0a670e0";
 
 // Google icon SVG
 const GoogleIcon = () => (
@@ -27,62 +23,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-function Logomark({ className, size = "md" }: { className?: string; size?: "md" | "lg" }) {
-  const isMobile = size === "lg";
-  const sizeClass = isMobile ? "size-12" : "size-8";
-  const borderWidth = isMobile ? "border-[0.3px]" : "border-[0.2px]";
-  const rounded = isMobile ? "rounded-xl" : "rounded-lg";
-  
-  return (
-    <div className={className}>
-      <div className={`${borderWidth} border-[rgba(10,13,18,0.12)] border-solid overflow-clip relative ${rounded} shadow-[0px_1px_1px_-0.5px_rgba(10,13,18,0.13),0px_1px_3px_0px_rgba(10,13,18,0.1),0px_1px_2px_0px_rgba(10,13,18,0.06)] shrink-0 ${sizeClass}`}>
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-[rgba(10,13,18,0.2)] rounded-lg" />
-        <div className="absolute inset-[-0.2px]">
-          <Image
-            src={isMobile ? imgGridMobile : imgGrid}
-            alt=""
-            fill
-            className="object-cover"
-          />
-        </div>
-        <div className="absolute inset-[calc(25%+-0.2px)_calc(25%-0.2px)_calc(25%-0.2px)_calc(25%+-0.2px)] overflow-clip rounded-full shadow-[0px_1px_3px_0px_rgba(10,13,18,0.1),0px_1px_2px_0px_rgba(10,13,18,0.06)]">
-          <div className="absolute h-[3.2px] left-[3.2px] top-[1.6px] w-[9.6px]">
-            <Image
-              src={isMobile ? imgReflectionMobile : imgReflection}
-              alt=""
-              fill
-              className="object-cover"
-            />
-          </div>
-        </div>
-        <div className="absolute backdrop-blur-[2.5px] backdrop-filter bg-[rgba(255,255,255,0.2)] inset-[calc(50%+-0.2px)_-0.2px_-0.2px_-0.2px] rounded-bl-lg rounded-br-lg" />
-      </div>
-    </div>
-  );
-}
 
-function Logo({ className, showText = true }: { className?: string; showText?: boolean }) {
-  return (
-    <div className={className}>
-      <div className="h-8 relative shrink-0 w-[139px]">
-        <Logomark className="absolute bottom-0 left-0 right-[76.98%] top-0" />
-        {showText && (
-          <div className="absolute bottom-0 left-[30.22%] right-0 top-0">
-            <div className="absolute bottom-[27.46%] left-0 top-[23.82%] w-[96.673px]">
-              <Image
-                src={imgVector2}
-                alt="Untitled"
-                width={97}
-                height={24}
-                className="object-contain"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -94,6 +35,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,12 +62,12 @@ export default function LoginPage() {
         {/* Left Section - Form */}
         <div className="flex flex-[1_0_0] flex-col h-full items-center justify-between min-h-px min-w-px relative">
           {/* Header */}
-          <div className="flex h-24 items-start p-8 relative w-full">
-            <Logo className="flex items-start relative shrink-0" />
+          <div className="flex h-20 items-start p-8 relative w-full">
+            <p className="text-xl font-semibold text-[#181d27]">Adaptive Learning</p>
           </div>
 
           {/* Form Content */}
-          <div className="flex flex-col items-center px-8 py-0 relative w-full">
+          <div className="flex flex-col items-center px-8 relative w-full">
             <div className="flex flex-col gap-8 items-center relative w-[360px]">
               {/* Heading */}
               <div className="flex flex-col gap-3 items-start relative w-full">
@@ -145,7 +87,7 @@ export default function LoginPage() {
               )}
 
               {/* Form */}
-              <form onSubmit={handleLogin} className="flex flex-col gap-6 items-center relative rounded-xl w-full">
+              <form onSubmit={handleLogin} className="flex flex-col gap-6 items-center relative rounded-[12px] w-full">
                 <div className="flex flex-col gap-5 items-start relative w-full">
                   {/* Email Input */}
                   <div className="flex flex-col items-start relative w-full">
@@ -161,7 +103,7 @@ export default function LoginPage() {
                         className="w-full"
                         classNames={{
                           input: "text-base text-[#717680]",
-                          inputWrapper: "border-[#d5d7da] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]",
+                          inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                         }}
                       />
                     </div>
@@ -174,14 +116,28 @@ export default function LoginPage() {
                         Password
                       </label>
                       <Input
-                        type="password"
+                        type={isPasswordVisible ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full"
+                        endContent={
+                          <button
+                            type="button"
+                            onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                            className="focus:outline-none cursor-pointer"
+                            aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                          >
+                            {isPasswordVisible ? (
+                              <EyeOff className="size-5 text-[#717680]" />
+                            ) : (
+                              <Eye className="size-5 text-[#717680]" />
+                            )}
+                          </button>
+                        }
                         classNames={{
                           input: "text-base text-[#717680]",
-                          inputWrapper: "border-[#d5d7da] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]",
+                          inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                         }}
                       />
                     </div>
@@ -211,45 +167,32 @@ export default function LoginPage() {
                 <div className="flex flex-col gap-4 items-start relative w-full">
                   <Button
                     type="submit"
-                    className="bg-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full"
-                    size="lg"
+                    className="bg-[#7f56d9] border border-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
+                    size="md"
                     isLoading={loading}
                     disabled={loading}
                   >
                     {loading ? "Signing in..." : "Sign in"}
                   </Button>
-                  <Button
-                    variant="bordered"
-                    className="border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full"
-                    startContent={<GoogleIcon />}
-                    size="lg"
-                  >
-                    Sign in with Google
-                  </Button>
+                  <div className="flex flex-col gap-3 items-center justify-center relative w-full">
+                    <Button
+                      variant="bordered"
+                      className="bg-white border border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
+                      startContent={<GoogleIcon />}
+                      size="md"
+                    >
+                      Sign in with Google
+                    </Button>
+                  </div>
                 </div>
               </form>
-
-              {/* Sign up link */}
-              <div className="flex gap-1 items-start justify-center relative w-full">
-                <p className="font-normal leading-5 text-[#535862] text-sm">
-                  Don't have an account?
-                </p>
-                <Link href="/signup">
-                  <Button
-                    variant="light"
-                    className="text-[#6941c6] font-semibold text-sm p-0 min-w-0 h-auto"
-                  >
-                    Sign up
-                  </Button>
-                </Link>
-              </div>
             </div>
           </div>
 
           {/* Footer */}
           <div className="flex h-24 items-end p-8 relative w-full">
             <p className="font-normal leading-5 text-[#535862] text-sm">
-              © Untitled UI 2077
+              © Adaptive Learning 2025
             </p>
           </div>
         </div>
@@ -284,7 +227,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-8 items-start relative w-full">
           {/* Header */}
           <div className="flex flex-col gap-6 items-start relative w-full">
-            <Logomark size="lg" className="flex items-start relative" />
+            <p className="text-xl font-semibold text-[#181d27]">Adaptive Learning</p>
             <div className="flex flex-col gap-2 items-start relative w-full">
               <h1 className="font-semibold leading-8 text-[#181d27] text-2xl w-full">
                 Log in
@@ -303,7 +246,7 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="flex flex-col gap-6 items-center relative rounded-xl w-full">
+          <form onSubmit={handleLogin} className="flex flex-col gap-6 items-center relative rounded-[12px] w-full">
             <div className="flex flex-col gap-5 items-start relative w-full">
               {/* Email Input */}
               <div className="flex flex-col items-start relative w-full">
@@ -319,7 +262,7 @@ export default function LoginPage() {
                     className="w-full"
                     classNames={{
                       input: "text-base text-[#717680]",
-                      inputWrapper: "border-[#d5d7da] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]",
+                      inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                     }}
                   />
                 </div>
@@ -332,14 +275,28 @@ export default function LoginPage() {
                     Password
                   </label>
                   <Input
-                    type="password"
+                    type={isPasswordVisible ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full"
+                    endContent={
+                      <button
+                        type="button"
+                        onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                        className="focus:outline-none"
+                        aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                      >
+                        {isPasswordVisible ? (
+                          <EyeOff className="size-5 text-[#717680]" />
+                        ) : (
+                          <Eye className="size-5 text-[#717680]" />
+                        )}
+                      </button>
+                    }
                     classNames={{
                       input: "text-base text-[#717680]",
-                      inputWrapper: "border-[#d5d7da] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]",
+                      inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                     }}
                   />
                 </div>
@@ -369,40 +326,25 @@ export default function LoginPage() {
             <div className="flex flex-col gap-4 items-start relative w-full">
               <Button
                 type="submit"
-                className="bg-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full"
-                size="lg"
+                className="bg-[#7f56d9] border border-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
+                size="md"
                 isLoading={loading}
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
-              <Button
-                variant="bordered"
-                className="border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full"
-                startContent={<GoogleIcon />}
-                size="lg"
-              >
-                Sign in with Google
-              </Button>
+              <div className="flex flex-col gap-3 items-center justify-center relative w-full">
+                <Button
+                  variant="bordered"
+                  className="bg-white border border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
+                  startContent={<GoogleIcon />}
+                  size="md"
+                >
+                  Sign in with Google
+                </Button>
+              </div>
             </div>
           </form>
-
-          {/* Sign up link */}
-          <div className="flex flex-col items-center relative w-full">
-            <div className="flex gap-1 items-start justify-center relative w-full">
-              <p className="font-normal leading-5 text-[#535862] text-sm">
-                Don't have an account?
-              </p>
-              <Link href="/signup">
-                <Button
-                  variant="light"
-                  className="text-[#6941c6] font-semibold text-sm p-0 min-w-0 h-auto"
-                >
-                  Sign up
-                </Button>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -69,6 +69,121 @@ export const api = {
     },
   },
 
+  // Admins endpoints
+  admins: {
+    getAll: async () => {
+      const response = await apiClient.get('/admins');
+      return response.data;
+    },
+
+    getById: async (id: string) => {
+      const response = await apiClient.get(`/admins/${id}`);
+      return response.data;
+    },
+
+    create: async (data: {
+      email: string;
+      password: string;
+      fullName: string;
+      adminLevel: 'super' | 'system' | 'support';
+      permissions: string[];
+      avatarUrl?: string;
+    }) => {
+      const response = await apiClient.post('/admins', data);
+      return response.data;
+    },
+
+    update: async (id: string, data: {
+      fullName?: string;
+      adminLevel?: 'super' | 'system' | 'support';
+      permissions?: string[];
+      avatarUrl?: string;
+    }) => {
+      const response = await apiClient.patch(`/admins/${id}`, data);
+      return response.data;
+    },
+
+    delete: async (id: string) => {
+      const response = await apiClient.delete(`/admins/${id}`);
+      return response.data;
+    },
+  },
+
+  // Teachers endpoints
+  teachers: {
+    getAll: async () => {
+      const response = await apiClient.get('/teachers');
+      return response.data;
+    },
+
+    getById: async (id: string) => {
+      const response = await apiClient.get(`/teachers/${id}`);
+      return response.data;
+    },
+
+    create: async (data: {
+      email: string;
+      password: string;
+      fullName: string;
+      specialization: string[];
+      experienceYears: number;
+      certifications: string[];
+      phone: string;
+      bio?: string;
+      avatarUrl?: string;
+    }) => {
+      const response = await apiClient.post('/teachers', data);
+      return response.data;
+    },
+
+    update: async (id: string, data: {
+      fullName?: string;
+      specialization?: string[];
+      experienceYears?: number;
+      certifications?: string[];
+      phone?: string;
+      bio?: string;
+      avatarUrl?: string;
+    }) => {
+      const response = await apiClient.patch(`/teachers/${id}`, data);
+      return response.data;
+    },
+
+    delete: async (id: string) => {
+      const response = await apiClient.delete(`/teachers/${id}`);
+      return response.data;
+    },
+  },
+
+  // Upload endpoints
+  upload: {
+    avatar: async (file: File): Promise<{ message: string; url: string }> => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await apiClient.post('/upload/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'x-api-key': API_KEY,
+        },
+      });
+      return response.data;
+    },
+
+    file: async (file: File): Promise<{ message: string; url: string }> => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await apiClient.post('/upload/file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'x-api-key': API_KEY,
+        },
+      });
+      return response.data;
+    },
+  },
+
   // Generic request methods
   get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
     const response = await apiClient.get<T>(url, config);
