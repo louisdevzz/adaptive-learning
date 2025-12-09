@@ -40,8 +40,8 @@ export class CreateAssignmentDto {
   @IsNotEmpty()
   description: string;
 
-  @IsEnum(['practice', 'quiz', 'exam', 'adaptive'])
-  assignmentType: 'practice' | 'quiz' | 'exam' | 'adaptive';
+  @IsEnum(['practice', 'quiz', 'exam', 'homework', 'test', 'adaptive'])
+  assignmentType: 'practice' | 'quiz' | 'exam' | 'homework' | 'test' | 'adaptive';
 
   @IsDateString()
   @IsOptional()

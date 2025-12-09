@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { eq } from 'drizzle-orm';
 import { UsersService } from '../users/users.service';
@@ -9,6 +9,8 @@ import { db, students, teachers, parents, admins } from '../../db';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -125,8 +127,11 @@ export class AuthService {
     // Find user by email
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
+      this.logger.warn(`Login attempt failed: User not found for email ${loginDto.email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    this.logger.debug(`Login attempt for user: ${user.email}, role: ${user.role}, status: ${user.status}`);
 
     // Validate password
     const isPasswordValid = await this.usersService.validatePassword(
@@ -135,17 +140,21 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      this.logger.warn(`Login attempt failed: Invalid password for email ${loginDto.email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if user is active
     if (!user.status) {
+      this.logger.warn(`Login attempt failed: Account inactive for email ${loginDto.email}`);
       throw new UnauthorizedException('Account is inactive');
     }
 
     // Generate JWT token
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
+
+    this.logger.log(`Login successful for user: ${user.email}, role: ${user.role}`);
 
     return {
       user: {

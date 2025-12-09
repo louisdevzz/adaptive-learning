@@ -8,6 +8,7 @@ import {
   timestamp,
   date,
   json,
+  real,
   index,
   unique
 } from "drizzle-orm/pg-core";
@@ -230,7 +231,7 @@ export const questionMetadata = pgTable("question_metadata", {
   id: uuid("id").primaryKey().defaultRandom(),
   questionId: uuid("question_id").notNull().references(() => questionBank.id, { onDelete: "cascade" }),
   difficulty: integer("difficulty").notNull(), // 1-10
-  discrimination: integer("discrimination").notNull(), // IRT parameter
+  discrimination: real("discrimination").notNull(), // IRT parameter (0-1, float: 0.2-0.39=avg, 0.4-0.69=good, 0.7-1.0=excellent)
   skillId: uuid("skill_id").notNull(), // references to knowledge_point
   tags: json("tags").notNull(),
   estimatedTime: integer("estimated_time").notNull() // seconds
@@ -255,7 +256,7 @@ export const assignments = pgTable("assignments", {
   teacherId: uuid("teacher_id").notNull().references(() => teachers.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  assignmentType: varchar("assignment_type", { length: 50 }).notNull(), // 'practice', 'quiz', 'exam'
+  assignmentType: varchar("assignment_type", { length: 50 }).notNull(), // 'practice', 'quiz', 'exam', 'homework', 'test', 'adaptive'
   dueDate: timestamp("due_date"),
   isPublished: boolean("is_published").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -275,6 +276,43 @@ export const assignmentItems = pgTable("assignment_items", {
 }, (table) => ({
   assignmentIdx: index("assignment_items_assignment_idx").on(table.assignmentId),
   orderIdx: index("assignment_items_order_idx").on(table.assignmentId, table.orderIndex)
+}));
+
+export const sectionAssignments = pgTable("section_assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sectionId: uuid("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  autoAssign: boolean("auto_assign").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+}, (table) => ({
+  sectionAssignmentIdx: index("section_assignments_section_assignment_idx").on(table.sectionId, table.assignmentId),
+  sectionIdx: index("section_assignments_section_idx").on(table.sectionId),
+  assignmentIdx: index("section_assignments_assignment_idx").on(table.assignmentId)
+}));
+
+export const assignmentTargets = pgTable("assignment_targets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  assignmentId: uuid("assignment_id").notNull().references(() => assignments.id, { onDelete: "cascade" }),
+  targetType: varchar("target_type", { length: 20 }).notNull(), // 'student', 'class', 'group', 'auto', 'section'
+  targetId: uuid("target_id").notNull(), // ID of student/class/group/section
+  assignedBy: varchar("assigned_by", { length: 50 }).notNull(), // teacher_id or 'system'
+  assignedAt: timestamp("assigned_at").notNull().defaultNow()
+}, (table) => ({
+  assignmentTargetIdx: index("assignment_targets_assignment_target_idx").on(table.assignmentId, table.targetType, table.targetId),
+  assignmentIdx: index("assignment_targets_assignment_idx").on(table.assignmentId),
+  targetIdx: index("assignment_targets_target_idx").on(table.targetType, table.targetId)
+}));
+
+export const assignmentAttempts = pgTable("assignment_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentAssignmentId: uuid("student_assignment_id").notNull().references(() => studentAssignments.id, { onDelete: "cascade" }),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
+  attemptStatus: varchar("attempt_status", { length: 20 }).notNull() // 'in_progress', 'abandoned', 'submitted'
+}, (table) => ({
+  studentAssignmentIdx: index("assignment_attempts_student_assignment_idx").on(table.studentAssignmentId),
+  statusIdx: index("assignment_attempts_status_idx").on(table.attemptStatus),
+  startedAtIdx: index("assignment_attempts_started_at_idx").on(table.startedAt)
 }));
 
 export const studentAssignments = pgTable("student_assignments", {

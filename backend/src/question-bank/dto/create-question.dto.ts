@@ -6,6 +6,7 @@ import {
   IsOptional,
   ValidateNested,
   IsInt,
+  IsNumber,
   Min,
   Max,
   IsUUID,
@@ -19,10 +20,10 @@ class QuestionMetadataDto {
   @Max(10)
   difficulty: number;
 
-  @IsInt()
-  @Min(1)
-  @Max(10)
-  discrimination: number;
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  discrimination: number; // IRT parameter (0-1): 0.2-0.39=avg, 0.4-0.69=good, 0.7-1.0=excellent
 
   @IsUUID()
   @IsNotEmpty()

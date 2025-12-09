@@ -84,8 +84,10 @@ export class StudentsService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateStudentDto.fullName || updateStudentDto.avatarUrl !== undefined) {
+    if (updateStudentDto.email || updateStudentDto.password || updateStudentDto.fullName || updateStudentDto.avatarUrl !== undefined) {
       await this.usersService.updateUser(id, {
+        email: updateStudentDto.email,
+        password: updateStudentDto.password,
         fullName: updateStudentDto.fullName,
         avatarUrl: updateStudentDto.avatarUrl,
       });

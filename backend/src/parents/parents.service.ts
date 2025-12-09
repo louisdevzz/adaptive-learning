@@ -90,8 +90,10 @@ export class ParentsService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateParentDto.fullName || updateParentDto.avatarUrl !== undefined) {
+    if (updateParentDto.email || updateParentDto.password || updateParentDto.fullName || updateParentDto.avatarUrl !== undefined) {
       await this.usersService.updateUser(id, {
+        email: updateParentDto.email,
+        password: updateParentDto.password,
         fullName: updateParentDto.fullName,
         avatarUrl: updateParentDto.avatarUrl,
       });

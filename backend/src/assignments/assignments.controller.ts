@@ -14,6 +14,9 @@ import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { AssignToStudentDto } from './dto/assign-to-student.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
+import { AssignToSectionDto } from './dto/assign-to-section.dto';
+import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
+import { CreateAssignmentAttemptDto, UpdateAssignmentAttemptDto } from './dto/create-assignment-attempt.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -99,5 +102,70 @@ export class AssignmentsController {
   @Roles('teacher', 'admin')
   getAssignmentResults(@Param('assignmentId') assignmentId: string) {
     return this.assignmentsService.getAssignmentResults(assignmentId);
+  }
+
+  // ==================== SECTION ASSIGNMENTS ====================
+
+  @Post('assign-to-section')
+  @Roles('admin', 'teacher')
+  assignToSection(@Body() assignDto: AssignToSectionDto) {
+    return this.assignmentsService.assignToSection(assignDto);
+  }
+
+  @Get('sections/:sectionId/assignments')
+  getSectionAssignments(@Param('sectionId') sectionId: string) {
+    return this.assignmentsService.getSectionAssignments(sectionId);
+  }
+
+  @Delete('sections/:sectionId/assignments/:assignmentId')
+  @Roles('admin', 'teacher')
+  removeSectionAssignment(
+    @Param('sectionId') sectionId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.assignmentsService.removeSectionAssignment(sectionId, assignmentId);
+  }
+
+  // ==================== ASSIGNMENT TARGETS ====================
+
+  @Post('targets')
+  @Roles('admin', 'teacher')
+  createAssignmentTarget(@Body() createTargetDto: CreateAssignmentTargetDto) {
+    return this.assignmentsService.createAssignmentTarget(createTargetDto);
+  }
+
+  @Get(':assignmentId/targets')
+  @Roles('admin', 'teacher')
+  getAssignmentTargets(@Param('assignmentId') assignmentId: string) {
+    return this.assignmentsService.getAssignmentTargets(assignmentId);
+  }
+
+  @Delete('targets/:targetId')
+  @Roles('admin', 'teacher')
+  removeAssignmentTarget(@Param('targetId') targetId: string) {
+    return this.assignmentsService.removeAssignmentTarget(targetId);
+  }
+
+  // ==================== ASSIGNMENT ATTEMPTS ====================
+
+  @Post('attempts')
+  @Roles('student')
+  createAssignmentAttempt(@Body() createAttemptDto: CreateAssignmentAttemptDto) {
+    return this.assignmentsService.createAssignmentAttempt(createAttemptDto);
+  }
+
+  @Patch('attempts/:attemptId')
+  @Roles('student')
+  updateAssignmentAttempt(
+    @Param('attemptId') attemptId: string,
+    @Body() updateAttemptDto: UpdateAssignmentAttemptDto,
+  ) {
+    return this.assignmentsService.updateAssignmentAttempt(attemptId, updateAttemptDto);
+  }
+
+  @Get('student-assignments/:studentAssignmentId/attempts')
+  @Roles('student', 'teacher', 'admin')
+  getAssignmentAttempts(@Param('studentAssignmentId') studentAssignmentId: string) {
+    return this.assignmentsService.getAssignmentAttempts(studentAssignmentId);
   }
 }

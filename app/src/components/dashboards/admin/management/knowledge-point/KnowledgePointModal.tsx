@@ -18,9 +18,21 @@ import {
   DropdownItem,
 } from "@heroui/dropdown";
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
-import { ChevronDown, X, Plus, Trash2, Search, Link as LinkIcon, Video, FileText, Gamepad2, ClipboardCheck, Paperclip, Edit } from "lucide-react";
-import { KnowledgePoint, KnowledgePointFormData, KnowledgePointResource } from "@/types/knowledge-point";
+import { ChevronDown, X, Plus, Trash2, Search, Link as LinkIcon, Video, FileText, Gamepad2, ClipboardCheck, Paperclip, Edit, ListChecks, Brain } from "lucide-react";
+import { KnowledgePoint, KnowledgePointFormData } from "@/types/knowledge-point";
 import { api } from "@/lib/api";
+
+interface Question {
+  id: string;
+  questionText: string;
+  questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+  options: string[];
+  correctAnswer: string;
+  isActive: boolean;
+  difficulty?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface KnowledgePointModalProps {
   isOpen: boolean;
@@ -31,6 +43,8 @@ interface KnowledgePointModalProps {
   onFormDataChange: (data: KnowledgePointFormData) => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
+  createdQuestions?: Partial<Question>[];
+  onCreatedQuestionsChange?: (questions: Partial<Question>[]) => void;
 }
 
 export function KnowledgePointModal({
@@ -42,6 +56,8 @@ export function KnowledgePointModal({
   onFormDataChange,
   onSubmit,
   isSubmitting = false,
+  createdQuestions: externalCreatedQuestions = [],
+  onCreatedQuestionsChange,
 }: KnowledgePointModalProps) {
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(false);
   const [isPrerequisiteOpen, setIsPrerequisiteOpen] = useState(false);
@@ -50,6 +66,43 @@ export function KnowledgePointModal({
   const [loadingKnowledgePoints, setLoadingKnowledgePoints] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [prerequisiteSearch, setPrerequisiteSearch] = useState("");
+
+  // Question Bank state - for creating new questions
+  const createdQuestions = externalCreatedQuestions;
+  const setCreatedQuestions = (questions: Partial<Question>[]) => {
+    if (onCreatedQuestionsChange) {
+      onCreatedQuestionsChange(questions);
+    }
+  };
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
+  const [isQuestionTypeOpen, setIsQuestionTypeOpen] = useState(false);
+  const [isQuestionDifficultyOpen, setIsQuestionDifficultyOpen] = useState(false);
+  const [isAiModelOpen, setIsAiModelOpen] = useState(false);
+  const [questionMode, setQuestionMode] = useState<'ai' | 'manual'>('manual');
+  const [aiModel, setAiModel] = useState<'openai' | 'gemini'>('openai');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Question form state
+  const [questionForm, setQuestionForm] = useState<{
+    questionText: string;
+    questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+    options: string[];
+    correctAnswer: string;
+    difficulty: number;
+    discrimination: number;
+    tags: string[];
+    estimatedTime: number;
+  }>({
+    questionText: '',
+    questionType: 'multiple_choice',
+    options: ['', '', '', ''],
+    correctAnswer: '',
+    difficulty: 1,
+    discrimination: 0.5,
+    tags: [],
+    estimatedTime: 60,
+  });
 
   // Resource form state
   const [resourceForm, setResourceForm] = useState<{
@@ -82,12 +135,27 @@ export function KnowledgePointModal({
     { value: 'other' as const, label: 'Khác', icon: Paperclip },
   ];
 
+  const questionTypeOptions = [
+    { value: 'multiple_choice' as const, label: 'Trắc nghiệm' },
+    { value: 'true_false' as const, label: 'Đúng/Sai' },
+    { value: 'fill_in_blank' as const, label: 'Điền vào chỗ trống' },
+    { value: 'short_answer' as const, label: 'Trả lời ngắn' },
+  ];
+
   // Fetch all knowledge points for prerequisites when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchAllKnowledgePoints();
+      if (isEditMode && editingKnowledgePoint) {
+        fetchAssignedQuestions(editingKnowledgePoint.id);
+      } else {
+        setCreatedQuestions([]);
+      }
+    } else {
+      // Reset questions when modal closes
+      setCreatedQuestions([]);
     }
-  }, [isOpen]);
+  }, [isOpen, isEditMode, editingKnowledgePoint]);
 
   const fetchAllKnowledgePoints = async () => {
     try {
@@ -102,6 +170,54 @@ export function KnowledgePointModal({
       console.error("Error fetching knowledge points:", error);
     } finally {
       setLoadingKnowledgePoints(false);
+    }
+  };
+
+  const fetchAssignedQuestions = async (kpId: string) => {
+    try {
+      const response = await api.questionBank.getQuestionsByKp(kpId);
+
+      // Handle different response formats
+      let questions = [];
+      if (Array.isArray(response)) {
+        questions = response;
+      } else if (response && Array.isArray(response.data)) {
+        questions = response.data;
+      } else if (response && Array.isArray(response.questions)) {
+        questions = response.questions;
+      } else if (response && typeof response === 'object') {
+        // Try to find array in response object
+        const possibleArrays = Object.values(response).filter(Array.isArray);
+        if (possibleArrays.length > 0) {
+          questions = possibleArrays[0];
+        }
+      }
+      
+
+      // Format questions to match the expected structure
+      const formattedQuestions = questions.map((q: any) => {
+        // Handle both camelCase and snake_case field names
+        const formatted = {
+          id: q.id,
+          questionText: q.questionText || q.question_text || '',
+          questionType: q.questionType || q.question_type || 'multiple_choice',
+          options: q.options || [],
+          correctAnswer: q.correctAnswer || q.correct_answer || '',
+          difficulty: q.difficulty || q.metadata?.difficulty || 1,
+          isActive: q.isActive !== undefined ? q.isActive : (q.is_active !== undefined ? q.is_active : true),
+          tags: q.metadata?.tags || q.tags || [],
+          estimatedTime: q.metadata?.estimatedTime || q.metadata?.estimated_time || q.estimatedTime || q.estimated_time || 60,
+          createdAt: q.createdAt || q.created_at,
+          updatedAt: q.updatedAt || q.updated_at,
+        };
+        return formatted;
+      });
+      
+      setCreatedQuestions(formattedQuestions);
+    } catch (error) {
+      console.error("Error fetching assigned questions:", error);
+      // Set empty array on error to avoid showing stale data
+      setCreatedQuestions([]);
     }
   };
 
@@ -216,7 +332,152 @@ export function KnowledgePointModal({
     });
   };
 
-  // Filter knowledge points based on search, excluding already selected ones
+  const handleAddQuestion = () => {
+    if (questionForm.questionText && questionForm.correctAnswer) {
+      if (editingQuestionIndex !== null) {
+        // Update existing question
+        const updatedQuestions = [...createdQuestions];
+        updatedQuestions[editingQuestionIndex] = {
+          ...questionForm,
+          isActive: true,
+        };
+        setCreatedQuestions(updatedQuestions);
+      } else {
+        // Add new question
+        setCreatedQuestions([
+          ...createdQuestions,
+          {
+            ...questionForm,
+            isActive: true,
+          },
+        ]);
+      }
+
+      // Reset form
+      setQuestionForm({
+        questionText: '',
+        questionType: 'multiple_choice',
+        options: ['', '', '', ''],
+        correctAnswer: '',
+        difficulty: 1,
+        discrimination: 0.5,
+        tags: [],
+        estimatedTime: 60,
+      });
+      setShowQuestionForm(false);
+      setEditingQuestionIndex(null);
+    }
+  };
+
+  const handleEditQuestion = (index: number) => {
+    const question = createdQuestions[index];
+    if (question) {
+      setQuestionForm({
+        questionText: question.questionText || '',
+        questionType: question.questionType || 'multiple_choice',
+        options: question.options || ['', '', '', ''],
+        correctAnswer: question.correctAnswer || '',
+        difficulty: question.difficulty || 1,
+        discrimination: 0.5,
+        tags: [],
+        estimatedTime: 60,
+      });
+      setEditingQuestionIndex(index);
+      setShowQuestionForm(true);
+    }
+  };
+
+  const handleRemoveQuestion = async (index: number) => {
+    const question = createdQuestions[index];
+    if (!question) return;
+
+    // If question has an ID, it exists in the database, so we need to remove it from the KP
+    if (question.id && editingKnowledgePoint) {
+      try {
+        await api.questionBank.removeFromKp(editingKnowledgePoint.id, question.id);
+        console.log('Question removed from KP:', question.id);
+      } catch (error) {
+        console.error('Error removing question from KP:', error);
+        // Still remove from UI even if API call fails
+      }
+    }
+
+    // Remove from UI state
+    const updatedQuestions = createdQuestions.filter((_, i) => i !== index);
+    setCreatedQuestions(updatedQuestions);
+  };
+
+  const handleCancelQuestionForm = () => {
+    setShowQuestionForm(false);
+    setEditingQuestionIndex(null);
+    setQuestionForm({
+      questionText: '',
+      questionType: 'multiple_choice',
+      options: ['', '', '', ''],
+      correctAnswer: '',
+      difficulty: 1,
+      discrimination: 0.5,
+      tags: [],
+      estimatedTime: 60,
+    });
+  };
+
+  const handleGenerateQuestion = async () => {
+    if (!formData.title) {
+      alert('Vui lòng nhập tên điểm kiến thức trước khi tạo câu hỏi');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const generated = await api.questionBank.generateQuestion({
+        knowledgePointTitle: formData.title,
+        knowledgePointDescription: formData.description || undefined,
+        aiModel,
+        questionType: questionForm.questionType,
+        difficulty: questionForm.difficulty,
+        skillId: editingKnowledgePoint?.id,
+      });
+
+      // Populate form with generated question
+      setQuestionForm({
+        questionText: generated.questionText,
+        questionType: generated.questionType,
+        options: Array.isArray(generated.options) ? generated.options : [],
+        correctAnswer: generated.correctAnswer,
+        difficulty: generated.difficulty,
+        discrimination: generated.discrimination,
+        tags: [],
+        estimatedTime: generated.estimatedTime,
+      });
+
+      // Always show form after generation
+      setShowQuestionForm(true);
+    } catch (error: any) {
+      console.error('Error generating question:', error);
+      alert(`Lỗi khi tạo câu hỏi: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...questionForm.options];
+    newOptions[index] = value;
+    setQuestionForm({ ...questionForm, options: newOptions });
+  };
+
+  const getQuestionTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      multiple_choice: 'Trắc nghiệm',
+      true_false: 'Đúng/Sai',
+      fill_in_blank: 'Điền vào chỗ trống',
+      short_answer: 'Trả lời ngắn',
+    };
+    return typeMap[type] || type;
+  };
+
+  // Filter knowledge points based on search
   const filteredPrerequisites = allKnowledgePoints.filter((kp) =>
     kp.title.toLowerCase().includes(prerequisiteSearch.toLowerCase())
   );
@@ -226,120 +487,136 @@ export function KnowledgePointModal({
   );
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="5xl" scrollBehavior="inside">
       <ModalContent>
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1">
-              <h2 className="font-semibold text-lg text-[#181d27]">
+              <h2 className="font-semibold text-xl text-[#181d27]">
                 {isEditMode ? "Chỉnh sửa điểm kiến thức" : "Thêm điểm kiến thức mới"}
               </h2>
+              <p className="text-sm text-[#535862] font-normal">
+                Quản lý thông tin, tài nguyên và bài tập cho điểm kiến thức
+              </p>
             </ModalHeader>
             <ModalBody>
-              <div className="flex flex-col gap-4">
-                <Input
-                  label="Tên điểm kiến thức"
-                  placeholder="Ví dụ: Khái niệm giới hạn"
-                  value={formData.title}
-                  onChange={(e) => updateFormData({ title: e.target.value })}
-                  isRequired
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column - Basic Information */}
+                <div className="flex flex-col gap-4">
+                  <h3 className="font-semibold text-base text-[#181d27] pb-2 border-b border-[#e9eaeb]">
+                    Thông tin cơ bản
+                  </h3>
 
-                <Textarea
-                  label="Mô tả"
-                  placeholder="Mô tả chi tiết về điểm kiến thức..."
-                  value={formData.description}
-                  onChange={(e) => updateFormData({ description: e.target.value })}
-                  isRequired
-                  minRows={4}
-                />
+                  <Input
+                    label="Tên điểm kiến thức"
+                    placeholder="Ví dụ: Khái niệm giới hạn"
+                    value={formData.title}
+                    onChange={(e) => updateFormData({ title: e.target.value })}
+                    isRequired
+                  />
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#181d27]">
-                    Độ khó <span className="text-red-500">*</span>
-                  </label>
-                  <Dropdown isOpen={isDifficultyOpen} onOpenChange={setIsDifficultyOpen}>
-                    <DropdownTrigger>
-                      <Button
-                        variant="bordered"
-                        className="justify-between border-[#d5d7da]"
-                        endContent={<ChevronDown className="size-4" />}
-                      >
-                        {selectedDifficulty
-                          ? selectedDifficulty.label
-                          : "Chọn độ khó"}
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu
-                      aria-label="Difficulty selection"
-                      selectedKeys={formData.difficultyLevel ? [formData.difficultyLevel.toString()] : []}
-                      selectionMode="single"
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string;
-                        updateFormData({ difficultyLevel: parseInt(value) || 1 });
-                        setIsDifficultyOpen(false);
-                      }}
-                    >
-                      {difficultyOptions.map((option) => (
-                        <DropdownItem key={option.value.toString()} textValue={option.label}>
-                          <span className="text-sm text-[#181d27]">{option.label}</span>
-                        </DropdownItem>
-                      ))}
-                    </DropdownMenu>
-                  </Dropdown>
-                </div>
+                  <Textarea
+                    label="Mô tả"
+                    placeholder="Mô tả chi tiết về điểm kiến thức..."
+                    value={formData.description}
+                    onChange={(e) => updateFormData({ description: e.target.value })}
+                    isRequired
+                    minRows={4}
+                  />
 
-                {/* Tags Section */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#181d27]">
-                    Tags
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Nhập tag và nhấn Enter"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddTag();
-                        }
-                      }}
-                      size="sm"
-                    />
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      className="bg-[#7f56d9] text-white"
-                      startContent={<Plus className="size-4" />}
-                      onPress={handleAddTag}
-                    >
-                      Thêm
-                    </Button>
-                  </div>
-                  {formData.tags && formData.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {formData.tags.map((tag, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-1 px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded"
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-[#181d27]">
+                      Độ khó <span className="text-red-500">*</span>
+                    </label>
+                    <Dropdown isOpen={isDifficultyOpen} onOpenChange={setIsDifficultyOpen}>
+                      <DropdownTrigger>
+                        <Button
+                          variant="bordered"
+                          className="justify-between border-[#d5d7da]"
+                          endContent={<ChevronDown className="size-4" />}
                         >
-                          <span>{tag}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTag(tag)}
-                            className="hover:text-red-500"
-                          >
-                            <X className="size-3" />
-                          </button>
-                        </div>
-                      ))}
+                          {selectedDifficulty
+                            ? selectedDifficulty.label
+                            : "Chọn độ khó"}
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu
+                        aria-label="Difficulty selection"
+                        selectedKeys={formData.difficultyLevel ? [formData.difficultyLevel.toString()] : []}
+                        selectionMode="single"
+                        onSelectionChange={(keys) => {
+                          const value = Array.from(keys)[0] as string;
+                          updateFormData({ difficultyLevel: parseInt(value) || 1 });
+                          setIsDifficultyOpen(false);
+                        }}
+                      >
+                        {difficultyOptions.map((option) => (
+                          <DropdownItem key={option.value.toString()} textValue={option.label}>
+                            <span className="text-sm text-[#181d27]">{option.label}</span>
+                          </DropdownItem>
+                        ))}
+                      </DropdownMenu>
+                    </Dropdown>
+                  </div>
+
+                  {/* Tags Section */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-[#181d27]">
+                      Tags
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nhập tag và nhấn Enter"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                        size="sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        className="bg-[#7f56d9] text-white"
+                        startContent={<Plus className="size-4" />}
+                        onPress={handleAddTag}
+                      >
+                        Thêm
+                      </Button>
                     </div>
-                  )}
+                    {formData.tags && formData.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.tags.map((tag, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-1 px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded"
+                          >
+                            <span>{tag}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              className="hover:text-red-500"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Prerequisites Section */}
-                <div className="flex flex-col gap-2">
+                {/* Right Column - Prerequisites & Resources */}
+                <div className="flex flex-col gap-4">
+                  <h3 className="font-semibold text-base text-[#181d27] pb-2 border-b border-[#e9eaeb]">
+                    Quan hệ & Tài nguyên
+                  </h3>
+
+                  {/* Prerequisites Section */}
+                  <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-[#181d27]">
                     Điểm kiến thức tiên quyết
                   </label>
@@ -461,8 +738,8 @@ export function KnowledgePointModal({
                   )}
                 </div>
 
-                {/* Resources Section */}
-                <div className="flex flex-col gap-2 border-t border-[#e9eaeb] pt-4 mt-2">
+                  {/* Resources Section */}
+                  <div className="flex flex-col gap-2 border-t border-[#e9eaeb] pt-4 mt-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-[#181d27]">
                       Tài nguyên học tập
@@ -666,12 +943,439 @@ export function KnowledgePointModal({
                     </div>
                   )}
 
-                  {(!formData.resources || formData.resources.length === 0) && !showResourceForm && (
-                    <p className="text-xs text-[#717680] italic text-center py-2">
-                      Chưa có tài nguyên nào. Nhấn "Thêm tài nguyên" để bắt đầu.
-                    </p>
-                  )}
+                    {(!formData.resources || formData.resources.length === 0) && !showResourceForm && (
+                      <p className="text-xs text-[#717680] italic text-center py-2">
+                        Chưa có tài nguyên nào. Nhấn "Thêm tài nguyên" để bắt đầu.
+                      </p>
+                    )}
+                  </div>
                 </div>
+              </div>
+
+              {/* Question Bank Section - Full Width */}
+              <div className="flex flex-col gap-4 border-t border-[#e9eaeb] pt-6 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="size-5 text-[#7f56d9]" />
+                    <h3 className="font-semibold text-base text-[#181d27]">
+                      Câu hỏi
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Mode Selection */}
+                    <div className="flex items-center gap-2 px-2 py-1 bg-[#f9fafb] rounded-lg border border-[#e9eaeb]">
+                      <button
+                        type="button"
+                        onClick={() => setQuestionMode('manual')}
+                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                          questionMode === 'manual'
+                            ? 'bg-[#7f56d9] text-white'
+                            : 'text-[#535862] hover:bg-[#e9eaeb]'
+                        }`}
+                      >
+                        Thủ công
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuestionMode('ai')}
+                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                          questionMode === 'ai'
+                            ? 'bg-[#7f56d9] text-white'
+                            : 'text-[#535862] hover:bg-[#e9eaeb]'
+                        }`}
+                      >
+                        Generate by AI
+                      </button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      className="bg-[#7f56d9] text-white"
+                      startContent={<Plus className="size-4" />}
+                      onPress={() => {
+                        setShowQuestionForm(!showQuestionForm);
+                        if (questionMode === 'manual') {
+                          // Reset form when switching to manual mode
+                          setQuestionForm({
+                            questionText: '',
+                            questionType: 'multiple_choice',
+                            options: ['', '', '', ''],
+                            correctAnswer: '',
+                            difficulty: 1,
+                            discrimination: 0.5,
+                            tags: [],
+                            estimatedTime: 60,
+                          });
+                        }
+                      }}
+                    >
+                      Thêm câu hỏi
+                    </Button>
+                  </div>
+                </div>
+
+                {/* AI Generation Controls */}
+                {questionMode === 'ai' && (
+                  <div className="flex flex-col gap-3 p-4 bg-[#f9fafb] rounded-lg border border-[#e9eaeb]">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-[#181d27]">
+                        Tạo câu hỏi bằng AI
+                      </h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* AI Model Selection */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-medium text-[#535862]">
+                          Mô hình AI
+                        </label>
+                        <Dropdown isOpen={isAiModelOpen} onOpenChange={setIsAiModelOpen}>
+                          <DropdownTrigger>
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              className="justify-between border-[#d5d7da] h-10"
+                              endContent={<ChevronDown className="size-4" />}
+                            >
+                              {aiModel === 'openai' ? 'OpenAI (GPT)' : 'Gemini'}
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu
+                            aria-label="AI Model selection"
+                            selectedKeys={[aiModel]}
+                            selectionMode="single"
+                            onSelectionChange={(keys) => {
+                              const value = Array.from(keys)[0] as 'openai' | 'gemini';
+                              setAiModel(value);
+                              setIsAiModelOpen(false);
+                            }}
+                          >
+                            <DropdownItem key="openai" textValue="OpenAI">
+                              <span className="text-sm text-[#181d27]">OpenAI (GPT)</span>
+                            </DropdownItem>
+                            <DropdownItem key="gemini" textValue="Gemini">
+                              <span className="text-sm text-[#181d27]">Gemini</span>
+                            </DropdownItem>
+                          </DropdownMenu>
+                        </Dropdown>
+                      </div>
+
+                      {/* Question Type Selection */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-medium text-[#535862]">
+                          Loại câu hỏi
+                        </label>
+                        <Dropdown isOpen={isQuestionTypeOpen} onOpenChange={setIsQuestionTypeOpen}>
+                          <DropdownTrigger>
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              className="justify-between border-[#d5d7da] h-10"
+                              endContent={<ChevronDown className="size-4" />}
+                            >
+                              {questionTypeOptions.find((opt) => opt.value === questionForm.questionType)?.label}
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu
+                            aria-label="Question type selection"
+                            selectedKeys={[questionForm.questionType]}
+                            selectionMode="single"
+                            onSelectionChange={(keys) => {
+                              const value = Array.from(keys)[0] as typeof questionForm.questionType;
+                              setQuestionForm({ ...questionForm, questionType: value });
+                              setIsQuestionTypeOpen(false);
+                            }}
+                          >
+                            {questionTypeOptions.map((option) => (
+                              <DropdownItem key={option.value} textValue={option.label}>
+                                <span className="text-sm text-[#181d27]">{option.label}</span>
+                              </DropdownItem>
+                            ))}
+                          </DropdownMenu>
+                        </Dropdown>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Difficulty Selection */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-medium text-[#535862]">
+                          Độ khó
+                        </label>
+                        <Dropdown isOpen={isQuestionDifficultyOpen} onOpenChange={setIsQuestionDifficultyOpen}>
+                          <DropdownTrigger>
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              className="justify-between border-[#d5d7da] h-10"
+                              endContent={<ChevronDown className="size-4" />}
+                            >
+                              {difficultyOptions.find((opt) => opt.value === questionForm.difficulty)?.label || "Chọn độ khó"}
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu
+                            aria-label="Question difficulty selection"
+                            selectedKeys={[questionForm.difficulty.toString()]}
+                            selectionMode="single"
+                            onSelectionChange={(keys) => {
+                              const value = Array.from(keys)[0] as string;
+                              setQuestionForm({ ...questionForm, difficulty: parseInt(value) || 1 });
+                              setIsQuestionDifficultyOpen(false);
+                            }}
+                          >
+                            {difficultyOptions.map((option) => (
+                              <DropdownItem key={option.value.toString()} textValue={option.label}>
+                                <span className="text-sm text-[#181d27]">{option.label}</span>
+                              </DropdownItem>
+                            ))}
+                          </DropdownMenu>
+                        </Dropdown>
+                      </div>
+
+                      {/* Generate Button */}
+                      <div className="flex items-end">
+                        <Button
+                          size="sm"
+                          className="bg-[#7f56d9] text-white w-full"
+                          onPress={handleGenerateQuestion}
+                          isLoading={isGenerating}
+                          isDisabled={!formData.title || isGenerating}
+                        >
+                          {isGenerating ? 'Đang tạo...' : 'Tạo câu hỏi'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Question Creation Form */}
+                {showQuestionForm && (
+                  <div className="flex flex-col gap-3 p-4 bg-[#f9fafb] rounded-lg border border-[#e9eaeb]">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-[#181d27]">
+                        {editingQuestionIndex !== null ? 'Chỉnh sửa câu hỏi' : 'Tạo câu hỏi mới'}
+                      </h4>
+                    </div>
+
+                    <Textarea
+                      label="Nội dung câu hỏi"
+                      placeholder="Nhập nội dung câu hỏi..."
+                      value={questionForm.questionText}
+                      onChange={(e) => setQuestionForm({ ...questionForm, questionText: e.target.value })}
+                      isRequired
+                      minRows={3}
+                    />
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-[#181d27]">
+                        Loại câu hỏi <span className="text-red-500">*</span>
+                      </label>
+                      <Dropdown isOpen={isQuestionTypeOpen} onOpenChange={setIsQuestionTypeOpen}>
+                        <DropdownTrigger>
+                          <Button
+                            variant="bordered"
+                            className="justify-between border-[#d5d7da]"
+                            endContent={<ChevronDown className="size-4" />}
+                          >
+                            {questionTypeOptions.find((opt) => opt.value === questionForm.questionType)?.label}
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                          aria-label="Question type selection"
+                          selectedKeys={[questionForm.questionType]}
+                          selectionMode="single"
+                          onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0] as typeof questionForm.questionType;
+                            setQuestionForm({ ...questionForm, questionType: value });
+                            setIsQuestionTypeOpen(false);
+                          }}
+                        >
+                          {questionTypeOptions.map((option) => (
+                            <DropdownItem key={option.value} textValue={option.label}>
+                              <span className="text-sm text-[#181d27]">{option.label}</span>
+                            </DropdownItem>
+                          ))}
+                        </DropdownMenu>
+                      </Dropdown>
+                    </div>
+
+                    {/* Options for Multiple Choice */}
+                    {questionForm.questionType === 'multiple_choice' && (
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-[#181d27]">
+                          Các lựa chọn
+                        </label>
+                        {questionForm.options.map((option, index) => (
+                          <Input
+                            key={index}
+                            placeholder={`Lựa chọn ${index + 1}`}
+                            value={option}
+                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                            size="sm"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* True/False Options */}
+                    {questionForm.questionType === 'true_false' && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={questionForm.correctAnswer === 'Đúng' ? 'solid' : 'bordered'}
+                          className={questionForm.correctAnswer === 'Đúng' ? 'bg-green-500 text-white' : ''}
+                          onPress={() => setQuestionForm({ ...questionForm, correctAnswer: 'Đúng' })}
+                        >
+                          Đúng
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={questionForm.correctAnswer === 'Sai' ? 'solid' : 'bordered'}
+                          className={questionForm.correctAnswer === 'Sai' ? 'bg-red-500 text-white' : ''}
+                          onPress={() => setQuestionForm({ ...questionForm, correctAnswer: 'Sai' })}
+                        >
+                          Sai
+                        </Button>
+                      </div>
+                    )}
+
+                    <Input
+                      label="Đáp án đúng"
+                      placeholder={
+                        questionForm.questionType === 'multiple_choice'
+                          ? 'Nhập số thứ tự lựa chọn đúng (1, 2, 3, hoặc 4)'
+                          : 'Nhập đáp án đúng'
+                      }
+                      value={questionForm.correctAnswer}
+                      onChange={(e) => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}
+                      isRequired
+                      size="sm"
+                    />
+
+                    <div className="grid grid-cols-2 items-center gap-3">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-[#181d27]">
+                          Độ khó <span className="text-red-500">*</span>
+                        </label>
+                        <Dropdown isOpen={isQuestionDifficultyOpen} onOpenChange={setIsQuestionDifficultyOpen}>
+                          <DropdownTrigger>
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              className="justify-between border-[#d5d7da] h-10"
+                              endContent={<ChevronDown className="size-4" />}
+                            >
+                              {difficultyOptions.find((opt) => opt.value === questionForm.difficulty)?.label || "Chọn độ khó"}
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu
+                            aria-label="Question difficulty selection"
+                            selectedKeys={[questionForm.difficulty.toString()]}
+                            selectionMode="single"
+                            onSelectionChange={(keys) => {
+                              const value = Array.from(keys)[0] as string;
+                              setQuestionForm({ ...questionForm, difficulty: parseInt(value) || 1 });
+                              setIsQuestionDifficultyOpen(false);
+                            }}
+                          >
+                            {difficultyOptions.map((option) => (
+                              <DropdownItem key={option.value.toString()} textValue={option.label}>
+                                <span className="text-sm text-[#181d27]">{option.label}</span>
+                              </DropdownItem>
+                            ))}
+                          </DropdownMenu>
+                        </Dropdown>
+                      </div>
+                      <Input
+                        label="Thời gian ước tính (giây)"
+                        type="number"
+                        value={questionForm.estimatedTime.toString()}
+                        onChange={(e) => setQuestionForm({ ...questionForm, estimatedTime: parseInt(e.target.value) || 60 })}
+                        size="sm"
+                        className="mt-7"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        size="sm"
+                        variant="light"
+                        onPress={handleCancelQuestionForm}
+                      >
+                        Hủy
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-[#7f56d9] text-white"
+                        onPress={handleAddQuestion}
+                        isDisabled={!questionForm.questionText || !questionForm.correctAnswer}
+                      >
+                        {editingQuestionIndex !== null ? 'Cập nhật' : 'Thêm'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Created Questions List */}
+                {createdQuestions.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <p className="text-sm font-medium text-[#535862]">
+                      {createdQuestions.length} câu hỏi đã tạo
+                    </p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {createdQuestions.map((question, index) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-3 p-3 bg-white border border-[#e9eaeb] rounded-lg hover:border-[#7f56d9] transition-colors"
+                        >
+                          <ListChecks className="size-5 text-[#7f56d9] shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#181d27]">
+                              {question.questionText}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                {getQuestionTypeLabel(question.questionType || 'multiple_choice')}
+                              </span>
+                              {question.difficulty && (
+                                <span className="text-xs text-[#535862]">
+                                  Độ khó: {question.difficulty}
+                                </span>
+                              )}
+                              <span className="text-xs text-[#535862]">
+                                Đáp án: {question.correctAnswer}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleEditQuestion(index)}
+                              className="p-1 hover:bg-blue-50 rounded transition-colors"
+                              title="Chỉnh sửa"
+                            >
+                              <Edit className="size-4 text-blue-600" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveQuestion(index)}
+                              className="p-1 hover:bg-red-50 rounded transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 className="size-4 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {createdQuestions.length === 0 && !showQuestionForm && (
+                  <p className="text-xs text-[#717680] italic text-center py-4 bg-[#f9fafb] rounded-lg border border-[#e9eaeb]">
+                    Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để tạo câu hỏi mới.
+                  </p>
+                )}
               </div>
             </ModalBody>
             <ModalFooter>

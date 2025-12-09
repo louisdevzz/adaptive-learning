@@ -23,8 +23,8 @@ export class CreateTeacherDto {
   experienceYears: number;
 
   @IsArray()
-  @IsNotEmpty()
-  certifications: string[];
+  @IsOptional()
+  certifications?: string[];
 
   @IsString()
   @IsNotEmpty()

@@ -15,6 +15,13 @@
       "when": 1765301755474,
       "tag": "0001_sour_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765304677081,
+      "tag": "0002_confused_leopardon",
+      "breakpoints": true
     }
   ]
 }

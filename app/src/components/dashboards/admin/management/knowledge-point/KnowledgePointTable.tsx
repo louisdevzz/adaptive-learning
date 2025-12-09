@@ -11,7 +11,6 @@ import {
 } from "@heroui/dropdown";
 import { MoreVertical, Edit, Trash2, ChevronDown, Search, ExternalLink, Video, FileText, Gamepad2, ClipboardCheck, Paperclip } from "lucide-react";
 import { KnowledgePoint } from "@/types/knowledge-point";
-import { useState } from "react";
 
 interface KnowledgePointTableProps {
   knowledgePoints: KnowledgePoint[];

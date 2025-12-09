@@ -151,6 +151,8 @@ export default function TeachersPage() {
       if (isEditMode && editingTeacher) {
         toastId = toast.loading("Đang cập nhật giáo viên...");
         await api.teachers.update(editingTeacher.id, {
+          email: formData.email,
+          password: formData.password || undefined,
           fullName: formData.fullName,
           specialization: formData.specialization,
           experienceYears: formData.experienceYears,

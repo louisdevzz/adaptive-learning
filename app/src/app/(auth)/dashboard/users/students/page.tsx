@@ -154,6 +154,8 @@ export default function StudentsPage() {
       if (isEditMode && editingStudent) {
         toastId = toast.loading("Đang cập nhật học sinh...");
         await api.students.update(editingStudent.id, {
+          email: formData.email,
+          password: formData.password || undefined,
           fullName: formData.fullName,
           studentCode: formData.studentCode,
           gradeLevel: formData.gradeLevel,

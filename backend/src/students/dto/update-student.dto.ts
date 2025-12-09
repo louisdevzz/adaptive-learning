@@ -1,7 +1,16 @@
-import { IsString, IsInt, IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsInt, IsDateString, IsEnum, IsOptional, IsEmail, MinLength } from 'class-validator';
 import { Gender } from './create-student.dto';
 
 export class UpdateStudentDto {
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @MinLength(6)
+  @IsOptional()
+  password?: string;
+
   @IsString()
   @IsOptional()
   fullName?: string;

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and, inArray, SQL } from 'drizzle-orm';
+import { eq, and, inArray, SQL, or, desc } from 'drizzle-orm';
 import {
   db,
   assignments,
@@ -10,11 +10,20 @@ import {
   questionBank,
   teachers,
   students,
+  sections,
+  classes,
+  classEnrollment,
+  sectionAssignments,
+  assignmentTargets,
+  assignmentAttempts,
 } from '../../db';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { AssignToStudentDto } from './dto/assign-to-student.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
+import { AssignToSectionDto } from './dto/assign-to-section.dto';
+import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
+import { CreateAssignmentAttemptDto, UpdateAssignmentAttemptDto } from './dto/create-assignment-attempt.dto';
 
 @Injectable()
 export class AssignmentsService {
@@ -263,16 +272,25 @@ export class AssignmentsService {
       throw new NotFoundException('Student assignment not found');
     }
 
-    const [updated] = await db
-      .update(studentAssignments)
-      .set({
-        status: 'in_progress',
-        startTime: new Date(),
-      })
-      .where(eq(studentAssignments.id, studentAssignmentId))
-      .returning();
+    return await db.transaction(async (tx) => {
+      // Update student assignment status
+      const [updated] = await tx
+        .update(studentAssignments)
+        .set({
+          status: 'in_progress',
+          startTime: new Date(),
+        })
+        .where(eq(studentAssignments.id, studentAssignmentId))
+        .returning();
 
-    return updated;
+      // Create assignment attempt
+      await tx.insert(assignmentAttempts).values({
+        studentAssignmentId,
+        attemptStatus: 'in_progress',
+      });
+
+      return updated;
+    });
   }
 
   async submitAssignment(submitDto: SubmitAssignmentDto) {
@@ -334,6 +352,24 @@ export class AssignmentsService {
         })
         .where(eq(studentAssignments.id, submitDto.studentAssignmentId));
 
+      // Update the latest assignment attempt to submitted
+      const latestAttempt = await tx
+        .select()
+        .from(assignmentAttempts)
+        .where(eq(assignmentAttempts.studentAssignmentId, submitDto.studentAssignmentId))
+        .orderBy(desc(assignmentAttempts.startedAt))
+        .limit(1);
+
+      if (latestAttempt.length > 0) {
+        await tx
+          .update(assignmentAttempts)
+          .set({
+            attemptStatus: 'submitted',
+            endedAt: new Date(),
+          })
+          .where(eq(assignmentAttempts.id, latestAttempt[0].id));
+      }
+
       // Create result
       const accuracy = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
       const startTime = studentAssignment[0].startTime
@@ -386,5 +422,326 @@ export class AssignmentsService {
       .where(eq(studentAssignments.assignmentId, assignmentId));
 
     return result;
+  }
+
+  // ==================== SECTION ASSIGNMENTS ====================
+
+  async assignToSection(assignDto: AssignToSectionDto) {
+    // Validate assignment exists
+    await this.findOne(assignDto.assignmentId);
+
+    // Validate section exists
+    const sectionResult = await db
+      .select()
+      .from(sections)
+      .where(eq(sections.id, assignDto.sectionId))
+      .limit(1);
+
+    if (sectionResult.length === 0) {
+      throw new NotFoundException('Section not found');
+    }
+
+    // Check if assignment is already assigned to this section
+    const existing = await db
+      .select()
+      .from(sectionAssignments)
+      .where(
+        and(
+          eq(sectionAssignments.assignmentId, assignDto.assignmentId),
+          eq(sectionAssignments.sectionId, assignDto.sectionId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      throw new BadRequestException('Assignment is already assigned to this section');
+    }
+
+    const [result] = await db
+      .insert(sectionAssignments)
+      .values({
+        assignmentId: assignDto.assignmentId,
+        sectionId: assignDto.sectionId,
+        autoAssign: assignDto.autoAssign ?? false,
+      })
+      .returning();
+
+    // If autoAssign is true, expand to students in section
+    if (result.autoAssign) {
+      await this.expandSectionAssignmentToStudents(assignDto.assignmentId, assignDto.sectionId);
+    }
+
+    return result;
+  }
+
+  async getSectionAssignments(sectionId: string) {
+    const result = await db
+      .select({
+        sectionAssignment: sectionAssignments,
+        assignment: assignments,
+      })
+      .from(sectionAssignments)
+      .innerJoin(assignments, eq(sectionAssignments.assignmentId, assignments.id))
+      .where(eq(sectionAssignments.sectionId, sectionId));
+
+    return result.map((row) => ({
+      ...row.sectionAssignment,
+      assignment: row.assignment,
+    }));
+  }
+
+  async removeSectionAssignment(sectionId: string, assignmentId: string) {
+    await db
+      .delete(sectionAssignments)
+      .where(
+        and(
+          eq(sectionAssignments.sectionId, sectionId),
+          eq(sectionAssignments.assignmentId, assignmentId)
+        )
+      );
+
+    return { message: 'Section assignment removed successfully' };
+  }
+
+  // ==================== ASSIGNMENT TARGETS ====================
+
+  async createAssignmentTarget(createTargetDto: CreateAssignmentTargetDto) {
+    // Validate assignment exists
+    await this.findOne(createTargetDto.assignmentId);
+
+    // Validate target based on type
+    if (createTargetDto.targetType === 'student') {
+      const studentResult = await db
+        .select()
+        .from(students)
+        .where(eq(students.id, createTargetDto.targetId))
+        .limit(1);
+
+      if (studentResult.length === 0) {
+        throw new NotFoundException('Student not found');
+      }
+    } else if (createTargetDto.targetType === 'class') {
+      const classResult = await db
+        .select()
+        .from(classes)
+        .where(eq(classes.id, createTargetDto.targetId))
+        .limit(1);
+
+      if (classResult.length === 0) {
+        throw new NotFoundException('Class not found');
+      }
+    } else if (createTargetDto.targetType === 'section') {
+      const sectionResult = await db
+        .select()
+        .from(sections)
+        .where(eq(sections.id, createTargetDto.targetId))
+        .limit(1);
+
+      if (sectionResult.length === 0) {
+        throw new NotFoundException('Section not found');
+      }
+    }
+
+    const [result] = await db
+      .insert(assignmentTargets)
+      .values({
+        assignmentId: createTargetDto.assignmentId,
+        targetType: createTargetDto.targetType,
+        targetId: createTargetDto.targetId,
+        assignedBy: createTargetDto.assignedBy,
+      })
+      .returning();
+
+    // Expand target to StudentAssignments if applicable
+    await this.expandAssignmentTarget(createTargetDto.assignmentId, result.id);
+
+    return result;
+  }
+
+  async getAssignmentTargets(assignmentId: string) {
+    return await db
+      .select()
+      .from(assignmentTargets)
+      .where(eq(assignmentTargets.assignmentId, assignmentId));
+  }
+
+  async removeAssignmentTarget(targetId: string) {
+    await db.delete(assignmentTargets).where(eq(assignmentTargets.id, targetId));
+
+    return { message: 'Assignment target removed successfully' };
+  }
+
+  // ==================== ASSIGNMENT ATTEMPTS ====================
+
+  async createAssignmentAttempt(createAttemptDto: CreateAssignmentAttemptDto) {
+    // Validate student assignment exists
+    const studentAssignment = await db
+      .select()
+      .from(studentAssignments)
+      .where(eq(studentAssignments.id, createAttemptDto.studentAssignmentId))
+      .limit(1);
+
+    if (studentAssignment.length === 0) {
+      throw new NotFoundException('Student assignment not found');
+    }
+
+    const [result] = await db
+      .insert(assignmentAttempts)
+      .values({
+        studentAssignmentId: createAttemptDto.studentAssignmentId,
+        attemptStatus: createAttemptDto.attemptStatus ?? 'in_progress',
+      })
+      .returning();
+
+    return result;
+  }
+
+  async updateAssignmentAttempt(attemptId: string, updateAttemptDto: UpdateAssignmentAttemptDto) {
+    const updateData: any = {};
+    if (updateAttemptDto.attemptStatus) updateData.attemptStatus = updateAttemptDto.attemptStatus;
+    if (updateAttemptDto.endedAt) updateData.endedAt = new Date(updateAttemptDto.endedAt);
+    else if (updateAttemptDto.attemptStatus === 'submitted' || updateAttemptDto.attemptStatus === 'abandoned') {
+      updateData.endedAt = new Date();
+    }
+
+    const [updated] = await db
+      .update(assignmentAttempts)
+      .set(updateData)
+      .where(eq(assignmentAttempts.id, attemptId))
+      .returning();
+
+    if (!updated) {
+      throw new NotFoundException('Assignment attempt not found');
+    }
+
+    return updated;
+  }
+
+  async getAssignmentAttempts(studentAssignmentId: string) {
+    return await db
+      .select()
+      .from(assignmentAttempts)
+      .where(eq(assignmentAttempts.studentAssignmentId, studentAssignmentId))
+      .orderBy(desc(assignmentAttempts.startedAt));
+  }
+
+  // ==================== HELPER METHODS ====================
+
+  private async expandSectionAssignmentToStudents(assignmentId: string, sectionId: string) {
+    // Get all students enrolled in classes that have access to this section
+    // This is a simplified version - you may need to adjust based on your enrollment logic
+    const studentsInSection = await db
+      .select({ studentId: students.id })
+      .from(students)
+      .innerJoin(classEnrollment, eq(students.id, classEnrollment.studentId))
+      .where(eq(classEnrollment.status, 'active'));
+
+    const studentIds = studentsInSection.map((s) => s.studentId);
+
+    if (studentIds.length > 0) {
+      // Check for existing student assignments to avoid duplicates
+      const existing = await db
+        .select()
+        .from(studentAssignments)
+        .where(
+          and(
+            eq(studentAssignments.assignmentId, assignmentId),
+            inArray(studentAssignments.studentId, studentIds)
+          )
+        );
+
+      const existingStudentIds = new Set(existing.map((e) => e.studentId));
+      const newStudentIds = studentIds.filter((id) => !existingStudentIds.has(id));
+
+      if (newStudentIds.length > 0) {
+        const studentAssignmentValues = newStudentIds.map((studentId) => ({
+          studentId,
+          assignmentId,
+          status: 'not_started' as const,
+        }));
+
+        await db.insert(studentAssignments).values(studentAssignmentValues);
+      }
+    }
+  }
+
+  private async expandAssignmentTarget(assignmentId: string, targetId: string) {
+    const target = await db
+      .select()
+      .from(assignmentTargets)
+      .where(eq(assignmentTargets.id, targetId))
+      .limit(1);
+
+    if (target.length === 0) return;
+
+    const assignmentTarget = target[0];
+    let studentIds: string[] = [];
+
+    if (assignmentTarget.targetType === 'student') {
+      studentIds = [assignmentTarget.targetId];
+    } else if (assignmentTarget.targetType === 'class') {
+      const enrollments = await db
+        .select({ studentId: classEnrollment.studentId })
+        .from(classEnrollment)
+        .where(
+          and(
+            eq(classEnrollment.classId, assignmentTarget.targetId),
+            eq(classEnrollment.status, 'active')
+          )
+        );
+
+      studentIds = enrollments.map((e) => e.studentId);
+    } else if (assignmentTarget.targetType === 'section') {
+      // Get students who have access to this section
+      // This is simplified - you may need to adjust based on your access logic
+      const enrollments = await db
+        .select({ studentId: classEnrollment.studentId })
+        .from(classEnrollment)
+        .where(eq(classEnrollment.status, 'active'));
+
+      studentIds = enrollments.map((e) => e.studentId);
+    } else if (assignmentTarget.targetType === 'auto') {
+      // Auto-assign based on section assignments
+      const sectionAssigns = await db
+        .select()
+        .from(sectionAssignments)
+        .where(
+          and(
+            eq(sectionAssignments.assignmentId, assignmentId),
+            eq(sectionAssignments.autoAssign, true)
+          )
+        );
+
+      for (const sectionAssign of sectionAssigns) {
+        await this.expandSectionAssignmentToStudents(assignmentId, sectionAssign.sectionId);
+      }
+      return; // Already handled in expandSectionAssignmentToStudents
+    }
+
+    if (studentIds.length > 0) {
+      // Check for existing student assignments to avoid duplicates
+      const existing = await db
+        .select()
+        .from(studentAssignments)
+        .where(
+          and(
+            eq(studentAssignments.assignmentId, assignmentId),
+            inArray(studentAssignments.studentId, studentIds)
+          )
+        );
+
+      const existingStudentIds = new Set(existing.map((e) => e.studentId));
+      const newStudentIds = studentIds.filter((id) => !existingStudentIds.has(id));
+
+      if (newStudentIds.length > 0) {
+        const studentAssignmentValues = newStudentIds.map((studentId) => ({
+          studentId,
+          assignmentId,
+          status: 'not_started' as const,
+        }));
+
+        await db.insert(studentAssignments).values(studentAssignmentValues);
+      }
+    }
   }
 }

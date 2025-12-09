@@ -13,6 +13,7 @@ import { QuestionBankService } from './question-bank.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { AssignToKpDto } from './dto/assign-to-kp.dto';
+import { GenerateQuestionDto } from './dto/generate-question.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -89,5 +90,13 @@ export class QuestionBankController {
   @Roles('admin', 'teacher')
   getQuestionMetadata(@Param('id') id: string) {
     return this.questionBankService.getQuestionMetadata(id);
+  }
+
+  // ==================== AI QUESTION GENERATION ====================
+
+  @Post('generate')
+  @Roles('admin', 'teacher')
+  generateQuestion(@Body() generateDto: GenerateQuestionDto) {
+    return this.questionBankService.generateQuestion(generateDto);
   }
 }

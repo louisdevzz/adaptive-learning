@@ -27,7 +27,7 @@ export class TeachersService {
         id: user.id,
         specialization: createTeacherDto.specialization,
         experienceYears: createTeacherDto.experienceYears,
-        certifications: createTeacherDto.certifications,
+        certifications: createTeacherDto.certifications || [],
         phone: createTeacherDto.phone,
         bio: createTeacherDto.bio || null,
       })
@@ -74,8 +74,10 @@ export class TeachersService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateTeacherDto.fullName || updateTeacherDto.avatarUrl !== undefined) {
+    if (updateTeacherDto.email || updateTeacherDto.password || updateTeacherDto.fullName || updateTeacherDto.avatarUrl !== undefined) {
       await this.usersService.updateUser(id, {
+        email: updateTeacherDto.email,
+        password: updateTeacherDto.password,
         fullName: updateTeacherDto.fullName,
         avatarUrl: updateTeacherDto.avatarUrl,
       });

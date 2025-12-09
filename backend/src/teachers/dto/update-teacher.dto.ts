@@ -1,6 +1,15 @@
-import { IsString, IsInt, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsInt, IsArray, IsOptional, IsEmail, MinLength } from 'class-validator';
 
 export class UpdateTeacherDto {
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @MinLength(6)
+  @IsOptional()
+  password?: string;
+
   @IsString()
   @IsOptional()
   fullName?: string;

@@ -70,8 +70,10 @@ export class AdminsService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateAdminDto.fullName || updateAdminDto.avatarUrl !== undefined) {
+    if (updateAdminDto.email || updateAdminDto.password || updateAdminDto.fullName || updateAdminDto.avatarUrl !== undefined) {
       await this.usersService.updateUser(id, {
+        email: updateAdminDto.email,
+        password: updateAdminDto.password,
         fullName: updateAdminDto.fullName,
         avatarUrl: updateAdminDto.avatarUrl,
       });

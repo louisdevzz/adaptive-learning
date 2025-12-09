@@ -38,6 +38,7 @@ export default function KnowledgePointsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingKnowledgePointId, setDeletingKnowledgePointId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [createdQuestions, setCreatedQuestions] = useState<any[]>([]);
 
   // Form states
   const [formData, setFormData] = useState<KnowledgePointFormData>({
@@ -222,18 +223,62 @@ export default function KnowledgePointsPage() {
       setIsSubmitting(true);
       if (isEditMode && editingKnowledgePoint) {
         toastId = toast.loading("Đang cập nhật điểm kiến thức...");
+
+        // Clean resources by removing fields that shouldn't be sent to the backend
+        const cleanedResources = formData.resources?.map((resource: any) => {
+          const { id, kpId, createdAt, updatedAt, ...cleanedResource } = resource;
+          return cleanedResource;
+        }) || [];
+
+        // Update knowledge point
         await api.knowledgePoints.update(editingKnowledgePoint.id, {
           title: formData.title,
           description: formData.description,
           difficultyLevel: formData.difficultyLevel,
           tags: formData.tags,
           prerequisites: formData.prerequisites,
-          resources: formData.resources,
+          resources: cleanedResources,
         });
+
+        // Create new questions and assign to KP
+        if (createdQuestions.length > 0) {
+          for (const question of createdQuestions) {
+            // Skip if question already has an ID (already exists in DB)
+            if (question.id) continue;
+
+            try {
+              // Create the question
+              const createdQuestion = await api.questionBank.create({
+                questionText: question.questionText!,
+                options: question.options || [],
+                correctAnswer: question.correctAnswer!,
+                questionType: question.questionType!,
+                isActive: true,
+                metadata: {
+                  difficulty: question.difficulty || formData.difficultyLevel,
+                  discrimination: 0.5,
+                  skillId: editingKnowledgePoint.id,
+                  tags: question.tags || [],
+                  estimatedTime: question.estimatedTime || 60,
+                },
+              });
+
+              // Assign to KP
+              await api.questionBank.assignToKp({
+                kpId: editingKnowledgePoint.id,
+                questionId: createdQuestion.id,
+                difficulty: question.difficulty || formData.difficultyLevel,
+              });
+            } catch (error) {
+              console.error('Error creating question:', error);
+            }
+          }
+        }
+
         toast.success("Cập nhật điểm kiến thức thành công", { id: toastId });
       } else {
         toastId = toast.loading("Đang tạo điểm kiến thức mới...");
-        await api.knowledgePoints.create({
+        const newKp = await api.knowledgePoints.create({
           title: formData.title,
           description: formData.description,
           difficultyLevel: formData.difficultyLevel,
@@ -241,10 +286,45 @@ export default function KnowledgePointsPage() {
           prerequisites: formData.prerequisites,
           resources: formData.resources,
         });
+
+        // Create questions for new KP
+        if (createdQuestions.length > 0) {
+          for (const question of createdQuestions) {
+            try {
+              // Create the question
+              const createdQuestion = await api.questionBank.create({
+                questionText: question.questionText!,
+                options: question.options || [],
+                correctAnswer: question.correctAnswer!,
+                questionType: question.questionType!,
+                isActive: true,
+                metadata: {
+                  difficulty: question.difficulty || formData.difficultyLevel,
+                  discrimination: 0.5,
+                  skillId: newKp.id,
+                  tags: question.tags || [],
+                  estimatedTime: question.estimatedTime || 60,
+                },
+              });
+
+              // Assign to KP
+              await api.questionBank.assignToKp({
+                kpId: newKp.id,
+                questionId: createdQuestion.id,
+                difficulty: question.difficulty || formData.difficultyLevel,
+              });
+            } catch (error) {
+              console.error('Error creating question:', error);
+            }
+          }
+        }
+
         toast.success("Tạo điểm kiến thức thành công", { id: toastId });
       }
       await fetchKnowledgePoints();
       onOpenChange();
+      // Reset created questions
+      setCreatedQuestions([]);
     } catch (error: any) {
       console.error("Error saving knowledge point:", error);
       const errorMessage = error.response?.data?.message || "Lỗi khi lưu điểm kiến thức";
@@ -311,6 +391,8 @@ export default function KnowledgePointsPage() {
           onFormDataChange={setFormData}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          createdQuestions={createdQuestions}
+          onCreatedQuestionsChange={setCreatedQuestions}
         />
 
         {/* Delete Confirmation Modal */}

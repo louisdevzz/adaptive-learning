@@ -114,10 +114,12 @@ export function StudentTable({
             <p className="font-medium leading-4 text-[#181d27] text-sm">
               {student.fullName}
             </p>
-            <p className="font-normal leading-4 text-[#535862] text-xs">
-              {student.email}
-            </p>
           </div>
+        </div>
+        <div className="w-48">
+          <p className="font-normal leading-4 text-[#535862] text-xs">
+            {student.email}
+          </p>
         </div>
         <div className="w-32">
           <p className="font-medium text-xs text-[#414651]">
@@ -250,7 +252,10 @@ export function StudentTable({
                 size="sm"
               />
               <div className="flex-1 font-medium leading-4 text-[#535862] text-xs">
-                Tên / Email
+                Tên
+              </div>
+              <div className="w-48 font-medium leading-4 text-[#535862] text-xs">
+                Email
               </div>
               <div className="w-32 font-medium leading-4 text-[#535862] text-xs">
                 Mã học sinh

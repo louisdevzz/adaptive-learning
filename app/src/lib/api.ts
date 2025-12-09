@@ -94,6 +94,8 @@ export const api = {
     },
 
     update: async (id: string, data: {
+      email?: string;
+      password?: string;
       fullName?: string;
       adminLevel?: 'super' | 'system' | 'support';
       permissions?: string[];
@@ -127,7 +129,7 @@ export const api = {
       fullName: string;
       specialization: string[];
       experienceYears: number;
-      certifications: string[];
+      certifications?: string[];
       phone: string;
       bio?: string;
       avatarUrl?: string;
@@ -137,6 +139,8 @@ export const api = {
     },
 
     update: async (id: string, data: {
+      email?: string;
+      password?: string;
       fullName?: string;
       specialization?: string[];
       experienceYears?: number;
@@ -183,6 +187,8 @@ export const api = {
     },
 
     update: async (id: string, data: {
+      email?: string;
+      password?: string;
       fullName?: string;
       studentCode?: string;
       gradeLevel?: number;
@@ -228,6 +234,8 @@ export const api = {
     },
 
     update: async (id: string, data: {
+      email?: string;
+      password?: string;
       fullName?: string;
       phone?: string;
       address?: string;
@@ -550,6 +558,111 @@ export const api = {
 
     removeFromSection: async (sectionId: string, kpId: string) => {
       const response = await apiClient.delete(`/knowledge-points/sections/${sectionId}/kps/${kpId}`);
+      return response.data;
+    },
+  },
+
+  // Question Bank endpoints
+  questionBank: {
+    getAll: async (params?: {
+      questionType?: string;
+      isActive?: boolean;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.questionType) queryParams.append('questionType', params.questionType);
+      if (params?.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/question-bank?${queryString}` : '/question-bank';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getById: async (id: string) => {
+      const response = await apiClient.get(`/question-bank/${id}`);
+      return response.data;
+    },
+
+    getByIdWithMetadata: async (id: string) => {
+      const response = await apiClient.get(`/question-bank/${id}/metadata`);
+      return response.data;
+    },
+
+    create: async (data: {
+      questionText: string;
+      options: string[];
+      correctAnswer: string;
+      questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+      isActive?: boolean;
+      metadata: {
+        difficulty: number;
+        discrimination: number;
+        skillId: string;
+        tags?: string[];
+        estimatedTime?: number;
+      };
+    }) => {
+      const response = await apiClient.post('/question-bank', data);
+      return response.data;
+    },
+
+    update: async (id: string, data: {
+      questionText?: string;
+      options?: string[];
+      correctAnswer?: string;
+      questionType?: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+      isActive?: boolean;
+      metadata?: {
+        difficulty?: number;
+        discrimination?: number;
+        skillId?: string;
+        tags?: string[];
+        estimatedTime?: number;
+      };
+    }) => {
+      const response = await apiClient.patch(`/question-bank/${id}`, data);
+      return response.data;
+    },
+
+    delete: async (id: string) => {
+      const response = await apiClient.delete(`/question-bank/${id}`);
+      return response.data;
+    },
+
+    // KP Assignments
+    assignToKp: async (data: {
+      kpId: string;
+      questionId: string;
+      difficulty: number;
+    }) => {
+      const response = await apiClient.post('/question-bank/assign-to-kp', data);
+      return response.data;
+    },
+
+    removeFromKp: async (kpId: string, questionId: string) => {
+      const response = await apiClient.delete(`/question-bank/kps/${kpId}/questions/${questionId}`);
+      return response.data;
+    },
+
+    getQuestionsByKp: async (kpId: string) => {
+      const response = await apiClient.get(`/question-bank/kps/${kpId}/questions`);
+      return response.data;
+    },
+
+    getMetadata: async (questionId: string) => {
+      const response = await apiClient.get(`/question-bank/${questionId}/metadata`);
+      return response.data;
+    },
+
+    generateQuestion: async (data: {
+      knowledgePointTitle: string;
+      knowledgePointDescription?: string;
+      aiModel: 'openai' | 'gemini';
+      questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+      difficulty: number;
+      skillId?: string;
+    }) => {
+      const response = await apiClient.post('/question-bank/generate', data);
       return response.data;
     },
   },

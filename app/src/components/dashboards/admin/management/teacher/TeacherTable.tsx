@@ -107,10 +107,12 @@ export function TeacherTable({
             <p className="font-medium leading-4 text-[#181d27] text-sm">
               {teacher.fullName}
             </p>
-            <p className="font-normal leading-4 text-[#535862] text-xs">
-              {teacher.email}
-            </p>
           </div>
+        </div>
+        <div className="w-48">
+          <p className="font-normal leading-4 text-[#535862] text-xs">
+            {teacher.email}
+          </p>
         </div>
         <div className="w-40">
           <div className="inline-flex items-center justify-center px-2 py-1 rounded-lg bg-[#f0f0f0]">
@@ -262,7 +264,10 @@ export function TeacherTable({
                 size="sm"
               />
               <div className="flex-1 font-medium leading-4 text-[#535862] text-xs">
-                Tên / Email
+                Tên
+              </div>
+              <div className="w-48 font-medium leading-4 text-[#535862] text-xs">
+                Email
               </div>
               <div className="w-40 font-medium leading-4 text-[#535862] text-xs">
                 Kinh nghiệm

@@ -41,6 +41,9 @@ Course
 - **JWT** - Authentication & authorization
 - **bcrypt** - Password hashing
 - **Passport** - Authentication strategies
+- **LangChain** - AI question generation framework
+- **OpenAI** - GPT models for question generation
+- **Google Gemini** - Gemini models for question generation
 
 ## 🚀 Getting Started
 
@@ -69,7 +72,15 @@ JWT_SECRET=your-secret-key
 API_KEY=your-api-key
 PORT=3000
 CORS_ORIGIN=http://localhost:3000
+
+# AI Question Generation (Optional but recommended)
+OPENAI_API_KEY=your-openai-api-key
+GOOGLE_API_KEY=your-google-api-key
 ```
+
+**Note:** For AI question generation feature, you need at least one of the following API keys:
+- `OPENAI_API_KEY`: Get from [OpenAI Platform](https://platform.openai.com/api-keys)
+- `GOOGLE_API_KEY`: Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 ### Database Setup
 
@@ -146,6 +157,60 @@ All requests require:
 x-api-key: YOUR_API_KEY
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
+
+## 🤖 AI Question Generation
+
+The platform includes AI-powered question generation using LangChain. You can generate questions automatically based on knowledge points using either OpenAI GPT or Google Gemini models.
+
+### Features
+
+- **Multiple AI Models**: Switch between OpenAI GPT and Google Gemini
+- **Question Types**: Support for multiple choice, true/false, fill-in-the-blank, and short answer questions
+- **Difficulty Levels**: Generate questions with 5 difficulty levels (Rất dễ to Rất khó)
+- **Auto-estimation**: AI automatically estimates:
+  - Question discrimination (IRT parameter)
+  - Estimated time to answer
+
+### API Endpoint
+
+```
+POST /api/question-bank/generate
+```
+
+**Request Body:**
+```json
+{
+  "knowledgePointTitle": "Khái niệm giới hạn",
+  "knowledgePointDescription": "Mô tả về điểm kiến thức...",
+  "aiModel": "openai" | "gemini",
+  "questionType": "multiple_choice" | "true_false" | "fill_in_blank" | "short_answer",
+  "difficulty": 1-5,
+  "skillId": "optional-kp-id"
+}
+```
+
+**Response:**
+```json
+{
+  "questionText": "Câu hỏi được tạo...",
+  "questionType": "multiple_choice",
+  "options": ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C", "Lựa chọn D"],
+  "correctAnswer": "Lựa chọn đúng",
+  "difficulty": 3,
+  "discrimination": 0.65,
+  "estimatedTime": 120
+}
+```
+
+### Setup
+
+1. Get API keys from OpenAI or Google
+2. Add keys to `.env` file:
+   ```
+   OPENAI_API_KEY=sk-...
+   GOOGLE_API_KEY=...
+   ```
+3. The feature will be available in the Knowledge Point management UI
 
 ## 📊 API Documentation
 

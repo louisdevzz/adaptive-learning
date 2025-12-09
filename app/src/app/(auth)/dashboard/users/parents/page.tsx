@@ -159,6 +159,8 @@ export default function ParentsPage() {
       if (isEditMode && editingParent) {
         toastId = toast.loading("Đang cập nhật phụ huynh...");
         await api.parents.update(editingParent.id, {
+          email: formData.email,
+          password: formData.password || undefined,
           fullName: formData.fullName,
           phone: formData.phone,
           address: formData.address,

@@ -108,10 +108,12 @@ export function AdminTable({
             <p className="font-medium leading-4 text-[#181d27] text-sm">
               {admin.fullName}
             </p>
-            <p className="font-normal leading-4 text-[#535862] text-xs">
-              {admin.email}
-            </p>
           </div>
+        </div>
+        <div className="w-48">
+          <p className="font-normal leading-4 text-[#535862] text-xs">
+            {admin.email}
+          </p>
         </div>
         <div className="w-40">
           <div
@@ -270,7 +272,10 @@ export function AdminTable({
                 size="sm"
               />
               <div className="flex-1 font-medium leading-4 text-[#535862] text-xs">
-                Tên / Email
+                Tên
+              </div>
+              <div className="w-48 font-medium leading-4 text-[#535862] text-xs">
+                Email
               </div>
               <div className="w-40 font-medium leading-4 text-[#535862] text-xs">
                 Cấp độ

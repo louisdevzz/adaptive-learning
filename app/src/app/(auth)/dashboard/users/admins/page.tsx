@@ -142,6 +142,8 @@ export default function AdminsPage() {
       if (isEditMode && editingAdmin) {
         toastId = toast.loading("Đang cập nhật quản trị viên...");
         await api.admins.update(editingAdmin.id, {
+          email: formData.email,
+          password: formData.password || undefined,
           fullName: formData.fullName,
           adminLevel: formData.adminLevel,
           permissions: formData.permissions,

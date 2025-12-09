@@ -9,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
+import { mutate } from "swr";
 
 // Image assets from Figma
 const imgScreenMockupReplaceFill = "https://www.figma.com/api/mcp/asset/29b09a43-a041-46a3-878a-c7bf26444b65";
@@ -43,12 +44,31 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await api.auth.login(email, password);
+      const response = await api.auth.login(email, password);
+      
+      // Fetch full user profile after login to get complete data
+      // This ensures we have all user information including info field
+      try {
+        const fullProfile = await api.auth.getProfile();
+        // Update SWR cache with the full profile data
+        await mutate("/auth/me", fullProfile, { revalidate: false });
+      } catch (profileError) {
+        // If getProfile fails, use the user data from login response
+        if (response?.user) {
+          await mutate("/auth/me", response.user, { revalidate: false });
+        } else {
+          // Fallback: revalidate the cache
+          await mutate("/auth/me", undefined, { revalidate: true });
+        }
+      }
+      
       // Redirect to the intended page or dashboard
-      router.push(redirectTo);
-      router.refresh();
+      // Using replace instead of push to avoid adding to history
+      router.replace(redirectTo);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Login failed. Please check your credentials.";
+      console.error("Login error:", err);
+      console.error("Error response:", err.response);
+      const errorMessage = err.response?.data?.message || err.message || "Login failed. Please check your credentials.";
       setError(errorMessage);
     } finally {
       setLoading(false);

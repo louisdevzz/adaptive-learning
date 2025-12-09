@@ -84,8 +84,9 @@ export function StudentModal({
             </ModalHeader>
             <ModalBody>
               <div className="flex flex-col gap-4">
-                {!isEditMode && (
-                  <>
+                <div className="border-b border-[#e9eaeb] pb-4 mb-2">
+                  <h3 className="font-semibold text-sm text-[#181d27] mb-3">Thông tin tài khoản</h3>
+                  <div className="flex flex-col gap-4">
                     <Input
                       label="Email"
                       placeholder="email@example.com"
@@ -94,37 +95,64 @@ export function StudentModal({
                       onChange={(e) => updateFormData({ email: e.target.value })}
                       isRequired
                     />
-                    <Input
-                      label="Mật khẩu"
-                      placeholder="Nhập mật khẩu"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => updateFormData({ password: e.target.value })}
-                      isRequired
-                      endContent={
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="focus:outline-none"
-                          aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="text-[#535862] size-5" />
-                          ) : (
-                            <Eye className="text-[#535862] size-5" />
-                          )}
-                        </button>
-                      }
-                    />
-                  </>
-                )}
-                <Input
-                  label="Họ và tên"
-                  placeholder="Nhập họ và tên"
-                  value={formData.fullName}
-                  onChange={(e) => updateFormData({ fullName: e.target.value })}
-                  isRequired
-                />
+                    {!isEditMode && (
+                      <Input
+                        label="Mật khẩu"
+                        placeholder="Nhập mật khẩu"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => updateFormData({ password: e.target.value })}
+                        isRequired
+                        endContent={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="focus:outline-none"
+                            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="text-[#535862] size-5" />
+                            ) : (
+                              <Eye className="text-[#535862] size-5" />
+                            )}
+                          </button>
+                        }
+                      />
+                    )}
+                    {isEditMode && (
+                      <Input
+                        label="Mật khẩu mới (để trống nếu không đổi)"
+                        placeholder="Nhập mật khẩu mới"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => updateFormData({ password: e.target.value })}
+                        endContent={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="focus:outline-none"
+                            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="text-[#535862] size-5" />
+                            ) : (
+                              <Eye className="text-[#535862] size-5" />
+                            )}
+                          </button>
+                        }
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="border-b border-[#e9eaeb] pb-4 mb-2">
+                  <h3 className="font-semibold text-sm text-[#181d27] mb-3">Thông tin cá nhân</h3>
+                  <Input
+                    label="Họ và tên"
+                    placeholder="Nhập họ và tên"
+                    value={formData.fullName}
+                    onChange={(e) => updateFormData({ fullName: e.target.value })}
+                    isRequired
+                  />
 
                 <Input
                   label="Lớp"
@@ -217,11 +245,12 @@ export function StudentModal({
                   </Dropdown>
                 </div>
 
-                <AvatarUpload
-                  value={formData.avatarUrl}
-                  onChange={(url) => updateFormData({ avatarUrl: url })}
-                  label="Avatar (tùy chọn)"
-                />
+                  <AvatarUpload
+                    value={formData.avatarUrl}
+                    onChange={(url) => updateFormData({ avatarUrl: url })}
+                    label="Avatar (tùy chọn)"
+                  />
+                </div>
               </div>
             </ModalBody>
             <ModalFooter>

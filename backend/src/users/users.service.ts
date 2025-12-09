@@ -1,10 +1,11 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, Logger } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import { db, userRoles, users } from '../../db';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
 
   async findAll() {
     const user = await db.select().from(users);
@@ -58,12 +59,14 @@ export class UsersService {
     // Check if user already exists
     const existingUser = await this.findByEmail(userData.email);
     if (existingUser) {
+      this.logger.warn(`User creation failed: Email already exists - ${userData.email}`);
       throw new ConflictException('Email already exists');
     }
 
     // Hash password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(userData.password, saltRounds);
+    this.logger.debug(`Password hashed for user: ${userData.email}, role: ${userData.role}`);
 
     // Create user
     const [newUser] = await db
@@ -78,6 +81,7 @@ export class UsersService {
       })
       .returning();
 
+    this.logger.log(`User created successfully: ${newUser.email}, role: ${newUser.role}`);
     return newUser;
   }
 
@@ -107,14 +111,28 @@ export class UsersService {
   }
 
   async validatePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
-    return bcrypt.compare(plainPassword, hashedPassword);
+    if (!hashedPassword) {
+      this.logger.error('validatePassword: hashedPassword is null or undefined');
+      return false;
+    }
+    const isValid = await bcrypt.compare(plainPassword, hashedPassword);
+    this.logger.debug(`Password validation result: ${isValid}`);
+    return isValid;
   }
 
-  async updateUser(id: string, updateData: Partial<typeof users.$inferInsert>) {
+  async updateUser(id: string, updateData: Partial<typeof users.$inferInsert> & { password?: string }) {
+    // Hash password if provided
+    const updatePayload: Partial<typeof users.$inferInsert> = { ...updateData };
+    if ('password' in updateData && updateData.password) {
+      const saltRounds = 10;
+      updatePayload.passwordHash = await bcrypt.hash(updateData.password, saltRounds);
+      delete (updatePayload as any).password; // Remove plain password
+    }
+
     const [updatedUser] = await db
       .update(users)
       .set({
-        ...updateData,
+        ...updatePayload,
         updatedAt: new Date(),
       })
       .where(eq(users.id, id))

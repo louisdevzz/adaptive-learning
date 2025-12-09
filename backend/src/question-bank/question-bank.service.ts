@@ -10,6 +10,10 @@ import {
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { AssignToKpDto } from './dto/assign-to-kp.dto';
+import { GenerateQuestionDto } from './dto/generate-question.dto';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { HumanMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class QuestionBankService {
@@ -262,5 +266,210 @@ export class QuestionBankService {
     }
 
     return result[0];
+  }
+
+  // ==================== AI QUESTION GENERATION ====================
+
+  async generateQuestion(generateDto: GenerateQuestionDto) {
+    const difficultyLabels: Record<number, string> = {
+      1: 'Rất dễ',
+      2: 'Dễ',
+      3: 'Trung bình',
+      4: 'Khó',
+      5: 'Rất khó',
+    };
+
+    const questionTypeLabels: Record<string, string> = {
+      multiple_choice: 'Trắc nghiệm',
+      true_false: 'Đúng/Sai',
+      fill_in_blank: 'Điền vào chỗ trống',
+      short_answer: 'Trả lời ngắn',
+    };
+
+    const difficultyLabel = difficultyLabels[generateDto.difficulty] || 'Trung bình';
+    const questionTypeLabel = questionTypeLabels[generateDto.questionType] || 'Trắc nghiệm';
+
+    // Build prompt based on question type
+    let prompt = '';
+    
+    if (generateDto.questionType === 'multiple_choice') {
+      prompt = `Tạo một câu hỏi trắc nghiệm về chủ đề "${generateDto.knowledgePointTitle}"${generateDto.knowledgePointDescription ? ` với mô tả: ${generateDto.knowledgePointDescription}` : ''}.
+
+Yêu cầu:
+- Độ khó: ${difficultyLabel} (${generateDto.difficulty}/5)
+- Loại câu hỏi: ${questionTypeLabel}
+- Câu hỏi phải rõ ràng, chính xác và phù hợp với độ khó
+- Tạo 4 lựa chọn (A, B, C, D), trong đó chỉ có 1 đáp án đúng
+- Các lựa chọn sai phải hợp lý và có tính gây nhiễu
+
+Trả về kết quả dưới dạng JSON với cấu trúc sau:
+{
+  "questionText": "Nội dung câu hỏi",
+  "options": ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C", "Lựa chọn D"],
+  "correctAnswer": "Số thứ tự đáp án đúng (1, 2, 3, hoặc 4)",
+  "estimatedTime": <số giây ước tính để trả lời>,
+  "discrimination": <số thập phân từ 0.2 đến 1.0, ước tính khả năng phân biệt học sinh giỏi và yếu>
+}`;
+    } else if (generateDto.questionType === 'true_false') {
+      prompt = `Tạo một câu hỏi Đúng/Sai về chủ đề "${generateDto.knowledgePointTitle}"${generateDto.knowledgePointDescription ? ` với mô tả: ${generateDto.knowledgePointDescription}` : ''}.
+
+Yêu cầu:
+- Độ khó: ${difficultyLabel} (${generateDto.difficulty}/5)
+- Loại câu hỏi: ${questionTypeLabel}
+- Câu hỏi phải rõ ràng, chính xác và phù hợp với độ khó
+- Đáp án phải là "Đúng" hoặc "Sai"
+
+Trả về kết quả dưới dạng JSON với cấu trúc sau:
+{
+  "questionText": "Nội dung câu hỏi",
+  "options": ["Đúng", "Sai"],
+  "correctAnswer": "Đúng" hoặc "Sai",
+  "estimatedTime": <số giây ước tính để trả lời>,
+  "discrimination": <số thập phân từ 0.2 đến 1.0, ước tính khả năng phân biệt học sinh giỏi và yếu>
+}`;
+    } else if (generateDto.questionType === 'fill_in_blank') {
+      prompt = `Tạo một câu hỏi Điền vào chỗ trống về chủ đề "${generateDto.knowledgePointTitle}"${generateDto.knowledgePointDescription ? ` với mô tả: ${generateDto.knowledgePointDescription}` : ''}.
+
+Yêu cầu:
+- Độ khó: ${difficultyLabel} (${generateDto.difficulty}/5)
+- Loại câu hỏi: ${questionTypeLabel}
+- Câu hỏi phải có chỗ trống (___) để điền
+- Câu hỏi phải rõ ràng, chính xác và phù hợp với độ khó
+
+Trả về kết quả dưới dạng JSON với cấu trúc sau:
+{
+  "questionText": "Nội dung câu hỏi có chỗ trống (___)",
+  "options": [],
+  "correctAnswer": "Đáp án đúng để điền vào chỗ trống",
+  "estimatedTime": <số giây ước tính để trả lời>,
+  "discrimination": <số thập phân từ 0.2 đến 1.0, ước tính khả năng phân biệt học sinh giỏi và yếu>
+}`;
+    } else if (generateDto.questionType === 'short_answer') {
+      prompt = `Tạo một câu hỏi Trả lời ngắn về chủ đề "${generateDto.knowledgePointTitle}"${generateDto.knowledgePointDescription ? ` với mô tả: ${generateDto.knowledgePointDescription}` : ''}.
+
+Yêu cầu:
+- Độ khó: ${difficultyLabel} (${generateDto.difficulty}/5)
+- Loại câu hỏi: ${questionTypeLabel}
+- Câu hỏi phải rõ ràng, chính xác và phù hợp với độ khó
+- Câu trả lời phải ngắn gọn (1-2 câu)
+
+Trả về kết quả dưới dạng JSON với cấu trúc sau:
+{
+  "questionText": "Nội dung câu hỏi",
+  "options": [],
+  "correctAnswer": "Đáp án đúng (ngắn gọn)",
+  "estimatedTime": <số giây ước tính để trả lời>,
+  "discrimination": <số thập phân từ 0.2 đến 1.0, ước tính khả năng phân biệt học sinh giỏi và yếu>
+}`;
+    }
+
+    try {
+      // Initialize AI model based on selection
+      let model;
+      if (generateDto.aiModel === 'openai') {
+        const openaiApiKey = process.env.OPENAI_API_KEY;
+        if (!openaiApiKey) {
+          throw new BadRequestException('OpenAI API key is not configured');
+        }
+        model = new ChatOpenAI({
+          modelName: 'gpt-4o-mini',
+          temperature: 0.7,
+          apiKey: openaiApiKey,
+        });
+      } else {
+        const googleApiKey = process.env.GOOGLE_API_KEY;
+        if (!googleApiKey) {
+          throw new BadRequestException('Google API key is not configured');
+        }
+        model = new ChatGoogleGenerativeAI({
+          model: 'gemini-1.5-flash',
+          temperature: 0.7,
+          apiKey: googleApiKey,
+        });
+      }
+
+      // Generate question
+      const response = await model.invoke([new HumanMessage(prompt)]);
+      const content = response.content as string;
+
+      // Parse JSON from response
+      let questionData;
+      try {
+        // Try to extract JSON from markdown code blocks if present
+        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+        if (jsonMatch) {
+          questionData = JSON.parse(jsonMatch[1]);
+        } else {
+          // Try to find JSON object in the response
+          const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonObjectMatch) {
+            questionData = JSON.parse(jsonObjectMatch[0]);
+          } else {
+            questionData = JSON.parse(content);
+          }
+        }
+      } catch (parseError) {
+        throw new BadRequestException(
+          `Failed to parse AI response. Response: ${content.substring(0, 200)}`
+        );
+      }
+
+      // Validate and format response
+      if (!questionData.questionText || !questionData.correctAnswer) {
+        throw new BadRequestException('AI response is missing required fields');
+      }
+
+      // Ensure options is an array
+      if (!Array.isArray(questionData.options)) {
+        questionData.options = generateDto.questionType === 'multiple_choice' 
+          ? [] 
+          : generateDto.questionType === 'true_false'
+          ? ['Đúng', 'Sai']
+          : [];
+      }
+
+      // Validate estimatedTime and discrimination
+      const estimatedTime = questionData.estimatedTime 
+        ? Math.max(30, Math.min(600, parseInt(questionData.estimatedTime) || 60))
+        : 60;
+      
+      // Calculate discrimination based on difficulty (higher difficulty = higher discrimination potential)
+      // Range: 0.2-0.39 (avg), 0.4-0.69 (good), 0.7-1.0 (excellent)
+      let discrimination = questionData.discrimination;
+      if (!discrimination || discrimination < 0.2 || discrimination > 1.0) {
+        // Estimate based on difficulty: higher difficulty questions tend to have better discrimination
+        const baseDiscrimination = 0.3 + (generateDto.difficulty - 1) * 0.15;
+        discrimination = Math.min(0.9, Math.max(0.2, baseDiscrimination + (Math.random() * 0.2 - 0.1)));
+      }
+      discrimination = Math.max(0.2, Math.min(1.0, parseFloat(discrimination)));
+
+      // Format correct answer for multiple choice (convert to index if needed)
+      let correctAnswer = questionData.correctAnswer;
+      if (generateDto.questionType === 'multiple_choice') {
+        // If correctAnswer is a number (1-4), convert to the actual option text
+        const answerIndex = parseInt(correctAnswer);
+        if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= questionData.options.length) {
+          correctAnswer = questionData.options[answerIndex - 1];
+        }
+      }
+
+      return {
+        questionText: questionData.questionText.trim(),
+        questionType: generateDto.questionType,
+        options: questionData.options,
+        correctAnswer: correctAnswer.toString().trim(),
+        difficulty: generateDto.difficulty,
+        discrimination: parseFloat(discrimination.toFixed(2)),
+        estimatedTime,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('AI question generation error:', error);
+      throw new BadRequestException(
+        `Failed to generate question: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 }

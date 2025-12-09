@@ -242,7 +242,6 @@ export function SidebarNavigation() {
                       return (
                         <DropdownItem
                           key={subItem.label}
-                          textValue={subItem.label}
                           startContent={<SubIconComponent className="size-4 text-[#535862]" />}
                           as={Link}
                           href={subItem.href}
