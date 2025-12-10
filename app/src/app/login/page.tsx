@@ -43,7 +43,7 @@ function LoginForm() {
 
     try {
       const response = await api.auth.login(email, password);
-      
+
       // Fetch full user profile after login to get complete data
       // This ensures we have all user information including info field
       try {
@@ -59,10 +59,13 @@ function LoginForm() {
           await mutate("/auth/me", undefined, { revalidate: true });
         }
       }
-      
-      // Redirect to the intended page or dashboard
-      // Using replace instead of push to avoid adding to history
-      router.replace(redirectTo);
+
+      // Wait a bit for cookie to be set properly
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Force a hard navigation to ensure cookies are recognized
+      // This is necessary for cross-origin cookie scenarios
+      window.location.href = redirectTo;
     } catch (err: any) {
       console.error("Login error:", err);
       console.error("Error response:", err.response);

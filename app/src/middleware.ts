@@ -5,20 +5,20 @@ export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
   const pathname = request.nextUrl.pathname;
 
+  // Log for debugging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Middleware]', {
+      pathname,
+      hasToken: !!accessToken,
+      cookies: request.cookies.getAll().map(c => c.name),
+    });
+  }
+
   // Public routes that don't require authentication
   const publicRoutes = ['/', '/about', '/contact', '/login', '/signup'];
-  const isPublicRoute = publicRoutes.includes(pathname) || 
-    pathname.startsWith('/about') || 
+  const isPublicRoute = publicRoutes.includes(pathname) ||
+    pathname.startsWith('/about') ||
     pathname.startsWith('/contact');
-
-  // Allow public routes to be accessed without authentication
-  if (isPublicRoute) {
-    // If logged in and trying to access login/signup, redirect to dashboard
-    if (accessToken && (pathname === '/login' || pathname === '/signup')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    return NextResponse.next();
-  }
 
   // Check if the route is protected
   const isProtectedRoute = pathname.startsWith('/dashboard') ||
@@ -28,11 +28,27 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/progress') ||
     pathname.startsWith('/achievements');
 
+  // Allow public routes to be accessed without authentication
+  if (isPublicRoute) {
+    // If logged in and trying to access login/signup, redirect to dashboard
+    if (accessToken && (pathname === '/login' || pathname === '/signup')) {
+      // Only redirect if not already coming from a redirect parameter
+      const redirectParam = request.nextUrl.searchParams.get('redirect');
+      if (!redirectParam) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    }
+    return NextResponse.next();
+  }
+
   // If trying to access protected route without token, redirect to login
   if (isProtectedRoute && !accessToken) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    // Avoid redirect loop - don't redirect if already on login page
+    if (pathname !== '/login') {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();
