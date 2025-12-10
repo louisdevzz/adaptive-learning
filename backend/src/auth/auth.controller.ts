@@ -17,11 +17,13 @@ export class AuthController {
     const result = await this.authService.createUser(createUserDto);
 
     // Set HTTP-only cookie with the access token
+    // For cross-origin requests (different domains), use sameSite: 'none' and secure: true
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Always true for production (HTTPS required)
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
     });
 
     // Remove accessToken from response body
@@ -35,11 +37,13 @@ export class AuthController {
     const result = await this.authService.login(loginDto);
 
     // Set HTTP-only cookie with the access token
+    // For cross-origin requests (different domains), use sameSite: 'none' and secure: true
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Always true for production (HTTPS required)
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
     });
 
     // Remove accessToken from response body
@@ -56,7 +60,12 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('access_token');
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+    });
     return { message: 'Logged out successfully' };
   }
 }
