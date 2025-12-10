@@ -60,11 +60,10 @@ function LoginForm() {
         }
       }
 
-      // Wait a bit for cookie to be set properly
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait a bit for cookie to be set by the backend
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Force a hard navigation to ensure cookies are recognized
-      // This is necessary for cross-origin cookie scenarios
+      // Force a hard navigation to ensure cookies are recognized by middleware
       window.location.href = redirectTo;
     } catch (err: any) {
       console.error("Login error:", err);
