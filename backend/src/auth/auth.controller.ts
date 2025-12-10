@@ -17,16 +17,16 @@ export class AuthController {
     const result = await this.authService.createUser(createUserDto);
 
     // Set HTTP-only cookie with the access token
-    // For cross-origin requests (different domains), use sameSite: 'none' and secure: true
+    // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
-      secure: true, // Always true for production (HTTPS required)
+      secure: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
     });
 
-    // Remove accessToken from response body
+    // Don't return accessToken in response body for security
     const { accessToken, ...response } = result;
     return response;
   }
@@ -37,16 +37,16 @@ export class AuthController {
     const result = await this.authService.login(loginDto);
 
     // Set HTTP-only cookie with the access token
-    // For cross-origin requests (different domains), use sameSite: 'none' and secure: true
+    // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
-      secure: true, // Always true for production (HTTPS required)
+      secure: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
     });
 
-    // Remove accessToken from response body
+    // Don't return accessToken in response body for security
     const { accessToken, ...response } = result;
     return response;
   }
