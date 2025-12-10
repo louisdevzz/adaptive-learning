@@ -24,6 +24,7 @@ export class AuthController {
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
 
     // Don't return accessToken in response body for security
@@ -44,6 +45,7 @@ export class AuthController {
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
 
     // Don't return accessToken in response body for security
@@ -65,6 +67,7 @@ export class AuthController {
       secure: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
     return { message: 'Logged out successfully' };
   }
