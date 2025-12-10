@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/react";
 import { Input } from "@heroui/input";
@@ -16,6 +17,7 @@ import {
   LogOut,
   HelpCircle,
   ChevronDown,
+  ChevronUp,
   Bell,
   GraduationCap,
   UserCheck,
@@ -109,9 +111,14 @@ const menuItems: Record<string, MenuItem[]> = {
 export function SidebarNavigation() {
   const { user, logout } = useUser();
   const pathname = usePathname();
+  const [isBottomNavVisible, setIsBottomNavVisible] = useState(true);
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const toggleBottomNav = () => {
+    setIsBottomNavVisible(!isBottomNavVisible);
   };
 
   const role = user?.role?.toLowerCase() || "";
@@ -208,44 +215,91 @@ export function SidebarNavigation() {
       </div>
 
       {/* Bottom Navigation Section - Menu Items and Actions */}
-      <div className="bg-white flex items-end justify-between px-12 py-3 relative shrink-0 w-full">
-        {/* Menu Items */}
-        <nav className="flex gap-12 items-end relative shrink-0">
-          {currentMenuItems.map((item) => {
-            const IconComponent = item.icon;
-            
-            // Check if pathname matches any submenu item first
-            const matchesSubmenu = item.hasSubmenu && item.submenu?.some((sub: MenuSubItem) => 
-              pathname === sub.href || pathname?.startsWith(sub.href + '/')
-            );
-            
-            let isActive = false;
-            if (item.hasSubmenu) {
-              // For items with submenu, check if pathname matches any submenu item
-              isActive = matchesSubmenu || pathname === item.href;
-            } else {
-              // For items without submenu, check exact match first
-              if (pathname === item.href) {
-                isActive = true;
-              } else if (pathname?.startsWith(item.href + '/')) {
-                // Only active if no other menu item with a longer matching href exists
-                const hasMoreSpecificMatch = currentMenuItems.some((otherItem) => {
-                  if (otherItem.href === item.href) return false; // Skip self
-                  // Check if other item's href is more specific and matches current pathname
-                  return pathname?.startsWith(otherItem.href + '/') && 
-                         otherItem.href.startsWith(item.href + '/');
-                });
-                isActive = !hasMoreSpecificMatch;
-              }
-            }
-            
-            // If item has submenu, render as dropdown
-            if (item.hasSubmenu && item.submenu) {
-              return (
-                <Dropdown key={item.label} placement="bottom-start">
-                  <DropdownTrigger>
+      <div className="relative">
+        {isBottomNavVisible && (
+          <div className="bg-white flex items-end justify-between px-12 py-3 relative shrink-0 w-full">
+            {/* Menu Items */}
+            <nav className="flex gap-12 items-end relative shrink-0">
+              {currentMenuItems.map((item) => {
+                const IconComponent = item.icon;
+                
+                // Check if pathname matches any submenu item first
+                const matchesSubmenu = item.hasSubmenu && item.submenu?.some((sub: MenuSubItem) => 
+                  pathname === sub.href || pathname?.startsWith(sub.href + '/')
+                );
+                
+                let isActive = false;
+                if (item.hasSubmenu) {
+                  // For items with submenu, check if pathname matches any submenu item
+                  isActive = matchesSubmenu || pathname === item.href;
+                } else {
+                  // For items without submenu, check exact match first
+                  if (pathname === item.href) {
+                    isActive = true;
+                  } else if (pathname?.startsWith(item.href + '/')) {
+                    // Only active if no other menu item with a longer matching href exists
+                    const hasMoreSpecificMatch = currentMenuItems.some((otherItem) => {
+                      if (otherItem.href === item.href) return false; // Skip self
+                      // Check if other item's href is more specific and matches current pathname
+                      return pathname?.startsWith(otherItem.href + '/') && 
+                             otherItem.href.startsWith(item.href + '/');
+                    });
+                    isActive = !hasMoreSpecificMatch;
+                  }
+                }
+                
+                // If item has submenu, render as dropdown
+                if (item.hasSubmenu && item.submenu) {
+                  return (
+                    <Dropdown key={item.label} placement="bottom-start">
+                      <DropdownTrigger>
+                        <div
+                          className={`flex items-center gap-2 cursor-pointer transition-colors pb-2 ${
+                            isActive 
+                              ? "text-[#242424] font-medium border-b-2 border-[#242424]" 
+                              : "text-[#242424] font-medium hover:opacity-70"
+                          }`}
+                        >
+                          <IconComponent className="size-4" />
+                          <p className="text-sm leading-4">{item.label}</p>
+                          <ChevronDown className="size-3" />
+                        </div>
+                      </DropdownTrigger>
+                      <DropdownMenu
+                        aria-label={item.label}
+                        classNames={{
+                          base: "bg-white border border-[#e9eaeb] rounded-xl shadow-[0px_12px_16px_-4px_rgba(10,13,18,0.08),0px_4px_6px_-2px_rgba(10,13,18,0.03)] min-w-[200px]",
+                        }}
+                      >
+                        {item.submenu.map((subItem: MenuSubItem) => {
+                          const SubIconComponent = subItem.icon;
+                          const isSubActive = pathname === subItem.href;
+                          return (
+                            <DropdownItem
+                              key={subItem.label}
+                              startContent={<SubIconComponent className="size-4 text-[#535862]" />}
+                              as={Link}
+                              href={subItem.href}
+                              className={isSubActive ? "bg-neutral-50" : ""}
+                            >
+                              <span className={isSubActive ? "text-[#242424] font-medium" : "text-[#181d27]"}>{subItem.label}</span>
+                            </DropdownItem>
+                          );
+                        })}
+                      </DropdownMenu>
+                    </Dropdown>
+                  );
+                }
+                
+                // Regular menu item
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="relative shrink-0"
+                  >
                     <div
-                      className={`flex items-center gap-2 cursor-pointer transition-colors pb-2 ${
+                      className={`flex items-center gap-2 transition-colors pb-2 ${
                         isActive 
                           ? "text-[#242424] font-medium border-b-2 border-[#242424]" 
                           : "text-[#242424] font-medium hover:opacity-70"
@@ -253,74 +307,49 @@ export function SidebarNavigation() {
                     >
                       <IconComponent className="size-4" />
                       <p className="text-sm leading-4">{item.label}</p>
-                      <ChevronDown className="size-3" />
                     </div>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    aria-label={item.label}
-                    classNames={{
-                      base: "bg-white border border-[#e9eaeb] rounded-xl shadow-[0px_12px_16px_-4px_rgba(10,13,18,0.08),0px_4px_6px_-2px_rgba(10,13,18,0.03)] min-w-[200px]",
-                    }}
-                  >
-                    {item.submenu.map((subItem: MenuSubItem) => {
-                      const SubIconComponent = subItem.icon;
-                      const isSubActive = pathname === subItem.href;
-                      return (
-                        <DropdownItem
-                          key={subItem.label}
-                          startContent={<SubIconComponent className="size-4 text-[#535862]" />}
-                          as={Link}
-                          href={subItem.href}
-                          className={isSubActive ? "bg-neutral-50" : ""}
-                        >
-                          <span className={isSubActive ? "text-[#242424] font-medium" : "text-[#181d27]"}>{subItem.label}</span>
-                        </DropdownItem>
-                      );
-                    })}
-                  </DropdownMenu>
-                </Dropdown>
-              );
-            }
-            
-            // Regular menu item
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="relative shrink-0"
-              >
-                <div
-                  className={`flex items-center gap-2 transition-colors pb-2 ${
-                    isActive 
-                      ? "text-[#242424] font-medium border-b-2 border-[#242424]" 
-                      : "text-[#242424] font-medium hover:opacity-70"
-                  }`}
-                >
-                  <IconComponent className="size-4" />
-                  <p className="text-sm leading-4">{item.label}</p>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
+                  </Link>
+                );
+              })}
+            </nav>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 items-center relative shrink-0">
+            {/* Action Buttons */}
+            <div className="flex gap-2 items-center relative shrink-0 mr-5">
+              <Button
+                variant="flat"
+                size="sm"
+                className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0"
+                isIconOnly
+              >
+                <HelpCircle className="size-4 text-[#242424]" />
+              </Button>
+              <Button
+                variant="flat"
+                size="sm"
+                className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0"
+                isIconOnly
+              >
+                <Settings className="size-4 text-[#242424]" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Toggle Button - Positioned on the right */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
           <Button
             variant="flat"
             size="sm"
-            className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0"
+            className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0 hover:bg-[#e0e0e0] transition-colors"
             isIconOnly
+            onPress={toggleBottomNav}
+            aria-label={isBottomNavVisible ? "Ẩn menu" : "Hiện menu"}
           >
-            <HelpCircle className="size-4 text-[#242424]" />
-          </Button>
-          <Button
-            variant="flat"
-            size="sm"
-            className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0"
-            isIconOnly
-          >
-            <Settings className="size-4 text-[#242424]" />
+            {isBottomNavVisible ? (
+              <ChevronDown className="size-4 text-[#242424]" />
+            ) : (
+              <ChevronUp className="size-4 text-[#242424]" />
+            )}
           </Button>
         </div>
       </div>

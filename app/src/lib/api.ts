@@ -171,6 +171,16 @@ export const api = {
       return response.data;
     },
 
+    getMyCourses: async () => {
+      const response = await apiClient.get('/students/me/courses');
+      return response.data;
+    },
+
+    getMyCoursesWithProgress: async () => {
+      const response = await apiClient.get('/students/me/courses-with-progress');
+      return response.data;
+    },
+
     create: async (data: {
       email: string;
       password: string;
@@ -398,6 +408,11 @@ export const api = {
 
     getStructure: async (id: string) => {
       const response = await apiClient.get(`/courses/${id}/structure`);
+      return response.data;
+    },
+
+    getForLearning: async (id: string) => {
+      const response = await apiClient.get(`/courses/${id}/learn`);
       return response.data;
     },
 
@@ -749,6 +764,79 @@ export const api = {
 
     cloneCourse: async (courseId: string) => {
       const response = await apiClient.post(`/explorer/courses/${courseId}/clone`);
+      return response.data;
+    },
+  },
+
+  // Course Analytics endpoints
+  courseAnalytics: {
+    getCourseAnalytics: async (courseId: string) => {
+      const response = await apiClient.get(`/course-analytics/courses/${courseId}`);
+      return response.data;
+    },
+
+    getModuleAnalytics: async (courseId: string, moduleId: string) => {
+      const response = await apiClient.get(`/course-analytics/courses/${courseId}/modules/${moduleId}`);
+      return response.data;
+    },
+  },
+
+  // Student Progress endpoints
+  studentProgress: {
+    submitQuestionAttempt: async (data: {
+      studentId: string;
+      questionId: string;
+      kpId: string;
+      selectedAnswer: string;
+      timeSpent?: number;
+    }) => {
+      const response = await apiClient.post('/student-progress/submit-question', data);
+      return response.data;
+    },
+
+    updateKpProgress: async (data: {
+      studentId: string;
+      kpId: string;
+      masteryScore: number;
+      confidence: number;
+      lastAttemptId: string;
+    }) => {
+      const response = await apiClient.post('/student-progress/kp-progress', data);
+      return response.data;
+    },
+
+    getStudentKpProgress: async (studentId: string, kpId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}`);
+      return response.data;
+    },
+
+    getAllStudentProgress: async (studentId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/all-progress`);
+      return response.data;
+    },
+
+    getKpHistory: async (studentId: string, kpId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}/history`);
+      return response.data;
+    },
+
+    getStudentMastery: async (studentId: string, courseId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/mastery/${courseId}`);
+      return response.data;
+    },
+
+    getAllStudentMastery: async (studentId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/mastery`);
+      return response.data;
+    },
+
+    getStudentInsights: async (studentId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/insights`);
+      return response.data;
+    },
+
+    getStudentQuestionAttempts: async (studentId: string, kpId: string) => {
+      const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}/attempts`);
       return response.data;
     },
   },

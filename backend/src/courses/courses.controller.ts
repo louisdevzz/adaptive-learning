@@ -59,6 +59,11 @@ export class CoursesController {
     return this.coursesService.getCourseStructure(id, user?.userId, user?.role);
   }
 
+  @Get(':id/learn')
+  getCourseForLearning(@Param('id') id: string, @CurrentUser() user?: ICurrentUser) {
+    return this.coursesService.getCourseForLearning(id, user?.userId, user?.role);
+  }
+
   @Patch(':id')
   @Roles('admin', 'teacher')
   update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto, @CurrentUser() user: ICurrentUser) {

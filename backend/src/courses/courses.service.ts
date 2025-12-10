@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { eq, and, desc, SQL, or, inArray } from 'drizzle-orm';
-import { db, courses, modules, sections, sectionKpMap, teacherCourseMap, teachers, knowledgePoint, kpPrerequisites } from '../../db';
+import { db, courses, modules, sections, sectionKpMap, teacherCourseMap, teachers, knowledgePoint, kpPrerequisites, kpResources } from '../../db';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -508,5 +508,74 @@ export class CoursesService {
       .where(eq(teacherCourseMap.courseId, courseId));
 
     return result;
+  }
+
+  // ==================== COURSE LEARNING DETAILS ====================
+
+  async getCourseForLearning(courseId: string, userId?: string, userRole?: string) {
+    const course = await this.findOne(courseId, userId, userRole);
+
+    const courseModules = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.courseId, courseId))
+      .orderBy(modules.orderIndex);
+
+    const structureWithSectionsAndKps = await Promise.all(
+      courseModules.map(async (module) => {
+        const moduleSections = await db
+          .select()
+          .from(sections)
+          .where(eq(sections.moduleId, module.id))
+          .orderBy(sections.orderIndex);
+
+        const sectionsWithKps = await Promise.all(
+          moduleSections.map(async (section) => {
+            // Get knowledge points for this section
+            const kpMappings = await db
+              .select({
+                kp: knowledgePoint,
+                mapping: sectionKpMap,
+              })
+              .from(sectionKpMap)
+              .innerJoin(knowledgePoint, eq(sectionKpMap.kpId, knowledgePoint.id))
+              .where(eq(sectionKpMap.sectionId, section.id))
+              .orderBy(sectionKpMap.orderIndex);
+
+            // Get resources for each knowledge point
+            const kpsWithResources = await Promise.all(
+              kpMappings.map(async (row) => {
+                const resources = await db
+                  .select()
+                  .from(kpResources)
+                  .where(eq(kpResources.kpId, row.kp.id))
+                  .orderBy(kpResources.orderIndex);
+
+                return {
+                  ...row.kp,
+                  orderIndex: row.mapping.orderIndex,
+                  resources,
+                };
+              })
+            );
+
+            return {
+              ...section,
+              knowledgePoints: kpsWithResources,
+            };
+          })
+        );
+
+        return {
+          ...module,
+          sections: sectionsWithKps,
+        };
+      })
+    );
+
+    return {
+      ...course,
+      modules: structureWithSectionsAndKps,
+    };
   }
 }

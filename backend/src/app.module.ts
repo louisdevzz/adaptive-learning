@@ -15,6 +15,7 @@ import { AssignmentsModule } from './assignments/assignments.module';
 import { StudentProgressModule } from './student-progress/student-progress.module';
 import { LearningPathsModule } from './learning-paths/learning-paths.module';
 import { ExplorerModule } from './explorer/explorer.module';
+import { CourseAnalyticsModule } from './course-analytics/course-analytics.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ExplorerModule } from './explorer/explorer.module';
     StudentProgressModule,
     LearningPathsModule,
     ExplorerModule,
+    CourseAnalyticsModule,
   ],
 })
 export class AppModule {}

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 import { InteractiveHoverButtonCustom } from "./InteractiveHoverButtonCustom";
+import Link from "next/link";
 
 const imgMacBookPro16 = "https://www.figma.com/api/mcp/asset/b51ba77d-bdd5-4dbd-b42c-a2f6f8ddea38";
 const imgShadow = "https://www.figma.com/api/mcp/asset/07c6f504-e734-4ea2-b0b1-b5ccd17ec257";
@@ -55,7 +56,11 @@ export function HeroSection() {
               >
                 Xem demo
               </InteractiveHoverButton>
-              <InteractiveHoverButtonCustom />
+              <InteractiveHoverButtonCustom>
+                <Link href="/login">
+                  Bắt đầu học
+                </Link>
+              </InteractiveHoverButtonCustom>
             </div>
           </div>
         </div>

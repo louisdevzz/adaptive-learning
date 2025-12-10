@@ -14,6 +14,8 @@ import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
 
 @Controller('students')
 @UseGuards(JwtAuthGuard)
@@ -29,6 +31,16 @@ export class StudentsController {
   @Get()
   findAll() {
     return this.studentsService.findAll();
+  }
+
+  @Get('me/courses')
+  getMyCourses(@CurrentUser() user: ICurrentUser) {
+    return this.studentsService.getMyCourses(user.userId);
+  }
+
+  @Get('me/courses-with-progress')
+  getMyCoursesWithProgress(@CurrentUser() user: ICurrentUser) {
+    return this.studentsService.getMyCoursesWithProgress(user.userId);
   }
 
   @Get(':id')
