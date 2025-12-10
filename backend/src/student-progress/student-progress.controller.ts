@@ -1,0 +1,94 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import { StudentProgressService } from './student-progress.service';
+import { UpdateKpProgressDto } from './dto/update-kp-progress.dto';
+import { SubmitQuestionAttemptDto } from './dto/submit-question-attempt.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
+
+@Controller('student-progress')
+@UseGuards(JwtAuthGuard)
+export class StudentProgressController {
+  constructor(private readonly progressService: StudentProgressService) {}
+
+  @Post('kp-progress')
+  @Roles('admin', 'teacher', 'student')
+  updateKpProgress(@Body() updateDto: UpdateKpProgressDto) {
+    return this.progressService.updateKpProgress(updateDto);
+  }
+
+  @Get('students/:studentId/kps/:kpId')
+  getStudentKpProgress(
+    @Param('studentId') studentId: string,
+    @Param('kpId') kpId: string,
+  ) {
+    return this.progressService.getStudentKpProgress(studentId, kpId);
+  }
+
+  @Get('students/:studentId/all-progress')
+  getAllStudentProgress(@Param('studentId') studentId: string) {
+    return this.progressService.getAllStudentProgress(studentId);
+  }
+
+  @Get('students/:studentId/kps/:kpId/history')
+  getKpHistory(
+    @Param('studentId') studentId: string,
+    @Param('kpId') kpId: string,
+  ) {
+    return this.progressService.getKpHistory(studentId, kpId);
+  }
+
+  @Get('students/:studentId/mastery/:courseId')
+  getStudentMastery(
+    @Param('studentId') studentId: string,
+    @Param('courseId') courseId: string,
+  ) {
+    return this.progressService.getStudentMastery(studentId, courseId);
+  }
+
+  @Get('students/:studentId/mastery')
+  getAllStudentMastery(@Param('studentId') studentId: string) {
+    return this.progressService.getAllStudentMastery(studentId);
+  }
+
+  @Get('students/:studentId/insights')
+  @Roles('admin', 'teacher', 'student', 'parent')
+  getStudentInsights(@Param('studentId') studentId: string) {
+    return this.progressService.getStudentInsights(studentId);
+  }
+
+  // ==================== QUESTION ATTEMPTS ====================
+
+  @Post('submit-question')
+  @Roles('admin', 'teacher', 'student')
+  submitQuestionAttempt(
+    @Body() submitDto: SubmitQuestionAttemptDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
+    // Ensure student can only submit for themselves
+    if (user.role === 'student' && submitDto.studentId !== user.userId) {
+      submitDto.studentId = user.userId;
+    }
+    return this.progressService.submitQuestionAttempt(submitDto);
+  }
+
+  @Get('students/:studentId/kps/:kpId/attempts')
+  @Roles('admin', 'teacher', 'student')
+  getStudentQuestionAttempts(
+    @Param('studentId') studentId: string,
+    @Param('kpId') kpId: string,
+    @CurrentUser() user: ICurrentUser,
+  ) {
+    // Ensure student can only get their own attempts
+    const actualStudentId = user.role === 'student' ? user.userId : studentId;
+    return this.progressService.getStudentQuestionAttempts(actualStudentId, kpId);
+  }
+}

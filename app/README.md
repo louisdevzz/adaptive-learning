@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎨 Adaptive Learning - Frontend
 
-## Getting Started
+Frontend application for Adaptive Learning Platform built with Next.js 15 and React 19.
 
-First, run the development server:
+## 📖 Overview
+
+Frontend của Adaptive Learning Platform cung cấp giao diện người dùng hiện đại, responsive cho tất cả các vai trò: Student, Teacher, Parent, và Admin. Ứng dụng được xây dựng với Next.js 15 để tận dụng Server-Side Rendering (SSR) và tối ưu SEO.
+
+## ✨ Features
+
+- **Dashboard cho từng vai trò** - Giao diện tùy chỉnh cho Student, Teacher, Parent, Admin
+- **Visualization Mastery** - Hiển thị bản đồ kiến thức và mức độ nắm vững theo KP graph
+- **Learning Path UI** - Giao diện playlist học tập động
+- **Real-time Progress Tracking** - Theo dõi tiến độ học tập theo thời gian thực
+- **Responsive Design** - Tối ưu cho mọi thiết bị
+
+## 🛠️ Tech Stack
+
+- **Next.js 15** - React framework with App Router
+- **React 19** - UI library
+- **TypeScript** - Type-safe JavaScript
+- **TailwindCSS** - Utility-first CSS framework
+- **Framer Motion** - Animation library
+- **HeroUI** - Component library
+- **Lucide React** - Icon library
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or pnpm
+
+### Installation
 
 ```bash
-npm run dev
+# Install dependencies
+npm install
 # or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Copy environment file
+cp .env.example .env.local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Edit .env.local with your configuration
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+```
 
-## Learn More
+### Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Start development server
+npm run dev
+# or
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Build
 
-## Deploy on Vercel
+```bash
+# Build for production
+npm run build
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Start production server
+npm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📁 Project Structure
+
+```
+app/
+├── src/
+│   ├── app/              # Next.js App Router pages
+│   │   ├── layout.tsx    # Root layout with providers
+│   │   └── page.tsx      # Landing page
+│   ├── components/       # React components
+│   │   ├── auth/         # Authentication components
+│   │   ├── layout/       # Layout components (Header, Sidebar)
+│   │   ├── learning/     # Learning components
+│   │   ├── dashboard/    # Dashboard components
+│   │   └── ui/           # Reusable UI components
+│   ├── lib/              # Utilities & API client
+│   │   └── utils.ts      # Helper functions
+│   └── types/            # TypeScript type definitions
+├── public/               # Static assets
+├── components.json        # shadcn/ui configuration
+└── package.json
+```
+
+## 🎨 UI Components
+
+The project uses **HeroUI** and **shadcn/ui** for UI components. Components are located in `src/components/ui/`.
+
+## 🔌 API Integration
+
+The frontend communicates with the NestJS backend API. API client configuration is in `src/lib/`.
+
+## 📝 Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+## 🧪 Testing
+
+Testing setup coming soon.
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
