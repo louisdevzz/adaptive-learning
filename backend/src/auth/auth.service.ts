@@ -6,6 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { db, students, teachers, parents, admins } from '../../db';
+import { FirebaseAdminService } from '../firebase/firebase-admin.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly firebaseAdminService: FirebaseAdminService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<AuthResponseDto> {
@@ -170,6 +172,81 @@ export class AuthService {
 
   async validateUser(userId: string) {
     return this.usersService.findById(userId);
+  }
+
+  async loginWithGoogle(idToken: string): Promise<AuthResponseDto> {
+    try {
+      // Verify Firebase ID token
+      const decodedToken = await this.firebaseAdminService.verifyIdToken(idToken);
+      const { email, name, picture, uid } = decodedToken;
+
+      if (!email) {
+        throw new BadRequestException('Email not found in Google account');
+      }
+
+      // Check if user exists
+      let user = await this.usersService.findByEmail(email);
+
+      if (!user) {
+        // Create new user if doesn't exist
+        // Default role for Google sign-in is 'student'
+        user = await this.usersService.create({
+          email,
+          password: uid, // Use Firebase UID as password (won't be used for login)
+          fullName: name || email.split('@')[0],
+          role: 'student',
+          avatarUrl: picture,
+        });
+
+        // Create default student record
+        await db.insert(students).values({
+          id: user.id,
+          studentCode: `ADL${Date.now()}`,
+          gradeLevel: 1,
+          schoolName: 'Not specified',
+          dateOfBirth: '2000-01-01',
+          gender: 'other',
+        });
+
+        // Add User Role
+        await this.usersService.addUserRole({
+          userId: user.id,
+          roleName: 'student',
+          permissions: [],
+        });
+
+        this.logger.log(`New user created via Google login: ${email}`);
+      }
+
+      // Check if user is active
+      if (!user.status) {
+        this.logger.warn(`Google login attempt failed: Account inactive for email ${email}`);
+        throw new UnauthorizedException('Account is inactive');
+      }
+
+      // Generate JWT token
+      const payload = { sub: user.id, email: user.email, role: user.role };
+      const accessToken = this.jwtService.sign(payload);
+
+      this.logger.log(`Google login successful for user: ${email}, role: ${user.role}`);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          avatarUrl: user.avatarUrl || undefined,
+        },
+        accessToken,
+      };
+    } catch (error) {
+      this.logger.error('Google login error:', error);
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid Google token');
+    }
   }
 
   async getProfile(userId: string) {

@@ -62,9 +62,10 @@ export function StudentModal({
   // Auto-generate student code when modal opens in create mode
   useEffect(() => {
     if (isOpen && !isEditMode && !formData.studentCode) {
-      // Generate Unix Timestamp (Seconds) as student code
-      const unixTimestamp = Math.floor(Date.now() / 1000);
-      updateFormData({ studentCode: unixTimestamp.toString() });
+      // Generate student code with format: ADL+TIMESTAMP
+      const timestamp = Date.now();
+      const studentCode = `ADL${timestamp}`;
+      updateFormData({ studentCode });
     }
   }, [isOpen, isEditMode]);
 

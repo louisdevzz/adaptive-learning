@@ -1,101 +1,130 @@
 "use client";
 
-import Image from "next/image";
-import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
-import { InteractiveHoverButtonCustom } from "./InteractiveHoverButtonCustom";
 import Link from "next/link";
-
-const imgMacBookPro16 = "https://www.figma.com/api/mcp/asset/b51ba77d-bdd5-4dbd-b42c-a2f6f8ddea38";
-const imgShadow = "https://www.figma.com/api/mcp/asset/07c6f504-e734-4ea2-b0b1-b5ccd17ec257";
-const imgCamera = "https://www.figma.com/api/mcp/asset/d3661080-282d-408a-9a39-93f940262243";
-const imgLogo = "https://www.figma.com/api/mcp/asset/3f1b6caa-c6a3-4bcd-9378-93a5817c883e";
-const imgScreenMockupReplaceFill11 = "https://www.figma.com/api/mcp/asset/ebb36926-ec82-4b1a-a42e-4056ea528b0f";
+import { ArrowRight, PlayCircle } from "lucide-react";
 
 export function HeroSection() {
   return (
-    <section className="flex flex-col isolate items-center overflow-clip relative w-full bg-white">
-      <div className="flex flex-col gap-16 items-center pb-0 pt-24 px-0 relative w-full z-10">
-        <div className="flex flex-col items-center px-8 py-0 w-full max-w-[1280px]">
-          <div className="flex flex-col gap-12 items-center relative w-full">
-            {/* Heading and supporting text */}
-            <div className="flex flex-col gap-6 items-center relative w-[1024px]">
-              <div className="flex flex-col gap-4 items-center relative w-full">
-                {/* Badge */}
-                <div className="bg-[#f9f5ff] flex gap-3 items-center mix-blend-multiply pl-1 pr-[10px] py-1 relative rounded-2xl">
-                  <div className="bg-white border border-[#e9d7fe] border-solid flex items-center justify-center px-[10px] py-0.5 relative rounded-2xl">
-                    <p className="font-medium leading-5 text-[#6941c6] text-sm text-center">
-                      Tính năng mới
-                    </p>
-                  </div>
-                  <div className="flex gap-1 items-center">
-                    <p className="font-medium leading-5 text-[#6941c6] text-sm">
-                      Khám phá lộ trình học tập cá nhân hóa
-                    </p>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
+    <section className="relative pt-20 pb-20 lg:pt-28 lg:pb-28 overflow-hidden">
+      <div className="absolute inset-0 -z-20 h-full w-full bg-white dark:bg-background-dark"></div>
+      <div className="absolute top-0 right-0 -z-10 w-[50%] h-[70%] bg-gradient-to-bl from-blue-100/50 to-transparent blur-3xl opacity-60 rounded-bl-full pointer-events-none dark:from-blue-900/20"></div>
+      <div className="absolute bottom-0 left-0 -z-10 w-[40%] h-[60%] bg-gradient-to-tr from-cyan-50/50 to-transparent blur-3xl opacity-60 rounded-tr-full pointer-events-none dark:from-cyan-900/20"></div>
 
-                {/* Main heading */}
-                <h1 className="font-semibold leading-[72px] min-w-full text-[#181d27] text-[58px] text-center tracking-[-1.2px] w-min">
-                  Học tập thông minh, thích ứng với bạn
-                </h1>
-              </div>
-
-              {/* Supporting text */}
-              <p className="font-normal leading-[30px] text-[#535862] text-lg text-center w-[768px]">
-                Nền tảng học tập thông minh cá nhân hóa hành trình giáo dục của bạn. Nắm vững các điểm kiến thức theo tốc độ riêng với đề xuất AI và theo dõi tiến độ theo thời gian thực.
-              </p>
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+          <div className="flex-1 max-w-2xl lg:max-w-none text-center lg:text-left z-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/50 px-4 py-1.5 text-sm font-medium text-blue-700 mb-8 dark:border-blue-900 dark:bg-blue-900/30 dark:text-blue-300 backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              </span>
+              AI Learning Platform 2.0
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 items-start">
-              <InteractiveHoverButton
-                className="border-[#d5d7da] text-[#414651] bg-white hover:bg-[#f9fafb]"
+            <h1 className="text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl lg:text-[4rem] lg:leading-[1.1] dark:text-white text-balance">
+              Nâng tầm giáo dục với{" "}
+              <span className="relative whitespace-nowrap text-primary">
+                <span className="relative z-10 text-blue-600">Adaptive AI</span>
+                <svg
+                  aria-hidden="true"
+                  className="absolute -bottom-2 left-0 -z-10 h-3 w-full text-blue-200 dark:text-blue-900"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 200 9"
+                >
+                  <path
+                    d="M2.00025 6.99996C23.3621 3.52296 82.597 0.992293 197.999 2.00035"
+                    pathLength="1"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="3"
+                  ></path>
+                </svg>
+              </span>
+            </h1>
+
+            <p className="mt-8 text-xl leading-relaxed text-slate-600 dark:text-slate-300 max-w-xl mx-auto lg:mx-0">
+              Nền tảng học tập thông minh tự động điều chỉnh lộ trình theo năng lực cá nhân, giúp học sinh tiếp thu kiến thức nhanh hơn 3.5x.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              <Link
+                href="/login"
+                className="h-14 px-8 rounded-full bg-blue-600 text-white text-base font-semibold shadow-xl shadow-blue-500/20 hover:bg-primary-dark hover:shadow-blue-500/30 hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 group w-full sm:w-auto justify-center"
               >
-                Xem demo
-              </InteractiveHoverButton>
-              <InteractiveHoverButtonCustom>
-                <Link href="/login">
-                  Bắt đầu học
-                </Link>
-              </InteractiveHoverButtonCustom>
+                Trải nghiệm miễn phí
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <button className="h-14 px-8 rounded-full bg-white text-slate-700 border border-slate-200 text-base font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all duration-300 flex items-center gap-2 w-full sm:w-auto justify-center dark:bg-white/5 dark:border-slate-700 dark:text-white dark:hover:bg-white/10">
+                <PlayCircle className="w-5 h-5 text-primary" />
+                Xem Demo
+              </button>
+            </div>
+
+            <div className="mt-12 flex items-center justify-center lg:justify-start gap-8 border-t border-slate-100 pt-8 dark:border-slate-800">
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">500+</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Trường học</p>
+              </div>
+              <div className="w-px h-10 bg-slate-200 dark:bg-slate-700"></div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">1M+</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Học viên</p>
+              </div>
+              <div className="w-px h-10 bg-slate-200 dark:bg-slate-700"></div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">98%</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Hài lòng</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* MacBook Mockup */}
-        <div className="flex flex-col items-center px-8 py-0 w-full max-w-[1280px]">
-          <div className="h-[480px] relative w-full">
-            <div className="absolute h-[710.125px] left-1/2 overflow-clip top-0 -translate-x-1/2 w-[1216px]">
-              {/* Shadow */}
-              <div className="absolute inset-[98.69%_-0.02%_0.22%_-1.67%]">
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  <Image src={imgShadow} alt="" fill className="object-cover" />
+          <div className="flex-1 w-full relative">
+            <div className="relative w-full aspect-[4/3] max-w-[650px] mx-auto lg:ml-auto">
+              <div className="absolute inset-0 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden transform transition-transform hover:scale-[1.01] duration-500">
+                <div className="absolute top-0 inset-x-0 h-10 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex items-center px-4 gap-2 z-20">
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                  </div>
+                </div>
+                <div className="absolute inset-0 top-10 bg-slate-50 dark:bg-slate-900">
+                  <div
+                    className="w-full h-full bg-cover bg-top"
+                    style={{
+                      backgroundImage:
+                        "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCUaBQ_7NqZWCFZNNOfKwJaa1aLJoXPhKVn4TqRRDCpyv0iROgByoYdeRKVel5y2ItlJ9EgsCc6zi73cJuDMoL_XwqFJxSMw2-HnKltY3o3__CTl34K5PYzaehfxUH_c2cf1sGOHKorstStxGxZAlWuvxhbh8_dgwVe3dIunzlUZqz62dPscIyxLSqXoR6HQ2XpJduxaIGPqTTVkQX8qAFTxPDcdQB3l44cmuV257LTWHzbgn5u6TwORoAD9YKzFkUfJ7TA-LUDfiw')",
+                    }}
+                  ></div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none"></div>
+              </div>
+
+              <div className="absolute -left-12 top-1/4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 w-48 animate-[bounce_4s_infinite]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Tiến độ</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">+125%</p>
+                  </div>
                 </div>
               </div>
-              {/* MacBook */}
-              <div className="absolute bottom-[0.58%] left-[0.94%] right-[0.92%] top-0">
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  <Image src={imgMacBookPro16} alt="" fill className="object-cover" />
+
+              <div className="absolute -right-8 bottom-12 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 w-52 animate-[bounce_5s_infinite]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Gợi ý AI</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Ôn tập Toán Logic</p>
+                  </div>
                 </div>
-              </div>
-              {/* Camera */}
-              <div className="absolute inset-[1.67%_49.43%_97.53%_50.1%]">
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  <Image src={imgCamera} alt="" fill className="object-cover" />
-                </div>
-              </div>
-              {/* Logo */}
-              <div className="absolute inset-[91.73%_46.91%_7%_47.58%]">
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  <Image src={imgLogo} alt="" fill className="object-cover" />
-                </div>
-              </div>
-              {/* Screen */}
-              <div className="absolute inset-[3.1%_9.13%_10.44%_9.95%]">
-                <Image src={imgScreenMockupReplaceFill11} alt="" fill className="object-cover rounded-lg" />
               </div>
             </div>
           </div>
@@ -104,4 +133,3 @@ export function HeroSection() {
     </section>
   );
 }
-

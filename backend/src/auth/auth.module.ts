@@ -6,11 +6,13 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { FirebaseModule } from '../firebase/firebase.module';
 import type { StringValue } from "ms";
 
 @Module({
   imports: [
     UsersModule,
+    FirebaseModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

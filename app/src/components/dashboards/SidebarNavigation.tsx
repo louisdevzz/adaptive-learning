@@ -1,32 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/react";
-import { Input } from "@heroui/input";
 import { usePathname } from "next/navigation";
 import {
   Search,
   BarChart3,
   BookOpen,
   Users,
-  FileText,
-  TrendingUp,
-  Award,
   Settings,
   LogOut,
   HelpCircle,
-  ChevronDown,
-  ChevronUp,
   Bell,
-  GraduationCap,
-  UserCheck,
-  UserCog,
   School,
   FolderOpen,
   Book,
   Target,
   Compass,
+  TrendingUp,
+  Award,
+  ChevronDown
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -36,16 +29,6 @@ import {
   DropdownMenu,
   DropdownItem,
 } from "@heroui/dropdown";
-
-function Logo() {
-  return (
-    <Link href={"/"} className="h-8 relative shrink-0">
-      <div className="relative">
-        <p className="text-xl font-semibold text-[#181d27]">Adaptive Learning</p>
-      </div>
-    </Link>
-  );
-}
 
 // Type definitions for menu items
 type MenuSubItem = {
@@ -62,47 +45,37 @@ type MenuItem = {
   submenu?: MenuSubItem[];
 };
 
-// Submenu items for user management
-const userManagementSubmenu: MenuSubItem[] = [
-  { icon: GraduationCap, label: "Quản lý học sinh", href: "/dashboard/users/students" },
-  { icon: UserCheck, label: "Quản lý giáo viên", href: "/dashboard/users/teachers" },
-  { icon: Users, label: "Quản lý phụ huynh", href: "/dashboard/users/parents" },
-  { icon: UserCog, label: "Quản lý quản trị viên", href: "/dashboard/users/admins" },
-];
-
 // Submenu items for course management
 const courseManagementSubmenu: MenuSubItem[] = [
   { icon: Book, label: "Quản lý môn học", href: "/dashboard/courses" },
-  { icon: FolderOpen, label: "Quản lý chủ đề", href: "/dashboard/courses/modules" },
-  { icon: FileText, label: "Quản lý bài học", href: "/dashboard/courses/sections" },
-  { icon: Target, label: "Quản lý điểm kiến thức", href: "/dashboard/courses/knowledge-points" },
   { icon: Compass, label: "Khám phá khóa học", href: "/dashboard/courses/explorer" },
 ];
 
 // Menu items for each role
 const menuItems: Record<string, MenuItem[]> = {
   admin: [
-    { icon: BarChart3, label: "Bảng điều khiển", href: "/dashboard" },
-    { icon: Users, label: "Quản lý người dùng", href: "/dashboard/users", hasSubmenu: true, submenu: userManagementSubmenu },
-    { icon: BookOpen, label: "Quản lý khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
-    { icon: School, label: "Quản lý lớp học", href: "/dashboard/classes" },
-    { icon: TrendingUp, label: "Báo cáo hệ thống", href: "/dashboard/reports" },
+    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
+    { icon: Users, label: "Người dùng", href: "/dashboard/users" },
+    { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    { icon: School, label: "Lớp học", href: "/dashboard/classes" },
+    { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
+    { icon: Settings, label: "Cài đặt", href: "/dashboard/settings" },
   ],
   teacher: [
-    { icon: BarChart3, label: "Bảng điều khiển", href: "/dashboard" },
-    { icon: BookOpen, label: "Quản lý khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
+    { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
     { icon: Users, label: "Quản lý học sinh", href: "/dashboard/students" },
-    { icon: School, label: "Quản lý lớp học", href: "/dashboard/classes" },
+    { icon: School, label: "Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
   student: [
-    { icon: BarChart3, label: "Bảng điều khiển", href: "/dashboard" },
+    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: BookOpen, label: "Khóa học của tôi", href: "/dashboard/my-courses" },
     { icon: TrendingUp, label: "Lộ trình học tập", href: "/dashboard/learning-path" },
     { icon: Award, label: "Tiến độ", href: "/dashboard/progress" },
   ],
   parent: [
-    { icon: BarChart3, label: "Bảng điều khiển", href: "/dashboard" },
+    { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Tiến độ con", href: "/dashboard/children-progress" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
@@ -111,98 +84,191 @@ const menuItems: Record<string, MenuItem[]> = {
 export function SidebarNavigation() {
   const { user, logout } = useUser();
   const pathname = usePathname();
-  const [isBottomNavVisible, setIsBottomNavVisible] = useState(true);
 
   const handleLogout = async () => {
     await logout();
   };
 
-  const toggleBottomNav = () => {
-    setIsBottomNavVisible(!isBottomNavVisible);
-  };
-
   const role = user?.role?.toLowerCase() || "";
   const currentMenuItems = menuItems[role as keyof typeof menuItems] || menuItems.student;
 
+  // Check if menu item is active
+  const isActive = (item: MenuItem) => {
+    if (item.hasSubmenu && item.submenu) {
+      const matchesSubmenu = item.submenu.some(
+        (sub) => pathname === sub.href || pathname?.startsWith(sub.href + "/")
+      );
+      return matchesSubmenu || pathname === item.href;
+    }
+    if (pathname === item.href) {
+      return true;
+    }
+    if (pathname?.startsWith(item.href + "/")) {
+      // Only active if no other menu item with a longer matching href exists
+      const hasMoreSpecificMatch = currentMenuItems.some((otherItem) => {
+        if (otherItem.href === item.href) return false;
+        return (
+          pathname?.startsWith(otherItem.href + "/") &&
+          otherItem.href.startsWith(item.href + "/")
+        );
+      });
+      return !hasMoreSpecificMatch;
+    }
+    return false;
+  };
+
   return (
-    <div className="bg-white border-b border-[#eef0f3] flex flex-col fixed left-0 right-0 top-0 z-10">
-      {/* Top Header Section - Logo, Search, User Actions */}
-      <div className="bg-white border-b border-[#eef0f3] border-solid flex items-center justify-between px-12 py-5 relative shrink-0 w-full">
-        <div className="flex gap-8 items-center relative shrink-0 flex-1 min-w-0">
-          <Logo />
-          <div className="flex-1 max-w-md">
-            <Input
-              placeholder="Tìm kiếm..."
-              size="sm"
-              startContent={
-                <Search className="size-5 text-[#bcbcbd]" />
+    <header className="sticky top-0 z-50 bg-white dark:bg-[#1a202c] border-b border-[#d9dfea] dark:border-gray-700 w-full">
+      {/* Desktop Navigation */}
+      <div className="px-6 md:px-10 py-3 flex items-center justify-between gap-4">
+        {/* Left: Logo & Nav */}
+        <div className="flex items-center gap-8 overflow-x-auto no-scrollbar flex-1 min-w-0">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 text-[#135bec] shrink-0">
+            <img src="/logo-text.png" alt="Adapt" className="w-36 object-cover" />
+          </Link>
+
+          {/* Navigation Links - Desktop */}
+          <nav className="hidden lg:flex items-center gap-6">
+            {currentMenuItems.map((item) => {
+              const IconComponent = item.icon;
+              const active = isActive(item);
+
+              // If item has submenu, render as dropdown
+              if (item.hasSubmenu && item.submenu) {
+                return (
+                  <Dropdown key={item.label} placement="bottom-start">
+                    <DropdownTrigger>
+                      <button
+                        className={`flex items-center gap-1.5 font-medium text-sm transition-colors ${
+                          active
+                            ? "text-[#135bec] font-semibold"
+                            : "text-[#4c669a] dark:text-gray-400 hover:text-[#135bec]"
+                        }`}
+                      >
+                        <IconComponent className="w-4 h-4" />
+                        <span>{item.label}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      aria-label={item.label}
+                      classNames={{
+                        base: "bg-white dark:bg-[#1a202c] border border-[#e7ebf3] dark:border-gray-700 rounded-xl shadow-lg min-w-[200px]",
+                      }}
+                    >
+                      {item.submenu.map((subItem: MenuSubItem) => {
+                        const SubIconComponent = subItem.icon;
+                        const isSubActive = pathname === subItem.href;
+                        return (
+                          <DropdownItem
+                            key={subItem.label}
+                            startContent={<SubIconComponent className="w-4 h-4 text-[#4c669a]" />}
+                            as={Link}
+                            href={subItem.href}
+                            className={isSubActive ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                          >
+                            <span
+                              className={
+                                isSubActive
+                                  ? "text-[#135bec] font-medium"
+                                  : "text-[#0d121b] dark:text-gray-200"
+                              }
+                            >
+                              {subItem.label}
+                            </span>
+                          </DropdownItem>
+                        );
+                      })}
+                    </DropdownMenu>
+                  </Dropdown>
+                );
               }
-              className="w-full"
-              classNames={{
-                input: "text-xs text-[#bcbcbd] font-normal",
-                inputWrapper: "bg-[#fdfdfd] border border-[#eef0f3] rounded-[10px] h-10 px-[14px]",
-              }}
+
+              // Regular menu item
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center gap-1.5 font-medium text-sm transition-colors ${
+                    active
+                      ? "text-[#135bec] font-semibold"
+                      : "text-[#4c669a] dark:text-gray-400 hover:text-[#135bec]"
+                  }`}
+                >
+                  <IconComponent className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Right: Utilities */}
+        <div className="flex items-center gap-4 shrink-0">
+          {/* Search - Desktop */}
+          <div className="hidden md:flex items-center bg-[#f0f2f5] dark:bg-gray-800 rounded-lg px-3 py-2 w-64 focus-within:ring-2 focus-within:ring-[#135bec]/20 transition-all">
+            <Search className="w-4 h-4 text-[#4c669a] dark:text-gray-400" />
+            <input
+              className="bg-transparent border-none text-sm w-full focus:ring-0 text-[#0d121b] dark:text-white placeholder:text-[#4c669a] ml-2 outline-none"
+              placeholder="Tìm kiếm..."
+              type="text"
             />
           </div>
-        </div>
-        
-        <div className="flex gap-6 items-start relative shrink-0">
+
           {/* Notification Button */}
-          <div
-            className="h-10 min-w-0 flex items-center justify-center cursor-pointer"
+          <Button
+            variant="light"
+            isIconOnly
+            className="relative p-2 text-[#0d121b] dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            aria-label="Notifications"
           >
-            <Bell className="w-5 h-5 text-[#242424]" />
-          </div>
-          
-          {/* User Menu */}
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white dark:border-[#1a202c]"></span>
+          </Button>
+
+          {/* Profile Dropdown */}
           {user && (
             <Dropdown placement="bottom-end">
               <DropdownTrigger>
-                <Button
-                  variant="flat"
-                  size="sm"
-                  className="bg-[#f0f0f0] rounded-[6px] h-10 px-3 gap-2 min-w-0"
-                  endContent={<ChevronDown className="size-4 text-[#242424]" />}
-                >
+                <button className="flex items-center gap-2 pl-2 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <Avatar
                     src={user.avatarUrl || "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"}
                     size="sm"
-                    className="relative rounded-full shrink-0"
+                    className="w-8 h-8 border border-gray-200 dark:border-gray-700"
                   />
-                  <div className="flex flex-col items-start relative shrink-0">
-                    <p className="font-semibold leading-4 text-[#242424] text-xs">
-                      {user.fullName}
-                    </p>
-                    <p className="font-normal leading-3 text-[#535862] text-[10px]">
-                      {user.email}
-                    </p>
-                  </div>
-                </Button>
+                  <span className="hidden md:block text-sm font-semibold text-[#0d121b] dark:text-white">
+                    {user.fullName}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-[#4c669a] dark:text-gray-400" />
+                </button>
               </DropdownTrigger>
               <DropdownMenu
                 aria-label="User menu"
                 classNames={{
-                  base: "bg-white border border-[#e9eaeb] rounded-xl shadow-[0px_12px_16px_-4px_rgba(10,13,18,0.08),0px_4px_6px_-2px_rgba(10,13,18,0.03)] min-w-[200px]",
+                  base: "bg-white dark:bg-[#1a202c] border border-[#e7ebf3] dark:border-gray-700 rounded-xl shadow-lg min-w-[200px]",
                 }}
               >
                 <DropdownItem
                   key="settings"
                   textValue="Settings"
-                  startContent={<Settings className="size-4 text-[#535862]" />}
+                  startContent={<Settings className="w-4 h-4 text-[#4c669a]" />}
+                  as={Link}
+                  href="/dashboard/settings"
                 >
-                  <span className="text-[#181d27]">Cài đặt</span>
+                  <span className="text-[#0d121b] dark:text-gray-200">Cài đặt</span>
                 </DropdownItem>
                 <DropdownItem
                   key="help"
                   textValue="Help"
-                  startContent={<HelpCircle className="size-4 text-[#535862]" />}
+                  startContent={<HelpCircle className="w-4 h-4 text-[#4c669a]" />}
                 >
-                  <span className="text-[#181d27]">Hỗ trợ</span>
+                  <span className="text-[#0d121b] dark:text-gray-200">Hỗ trợ</span>
                 </DropdownItem>
                 <DropdownItem
                   key="logout"
                   textValue="Logout"
-                  startContent={<LogOut className="size-4 text-[#b42318]" />}
+                  startContent={<LogOut className="w-4 h-4 text-[#b42318]" />}
                   onPress={handleLogout}
                   className="text-[#b42318]"
                 >
@@ -214,146 +280,77 @@ export function SidebarNavigation() {
         </div>
       </div>
 
-      {/* Bottom Navigation Section - Menu Items and Actions */}
-      <div className="relative">
-        {isBottomNavVisible && (
-          <div className="bg-white flex items-end justify-between px-12 py-3 relative shrink-0 w-full">
-            {/* Menu Items */}
-            <nav className="flex gap-12 items-end relative shrink-0">
-              {currentMenuItems.map((item) => {
-                const IconComponent = item.icon;
-                
-                // Check if pathname matches any submenu item first
-                const matchesSubmenu = item.hasSubmenu && item.submenu?.some((sub: MenuSubItem) => 
-                  pathname === sub.href || pathname?.startsWith(sub.href + '/')
-                );
-                
-                let isActive = false;
-                if (item.hasSubmenu) {
-                  // For items with submenu, check if pathname matches any submenu item
-                  isActive = matchesSubmenu || pathname === item.href;
-                } else {
-                  // For items without submenu, check exact match first
-                  if (pathname === item.href) {
-                    isActive = true;
-                  } else if (pathname?.startsWith(item.href + '/')) {
-                    // Only active if no other menu item with a longer matching href exists
-                    const hasMoreSpecificMatch = currentMenuItems.some((otherItem) => {
-                      if (otherItem.href === item.href) return false; // Skip self
-                      // Check if other item's href is more specific and matches current pathname
-                      return pathname?.startsWith(otherItem.href + '/') && 
-                             otherItem.href.startsWith(item.href + '/');
-                    });
-                    isActive = !hasMoreSpecificMatch;
-                  }
-                }
-                
-                // If item has submenu, render as dropdown
-                if (item.hasSubmenu && item.submenu) {
-                  return (
-                    <Dropdown key={item.label} placement="bottom-start">
-                      <DropdownTrigger>
-                        <div
-                          className={`flex items-center gap-2 cursor-pointer transition-colors pb-2 ${
-                            isActive 
-                              ? "text-[#242424] font-medium border-b-2 border-[#242424]" 
-                              : "text-[#242424] font-medium hover:opacity-70"
-                          }`}
-                        >
-                          <IconComponent className="size-4" />
-                          <p className="text-sm leading-4">{item.label}</p>
-                          <ChevronDown className="size-3" />
-                        </div>
-                      </DropdownTrigger>
-                      <DropdownMenu
-                        aria-label={item.label}
-                        classNames={{
-                          base: "bg-white border border-[#e9eaeb] rounded-xl shadow-[0px_12px_16px_-4px_rgba(10,13,18,0.08),0px_4px_6px_-2px_rgba(10,13,18,0.03)] min-w-[200px]",
-                        }}
-                      >
-                        {item.submenu.map((subItem: MenuSubItem) => {
-                          const SubIconComponent = subItem.icon;
-                          const isSubActive = pathname === subItem.href;
-                          return (
-                            <DropdownItem
-                              key={subItem.label}
-                              startContent={<SubIconComponent className="size-4 text-[#535862]" />}
-                              as={Link}
-                              href={subItem.href}
-                              className={isSubActive ? "bg-neutral-50" : ""}
-                            >
-                              <span className={isSubActive ? "text-[#242424] font-medium" : "text-[#181d27]"}>{subItem.label}</span>
-                            </DropdownItem>
-                          );
-                        })}
-                      </DropdownMenu>
-                    </Dropdown>
-                  );
-                }
-                
-                // Regular menu item
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="relative shrink-0"
+      {/* Mobile Navigation */}
+      <div className="lg:hidden flex overflow-x-auto gap-4 px-6 py-2 border-t border-[#e7ebf3] dark:border-gray-700 bg-gray-50 dark:bg-gray-900 no-scrollbar">
+        {currentMenuItems.map((item) => {
+          const IconComponent = item.icon;
+          const active = isActive(item);
+
+          if (item.hasSubmenu && item.submenu) {
+            return (
+              <Dropdown key={item.label} placement="bottom-start">
+                <DropdownTrigger>
+                  <button
+                    className={`whitespace-nowrap flex items-center gap-1.5 font-medium text-sm ${
+                      active
+                        ? "text-[#135bec] font-semibold"
+                        : "text-[#4c669a] dark:text-gray-400"
+                    }`}
                   >
-                    <div
-                      className={`flex items-center gap-2 transition-colors pb-2 ${
-                        isActive 
-                          ? "text-[#242424] font-medium border-b-2 border-[#242424]" 
-                          : "text-[#242424] font-medium hover:opacity-70"
-                      }`}
-                    >
-                      <IconComponent className="size-4" />
-                      <p className="text-sm leading-4">{item.label}</p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </nav>
+                    <IconComponent className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  aria-label={item.label}
+                  classNames={{
+                    base: "bg-white dark:bg-[#1a202c] border border-[#e7ebf3] dark:border-gray-700 rounded-xl shadow-lg min-w-[200px]",
+                  }}
+                >
+                  {item.submenu.map((subItem: MenuSubItem) => {
+                    const SubIconComponent = subItem.icon;
+                    const isSubActive = pathname === subItem.href;
+                    return (
+                      <DropdownItem
+                        key={subItem.label}
+                        startContent={<SubIconComponent className="w-4 h-4 text-[#4c669a]" />}
+                        as={Link}
+                        href={subItem.href}
+                        className={isSubActive ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                      >
+                        <span
+                          className={
+                            isSubActive
+                              ? "text-[#135bec] font-medium"
+                              : "text-[#0d121b] dark:text-gray-200"
+                          }
+                        >
+                          {subItem.label}
+                        </span>
+                      </DropdownItem>
+                    );
+                  })}
+                </DropdownMenu>
+              </Dropdown>
+            );
+          }
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 items-center relative shrink-0 mr-5">
-              <Button
-                variant="flat"
-                size="sm"
-                className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0"
-                isIconOnly
-              >
-                <HelpCircle className="size-4 text-[#242424]" />
-              </Button>
-              <Button
-                variant="flat"
-                size="sm"
-                className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0"
-                isIconOnly
-              >
-                <Settings className="size-4 text-[#242424]" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Toggle Button - Positioned on the right */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
-          <Button
-            variant="flat"
-            size="sm"
-            className="bg-[#f0f0f0] rounded-[6px] h-8 px-2 min-w-0 hover:bg-[#e0e0e0] transition-colors"
-            isIconOnly
-            onPress={toggleBottomNav}
-            aria-label={isBottomNavVisible ? "Ẩn menu" : "Hiện menu"}
-          >
-            {isBottomNavVisible ? (
-              <ChevronDown className="size-4 text-[#242424]" />
-            ) : (
-              <ChevronUp className="size-4 text-[#242424]" />
-            )}
-          </Button>
-        </div>
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`whitespace-nowrap flex items-center gap-1.5 font-medium text-sm ${
+                active
+                  ? "text-[#135bec] font-semibold"
+                  : "text-[#4c669a] dark:text-gray-400"
+              }`}
+            >
+              <IconComponent className="w-4 h-4" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
-    </div>
+    </header>
   );
 }
-

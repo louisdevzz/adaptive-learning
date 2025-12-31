@@ -1,48 +1,76 @@
 "use client";
 
-import { MoreVertical, ArrowUp, ArrowDown } from "lucide-react";
-
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ChartIncreaseIcon, ChartDecreaseIcon, Remove01Icon } from "@hugeicons/core-free-icons";
 
 interface MetricCardProps {
   title: string;
   value: string;
   change?: string;
-  changeType?: "up" | "down";
-  changeColor?: string;
+  changeType?: "up" | "down" | "neutral";
+  icon?: React.ReactNode;
+  iconBg?: string;
+  iconColor?: string;
 }
 
-export function MetricCard({ title, value, change, changeType, changeColor }: MetricCardProps) {
-  const showChange = change && changeType && changeColor;
+export function MetricCard({
+  title,
+  value,
+  change,
+  changeType = "up",
+  icon,
+  iconBg = "bg-blue-50 dark:bg-blue-900/20",
+  iconColor = "text-[#135bec]",
+}: MetricCardProps) {
+  const showChange = change && changeType;
+
+  const getChangeStyles = () => {
+    switch (changeType) {
+      case "up":
+        return "text-green-600 bg-green-50 dark:bg-green-900/20";
+      case "down":
+        return "text-red-600 bg-red-50 dark:bg-red-900/20";
+      case "neutral":
+        return "text-gray-500 bg-gray-100 dark:bg-gray-800";
+      default:
+        return "text-green-600 bg-green-50 dark:bg-green-900/20";
+    }
+  };
+
+  const getChangeIcon = () => {
+    switch (changeType) {
+      case "up":
+        return <HugeiconsIcon icon={ChartIncreaseIcon} size={14} className="w-3.5 h-3.5" />;
+      case "down":
+        return <HugeiconsIcon icon={ChartDecreaseIcon} size={14} className="w-3.5 h-3.5" />;
+      case "neutral":
+        return <HugeiconsIcon icon={Remove01Icon} size={14} className="w-3.5 h-3.5" />;
+      default:
+        return <HugeiconsIcon icon={ChartIncreaseIcon} size={14} className="w-3.5 h-3.5" />;
+    }
+  };
 
   return (
-    <div className="bg-white border border-[#e9eaeb] border-solid flex flex-1 flex-col gap-4 items-start p-4 relative rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]">
-      <div className="flex gap-2 items-start relative shrink-0 w-full">
-        <p className="flex-1 font-semibold leading-5 text-[#181d27] text-sm w-full">{title}</p>
-        <MoreVertical className="size-4 text-[#414651]" />
+    <div className="bg-white dark:bg-[#1a202c] p-5 rounded-xl border border-[#e7ebf3] dark:border-gray-700 transition-all cursor-pointer group">
+      <div className="flex justify-between items-start mb-2">
+        {icon && (
+          <div className={`${iconBg} p-2 rounded-lg ${iconColor} transition-colors`}>
+            {icon}
+          </div>
+        )}
+        {showChange && (
+          <span className={`flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${getChangeStyles()}`}>
+            <span className="mr-0.5">{getChangeIcon()}</span>
+            {change}
+          </span>
+        )}
       </div>
-      <div className="flex gap-3 items-end relative shrink-0 w-full">
-        <div className="flex flex-1 flex-col gap-2 items-start relative shrink-0">
-          <p className="font-semibold leading-8 text-[#181d27] text-2xl tracking-[-0.5px] w-full">
-            {value}
-          </p>
-          {showChange && (
-            <div className="flex gap-1.5 items-center relative shrink-0 w-full">
-              <div className="flex gap-1 items-center justify-center relative shrink-0">
-                {changeType === "up" ? (
-                  <ArrowUp className="size-4" style={{ color: changeColor }} />
-                ) : (
-                  <ArrowDown className="size-4" style={{ color: changeColor }} />
-                )}
-                <p className="font-medium leading-4 text-center text-xs" style={{ color: changeColor }}>
-                  {change}
-                </p>
-              </div>
-              <p className="flex-1 font-medium leading-4 text-[#535862] text-xs w-full">so với tháng trước</p>
-            </div>
-          )}
-        </div>
+      <div className="mt-2">
+        <h3 className="text-3xl font-bold text-[#0d121b] dark:text-white">{value}</h3>
+        <p className="text-[#4c669a] dark:text-gray-400 text-sm font-medium flex items-center gap-1">
+          {title}
+        </p>
       </div>
     </div>
   );
 }
-

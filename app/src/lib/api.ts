@@ -53,6 +53,11 @@ export const api = {
       return response.data;
     },
 
+    loginWithGoogle: async (idToken: string) => {
+      const response = await apiClient.post('/auth/google', { idToken });
+      return response.data;
+    },
+
     register: async (email: string, password: string, name: string) => {
       const response = await apiClient.post('/auth/register', { email, password, name });
       return response.data;
@@ -837,6 +842,74 @@ export const api = {
 
     getStudentQuestionAttempts: async (studentId: string, kpId: string) => {
       const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}/attempts`);
+      return response.data;
+    },
+  },
+
+  // Dashboard endpoints
+  dashboard: {
+    getStats: async (params?: {
+      startDate?: string;
+      endDate?: string;
+      gradeLevel?: number;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      if (params?.gradeLevel) queryParams.append('gradeLevel', params.gradeLevel.toString());
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/dashboard/stats?${queryString}` : '/dashboard/stats';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getTopCourses: async (limit?: number) => {
+      const url = limit ? `/dashboard/top-courses?limit=${limit}` : '/dashboard/top-courses';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getDifficultKPs: async (limit?: number) => {
+      const url = limit ? `/dashboard/difficult-kps?limit=${limit}` : '/dashboard/difficult-kps';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getGameCompletions: async (limit?: number) => {
+      const url = limit ? `/dashboard/game-completions?limit=${limit}` : '/dashboard/game-completions';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getClassDistribution: async () => {
+      const response = await apiClient.get('/dashboard/class-distribution');
+      return response.data;
+    },
+
+    getLearningHealth: async (params?: {
+      startDate?: string;
+      endDate?: string;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/dashboard/learning-health?${queryString}` : '/dashboard/learning-health';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getTeacherHighlights: async (limit?: number) => {
+      const url = limit ? `/dashboard/teacher-highlights?limit=${limit}` : '/dashboard/teacher-highlights';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getLowProgressClasses: async (limit?: number) => {
+      const url = limit ? `/dashboard/low-progress-classes?limit=${limit}` : '/dashboard/low-progress-classes';
+      const response = await apiClient.get(url);
       return response.data;
     },
   },

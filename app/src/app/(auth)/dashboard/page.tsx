@@ -44,11 +44,8 @@ export default function DashboardPage() {
 
   return (
     <LayoutDashboard>
-      <div className="bg-white flex flex-1 flex-col gap-6 items-start overflow-y-auto pb-8 pt-6 px-12 w-full relative shrink-0 mt-[140px]">
-        <DashboardHeader />
-
-        {renderDashboard()}
-      </div>
+      <DashboardHeader />
+      {renderDashboard()}
     </LayoutDashboard>
   );
 }

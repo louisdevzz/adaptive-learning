@@ -94,7 +94,7 @@ export function QuoteSection() {
           <div className="flex flex-col gap-12 items-center relative w-full">
             {/* Section Title */}
             <div className="flex flex-col gap-2 items-center">
-              <h2 className="font-semibold leading-[48px] text-[#181d27] text-[32px] tracking-[-0.64px] text-center">
+              <h2 className="font-semibold font-dinMedium leading-[48px] text-[#181d27] text-[32px] tracking-[-0.64px] text-center">
                 Những gì người dùng nói về chúng tôi
               </h2>
               <p className="font-normal leading-[28px] text-[#535862] text-lg text-center max-w-2xl">

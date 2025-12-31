@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@heroui/button";
 import { Plus } from "lucide-react";
 
 interface CourseHeaderProps {
@@ -9,23 +8,22 @@ interface CourseHeaderProps {
 
 export function CourseHeader({ onCreate }: CourseHeaderProps) {
   return (
-    <div className="flex items-center justify-between w-full">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-semibold leading-7 text-[#181d27] text-xl">
-          Quản lý môn học
+    <div className="flex flex-wrap justify-between items-end gap-4 pb-6 border-b border-card-border dark:border-gray-800 mb-6">
+      <div>
+        <h1 className="text-text-main dark:text-white text-3xl font-bold leading-tight tracking-tight">
+          Danh sách Khóa học
         </h1>
-        <p className="font-normal leading-5 text-[#535862] text-sm">
-          Quản lý và theo dõi tất cả môn học trong hệ thống
+        <p className="text-text-muted dark:text-gray-400 text-sm mt-1">
+          Quản lý và theo dõi tất cả các khóa học trong hệ thống.
         </p>
       </div>
-      <Button
-        size="sm"
-        className="bg-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]"
-        startContent={<Plus className="size-4 text-white" />}
-        onPress={onCreate}
+      <button
+        onClick={onCreate}
+        className="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary hover:bg-blue-700 text-white text-sm font-bold leading-normal transition-all shadow-sm hover:shadow-md"
       >
-        Thêm môn học
-      </Button>
+        <Plus className="w-5 h-5" />
+        <span className="truncate">Tạo khóa học</span>
+      </button>
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function FeaturesWithMockupSection() {
                   </p>
                 </div>
               </div>
-              <h2 className="font-semibold leading-[48px] min-w-full text-[#181d27] text-[32px] text-center tracking-[-0.64px] w-min">
+              <h2 className="font-semibold font-dinMedium leading-[48px] min-w-full text-[#181d27] text-[32px] text-center tracking-[-0.64px] w-min">
                 Tính năng tiên tiến cho học tập cá nhân hóa
               </h2>
             </div>

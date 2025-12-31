@@ -154,3 +154,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+.font-dinRound {
+  font-family: var(--font-din-round);
+}
+
+.font-dinMedium {
+  font-family: var(--font-din-round-medium);
+}

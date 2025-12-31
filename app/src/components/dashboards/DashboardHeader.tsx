@@ -1,83 +1,58 @@
 "use client";
 
 import { Button } from "@heroui/button";
-import { Upload, Plus, BookOpen, Users, GraduationCap, UserCheck } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { useState } from "react";
 
-const roleDescriptions: Record<string, { title: string; description: string; icon: any }> = {
-  admin: {
-    title: "Bảng điều khiển Quản trị viên",
-    description: "Quản lý toàn bộ hệ thống, người dùng và khóa học.",
-    icon: UserCheck,
-  },
-  teacher: {
-    title: "Bảng điều khiển Giáo viên",
-    description: "Tạo nội dung, quản lý lớp học và theo dõi tiến độ học sinh.",
-    icon: GraduationCap,
-  },
-  student: {
-    title: "Bảng điều khiển Học sinh",
-    description: "Theo dõi lộ trình học tập, mức độ nắm vững và tiến độ của bạn.",
-    icon: BookOpen,
-  },
-  parent: {
-    title: "Bảng điều khiển Phụ huynh",
-    description: "Theo dõi tiến độ học tập và thành tích của con bạn.",
-    icon: Users,
-  },
-};
+const dateFilters = [
+  { label: "Hôm nay", value: "today" },
+  { label: "Tuần này", value: "week" },
+  { label: "Tháng này", value: "month" },
+];
 
 export function DashboardHeader() {
   const { user, loading } = useUser();
-  const role = user?.role?.toLowerCase() || "";
-  const roleInfo = roleDescriptions[role] || {
-    title: "Bảng điều khiển",
-    description: "Chào mừng bạn đến với nền tảng học tập thông minh.",
-    icon: BookOpen,
-  };
-  const IconComponent = roleInfo.icon;
+  const [selectedFilter, setSelectedFilter] = useState("today");
 
   return (
-    <div className="flex flex-col items-start relative shrink-0 w-full">
-      <div className="flex flex-col items-start px-6 py-0 relative shrink-0 w-full">
-        <div className="flex flex-col items-start relative shrink-0 w-full">
-          <div className="flex gap-4 items-center justify-between relative shrink-0 w-full">
-            <div className="flex flex-1 flex-col gap-0.5 items-start relative shrink-0">
-              <div className="flex gap-2 items-center relative shrink-0 w-full mb-1">
-                <IconComponent className="size-5 text-[#7f56d9]" />
-                <h1 className="font-semibold leading-7 text-[#181d27] text-xl">
-                  {loading ? "Đang tải..." : roleInfo.title}
-                </h1>
-              </div>
-              <p className="font-normal leading-5 text-[#535862] text-sm w-full">
-                {loading
-                  ? "Đang tải thông tin..."
-                  : user
-                  ? `Chào mừng trở lại, ${user.fullName}! ${roleInfo.description}`
-                  : roleInfo.description}
-              </p>
-            </div>
-            {(role === "admin" || role === "teacher") && (
-              <div className="flex gap-2 items-center relative shrink-0">
-                <Button
-                  variant="bordered"
-                  size="sm"
-                  className="border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]"
-                  startContent={<Upload className="size-4 text-[#414651]" />}
-                >
-                  Nhập dữ liệu
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]"
-                  startContent={<Plus className="size-4 text-white" />}
-                >
-                  {role === "admin" ? "Thêm mới" : "Tạo nội dung"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 w-full">
+      <div>
+        <h1 className="text-3xl font-bold text-[#0d121b] dark:text-white tracking-tight mb-2">
+          Tổng quan hệ thống
+        </h1>
+        <p className="text-[#4c669a] dark:text-gray-400">
+          {loading
+            ? "Đang tải thông tin..."
+            : user
+            ? `Chào mừng trở lại, ${user.fullName}. Đây là tình hình hoạt động hôm nay.`
+            : "Chào mừng bạn đến với nền tảng học tập thông minh."}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 bg-white dark:bg-[#1a202c] border border-[#e7ebf3] rounded-lg p-1 shadow-sm">
+        {dateFilters.map((filter) => (
+          <Button
+            key={filter.value}
+            size="sm"
+            variant={selectedFilter === filter.value ? "solid" : "light"}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+              selectedFilter === filter.value
+                ? "bg-gray-100 dark:bg-gray-700 text-[#0d121b] dark:text-white"
+                : "text-[#4c669a] hover:bg-gray-50 dark:hover:bg-gray-800"
+            }`}
+            onPress={() => setSelectedFilter(filter.value)}
+          >
+            {filter.label}
+          </Button>
+        ))}
+        <Button
+          size="sm"
+          variant="light"
+          isIconOnly
+          className="p-1.5 text-[#4c669a] hover:text-[#135bec]"
+        >
+          <Calendar className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   );

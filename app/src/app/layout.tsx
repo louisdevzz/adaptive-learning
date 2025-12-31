@@ -1,15 +1,39 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Roboto_Flex } from "next/font/google";
 import Provider from "@/components/Provider";
 import { Toaster } from "sonner";
+import localFont from "next/font/local";
 
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "vietnamese"],
+const robotoFlex = Roboto_Flex({
+  variable: "--font-roboto-flex",
+  subsets: ["latin",'vietnamese'],
+  weight: ["400","500","600","700"],
   display: "swap",
 });
+
+
+const dinRound = localFont({
+  variable: "--font-din-round",
+  src: [
+    {
+      path: "../fonts/GMV_DIN_PRO.ttf",
+      style: "normal",
+    },
+  ],
+});
+
+const dinRoundMedium = localFont({
+  variable: "--font-din-round-medium",
+  src: [
+    {
+      path: "../fonts/GMV_DIN_PRO-Medium.ttf",
+      style: "normal",
+    },
+  ],
+});
+
 
 export const metadata: Metadata = {
   title: "Adaptive Learning Platform v3.0 - Học tập thông minh, cá nhân hóa",
@@ -71,7 +95,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
-        className={`${inter.variable} font-sans antialiased`}
+        className={`${robotoFlex.className} ${dinRound.variable} ${dinRoundMedium.variable} font-sans antialiased`}
       >
         <Provider>
           {children}

@@ -1,86 +1,89 @@
 "use client";
 
-import { useState } from "react";
-import { MinusCircle, PlusCircle } from "lucide-react";
+import { Search } from "lucide-react";
 
 const faqs = [
   {
-    question: "Học tập thích ứng hoạt động như thế nào?",
-    answer: "Nền tảng của chúng tôi chia nhỏ nội dung thành các điểm kiến thức nhỏ và theo dõi mức độ nắm vững của bạn về từng điểm. Dựa trên hiệu suất của bạn, hệ thống đề xuất nội dung tốt nhất tiếp theo để học, đảm bảo bạn luôn học ở mức độ khó phù hợp để tiến bộ tối ưu.",
-    isOpen: true,
+    question: "Adapt hoạt động như thế nào?",
+    answer:
+      "Adapt sử dụng trí tuệ nhân tạo để phân tích năng lực và tiến độ học tập của từng học sinh, sau đó tự động điều chỉnh nội dung và lộ trình học tập cá nhân hóa. Điều này giúp học sinh tập trung vào những kiến thức cần cải thiện và phát triển tối đa tiềm năng.",
   },
   {
-    question: "Phụ huynh có thể theo dõi tiến độ của con mình không?",
-    answer: "Có! Phụ huynh có quyền truy cập vào bảng điều khiển toàn diện hiển thị tiến độ học tập, mức độ nắm vững, thời gian học tập và các lĩnh vực cần cải thiện của con bạn. Bạn sẽ nhận được cập nhật thường xuyên về hành trình giáo dục của con mình.",
-    isOpen: false,
+    question: "Adapt có phù hợp với mọi cấp học không?",
+    answer:
+      "Hiện tại, Adapt được thiết kế tối ưu cho cấp THCS và THPT. Chúng tôi đang phát triển để mở rộng ra các cấp học khác trong tương lai gần.",
   },
   {
-    question: "Hệ thống theo dõi mastery hoạt động như thế nào?",
-    answer: "Công cụ mastery phân tích nhiều tín hiệu bao gồm điểm số bài kiểm tra, số lần thử, thời gian hoàn thành bài tập và lịch sử học tập. Nó tính toán điểm mastery cho mỗi điểm kiến thức và cập nhật theo thời gian thực khi bạn học.",
-    isOpen: false,
+    question: "Tôi có thể dùng thử Adapt miễn phí không?",
+    answer:
+      "Có, chúng tôi cung cấp gói dùng thử miễn phí cho các lớp học nhỏ hoặc cá nhân. Bạn có thể đăng ký trực tiếp trên trang web của chúng tôi để trải nghiệm các tính năng cơ bản.",
   },
   {
-    question: "Có những môn học và khóa học nào?",
-    answer: "Nền tảng của chúng tôi hỗ trợ các khóa học trên nhiều môn học bao gồm Toán học, Khoa học, Ngôn ngữ và nhiều hơn nữa. Giáo viên có thể tạo và quản lý nội dung khóa học, tổ chức thành modules, sections và điểm kiến thức để học tập có cấu trúc.",
-    isOpen: false,
+    question: "Làm thế nào để tích hợp Adapt với hệ thống LMS hiện có của trường tôi?",
+    answer:
+      "Adapt hỗ trợ tích hợp qua API với hầu hết các hệ thống LMS phổ biến. Vui lòng liên hệ đội ngũ hỗ trợ của chúng tôi để được tư vấn chi tiết về quy trình tích hợp.",
   },
   {
-    question: "Có hỗ trợ cho giáo viên không?",
-    answer: "Chắc chắn rồi! Giáo viên có quyền truy cập vào các công cụ mạnh mẽ để tạo nội dung, quản lý lớp học, xem tiến độ học sinh và tạo báo cáo chi tiết. Nền tảng giúp giáo viên xác định học sinh cần hỗ trợ thêm và những học sinh sẵn sàng cho tài liệu nâng cao.",
-    isOpen: false,
-  },
-  {
-    question: "Làm thế nào để bắt đầu?",
-    answer: "Chỉ cần đăng ký tài khoản, chọn vai trò của bạn (Học sinh, Giáo viên, Phụ huynh hoặc Quản trị viên) và bắt đầu khám phá. Học sinh có thể đăng ký khóa học, giáo viên có thể tạo nội dung và phụ huynh có thể liên kết với tài khoản con mình để theo dõi tiến độ.",
-    isOpen: false,
+    question: "Dữ liệu học sinh có được bảo mật không?",
+    answer:
+      "Chúng tôi cam kết bảo mật tuyệt đối dữ liệu học sinh theo các tiêu chuẩn cao nhất. Tất cả thông tin đều được mã hóa và tuân thủ các quy định về quyền riêng tư.",
   },
 ];
 
+const categories = ["Tính năng", "Tài khoản", "Thanh toán", "Tích hợp", "Bảo mật"];
+
 export function FAQSection() {
-  const [openIndex, setOpenIndex] = useState(0);
-
   return (
-    <section className="bg-white flex flex-col gap-16 items-center overflow-clip px-0 py-24 relative w-full">
-      <div className="flex flex-col items-start px-8 py-0 w-full max-w-[1280px]">
-        <div className="flex flex-col items-center relative w-full">
-          <div className="flex flex-col gap-5 items-center text-center w-[768px]">
-            <h2 className="font-semibold leading-[48px] text-[#181d27] text-[32px] tracking-[-0.64px] w-full">
-              Câu hỏi thường gặp
-            </h2>
-            <p className="font-normal leading-[28px] text-[#535862] text-lg w-full">
-              Tất cả những gì bạn cần biết về học tập thích ứng và cách nó hoạt động.
-            </p>
-          </div>
+    <section className="py-24 bg-background-soft dark:bg-slate-900" id="faq">
+      <div className="mx-auto max-w-4xl px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center mb-16">
+          <h2 className="text-base font-semibold text-primary uppercase tracking-wide">
+            Hỗ trợ
+          </h2>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+            Câu hỏi thường gặp
+          </p>
+          <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
+            Tìm câu trả lời cho những thắc mắc phổ biến nhất của bạn về Adapt.
+          </p>
         </div>
-      </div>
 
-      <div className="flex flex-col items-center px-8 py-0 w-full max-w-[1280px]">
-        <div className="flex flex-col gap-8 items-start relative w-[768px]">
-          {faqs.map((faq, index) => (
-            <div key={index} className="flex flex-col gap-6 items-center relative w-full">
-              {index > 0 && <div className="bg-[#e9eaeb] h-px w-full" />}
-              <div className="flex gap-6 items-start relative w-full">
-                <div className="flex flex-[1_0_0] flex-col gap-2 items-start min-h-px min-w-px relative pr-4">
-                  <p className="font-semibold leading-6 text-[#181d27] text-base w-full">
-                    {faq.question}
-                  </p>
-                  {openIndex === index && faq.answer && (
-                    <p className="font-normal leading-[22px] text-[#535862] text-sm w-full mt-1">
-                      {faq.answer}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setOpenIndex(openIndex === index ? -1 : index)}
-                  className="flex flex-col items-start pb-0 pt-0.5 px-0 relative shrink-0"
-                >
-                  {openIndex === index ? (
-                    <MinusCircle className="w-6 h-6 text-[#7f56d9]" />
-                  ) : (
-                    <PlusCircle className="w-6 h-6 text-[#7f56d9]" />
-                  )}
-                </button>
-              </div>
+        <div className="relative w-full mb-8">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+            <Search className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+          </div>
+          <input
+            className="w-full pl-12 pr-4 py-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 shadow-sm"
+            placeholder="Tìm kiếm câu hỏi..."
+            type="text"
+          />
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mb-16">
+          {categories.map((category, idx) => (
+            <button
+              key={idx}
+              className="px-4 py-2 rounded-full text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 transition-colors"
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-6">
+          {faqs.map((faq, idx) => (
+            <div
+              key={idx}
+              className={`pb-6 ${
+                idx < faqs.length - 1
+                  ? "border-b border-slate-200 dark:border-slate-700"
+                  : ""
+              }`}
+            >
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                {faq.question}
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400">{faq.answer}</p>
             </div>
           ))}
         </div>
@@ -88,4 +91,3 @@ export function FAQSection() {
     </section>
   );
 }
-

@@ -10,6 +10,8 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
 import { mutate } from "swr";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 
 // Image assets from Figma
 const imgScreenMockupReplaceFill = "https://www.figma.com/api/mcp/asset/29b09a43-a041-46a3-878a-c7bf26444b65";
@@ -69,6 +71,43 @@ function LoginForm() {
       console.error("Login error:", err);
       console.error("Error response:", err.response);
       const errorMessage = err.response?.data?.message || err.message || "Login failed. Please check your credentials.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      // Sign in with Google popup
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Get Firebase ID token
+      const idToken = await user.getIdToken();
+
+      // Send token to backend
+      await api.auth.loginWithGoogle(idToken);
+
+      // Fetch full user profile
+      try {
+        const fullProfile = await api.auth.getProfile();
+        await mutate("/auth/me", fullProfile, { revalidate: false });
+      } catch (profileError) {
+        await mutate("/auth/me", undefined, { revalidate: true });
+      }
+
+      // Wait a bit for cookie to be set by the backend
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Force a hard navigation to ensure cookies are recognized by middleware
+      window.location.href = redirectTo;
+    } catch (err: any) {
+      console.error("Google login error:", err);
+      const errorMessage = err.message || "Google login failed. Please try again.";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -200,6 +239,8 @@ function LoginForm() {
                       className="bg-white border border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
                       startContent={<GoogleIcon />}
                       size="md"
+                      onClick={handleGoogleLogin}
+                      isDisabled={loading}
                     >
                       Sign in with Google
                     </Button>
@@ -359,6 +400,8 @@ function LoginForm() {
                   className="bg-white border border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
                   startContent={<GoogleIcon />}
                   size="md"
+                  onClick={handleGoogleLogin}
+                  isDisabled={loading}
                 >
                   Sign in with Google
                 </Button>

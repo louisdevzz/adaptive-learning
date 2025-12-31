@@ -53,6 +53,30 @@ export class AuthController {
     return response;
   }
 
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  async loginWithGoogle(
+    @Body('idToken') idToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.loginWithGoogle(idToken);
+
+    // Set HTTP-only cookie with the access token
+    // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
+    res.cookie('access_token', result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
+    });
+
+    // Don't return accessToken in response body for security
+    const { accessToken, ...response } = result;
+    return response;
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() user: ICurrentUser) {

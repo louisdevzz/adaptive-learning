@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/button";
-import { Plus } from "lucide-react";
+import { UserPlus, Download } from "lucide-react";
 
 interface ClassHeaderProps {
   onCreate: () => void;
@@ -9,23 +9,31 @@ interface ClassHeaderProps {
 
 export function ClassHeader({ onCreate }: ClassHeaderProps) {
   return (
-    <div className="flex items-center justify-between w-full">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-semibold leading-7 text-[#181d27] text-xl">
-          Quản lý lớp học
-        </h1>
-        <p className="font-normal leading-5 text-[#535862] text-sm">
-          Quản lý và theo dõi tất cả lớp học trong hệ thống
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+      <div>
+        <h2 className="text-2xl md:text-3xl font-bold text-[#0d121b] dark:text-white tracking-tight">
+          Danh sách Lớp học
+        </h2>
+        <p className="text-[#4c669a] dark:text-gray-400 text-sm mt-1">
+          Quản lý học sinh, xem tiến độ và liên lạc.
         </p>
       </div>
-      <Button
-        size="sm"
-        className="bg-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)]"
-        startContent={<Plus className="size-4 text-white" />}
-        onPress={onCreate}
-      >
-        Thêm lớp học
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button
+          variant="bordered"
+          className="hidden sm:flex border-[#e7ebf3] dark:border-[#2a3447] text-[#0d121b] dark:text-white"
+          startContent={<Download className="size-4" />}
+        >
+          Export
+        </Button>
+        <Button
+          className="bg-[#135bec] hover:bg-[#0e4bce] text-white"
+          startContent={<UserPlus className="size-5" />}
+          onPress={onCreate}
+        >
+          Thêm Học sinh
+        </Button>
+      </div>
     </div>
   );
 }
