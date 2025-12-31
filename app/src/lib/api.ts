@@ -1,16 +1,16 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   withCredentials: true, // Important for cookies
   headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': API_KEY,
+    "Content-Type": "application/json",
+    "x-api-key": API_KEY,
   },
 });
 
@@ -19,7 +19,7 @@ apiClient.interceptors.request.use(
   (config) => {
     // Ensure x-api-key is always included
     if (API_KEY) {
-      config.headers['x-api-key'] = API_KEY;
+      config.headers["x-api-key"] = API_KEY;
     }
     return config;
   },
@@ -36,8 +36,23 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Unauthorized - redirect to login
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      const isPublicPath = ["/", "/about", "/contact"].some(
+        (path) =>
+          window.location.pathname === path ||
+          window.location.pathname.startsWith(path + "/")
+      );
+
+      // Don't redirect if we're on a public path and it's just the 'me' endpoint failing (user not logged in)
+      const isMeEndpoint = error.config?.url?.includes("/auth/me");
+
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("/login") &&
+        !(isPublicPath && isMeEndpoint)
+      ) {
+        window.location.href = `/login?redirect=${encodeURIComponent(
+          window.location.pathname
+        )}`;
       }
     }
     return Promise.reject(error);
@@ -49,27 +64,31 @@ export const api = {
   // Auth endpoints
   auth: {
     login: async (email: string, password: string) => {
-      const response = await apiClient.post('/auth/login', { email, password });
+      const response = await apiClient.post("/auth/login", { email, password });
       return response.data;
     },
 
     loginWithGoogle: async (idToken: string) => {
-      const response = await apiClient.post('/auth/google', { idToken });
+      const response = await apiClient.post("/auth/google", { idToken });
       return response.data;
     },
 
     register: async (email: string, password: string, name: string) => {
-      const response = await apiClient.post('/auth/register', { email, password, name });
+      const response = await apiClient.post("/auth/register", {
+        email,
+        password,
+        name,
+      });
       return response.data;
     },
 
     logout: async () => {
-      const response = await apiClient.post('/auth/logout');
+      const response = await apiClient.post("/auth/logout");
       return response.data;
     },
 
     getProfile: async () => {
-      const response = await apiClient.get('/auth/me');
+      const response = await apiClient.get("/auth/me");
       return response.data;
     },
   },
@@ -77,7 +96,7 @@ export const api = {
   // Admins endpoints
   admins: {
     getAll: async () => {
-      const response = await apiClient.get('/admins');
+      const response = await apiClient.get("/admins");
       return response.data;
     },
 
@@ -90,22 +109,25 @@ export const api = {
       email: string;
       password: string;
       fullName: string;
-      adminLevel: 'super' | 'system' | 'support';
+      adminLevel: "super" | "system" | "support";
       permissions: string[];
       avatarUrl?: string;
     }) => {
-      const response = await apiClient.post('/admins', data);
+      const response = await apiClient.post("/admins", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      email?: string;
-      password?: string;
-      fullName?: string;
-      adminLevel?: 'super' | 'system' | 'support';
-      permissions?: string[];
-      avatarUrl?: string;
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        email?: string;
+        password?: string;
+        fullName?: string;
+        adminLevel?: "super" | "system" | "support";
+        permissions?: string[];
+        avatarUrl?: string;
+      }
+    ) => {
       const response = await apiClient.patch(`/admins/${id}`, data);
       return response.data;
     },
@@ -119,7 +141,7 @@ export const api = {
   // Teachers endpoints
   teachers: {
     getAll: async () => {
-      const response = await apiClient.get('/teachers');
+      const response = await apiClient.get("/teachers");
       return response.data;
     },
 
@@ -139,21 +161,24 @@ export const api = {
       bio?: string;
       avatarUrl?: string;
     }) => {
-      const response = await apiClient.post('/teachers', data);
+      const response = await apiClient.post("/teachers", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      email?: string;
-      password?: string;
-      fullName?: string;
-      specialization?: string[];
-      experienceYears?: number;
-      certifications?: string[];
-      phone?: string;
-      bio?: string;
-      avatarUrl?: string;
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        email?: string;
+        password?: string;
+        fullName?: string;
+        specialization?: string[];
+        experienceYears?: number;
+        certifications?: string[];
+        phone?: string;
+        bio?: string;
+        avatarUrl?: string;
+      }
+    ) => {
       const response = await apiClient.patch(`/teachers/${id}`, data);
       return response.data;
     },
@@ -167,7 +192,7 @@ export const api = {
   // Students endpoints
   students: {
     getAll: async () => {
-      const response = await apiClient.get('/students');
+      const response = await apiClient.get("/students");
       return response.data;
     },
 
@@ -177,12 +202,14 @@ export const api = {
     },
 
     getMyCourses: async () => {
-      const response = await apiClient.get('/students/me/courses');
+      const response = await apiClient.get("/students/me/courses");
       return response.data;
     },
 
     getMyCoursesWithProgress: async () => {
-      const response = await apiClient.get('/students/me/courses-with-progress');
+      const response = await apiClient.get(
+        "/students/me/courses-with-progress"
+      );
       return response.data;
     },
 
@@ -194,24 +221,27 @@ export const api = {
       gradeLevel: number;
       schoolName: string;
       dateOfBirth: string;
-      gender: 'male' | 'female' | 'other';
+      gender: "male" | "female" | "other";
       avatarUrl?: string;
     }) => {
-      const response = await apiClient.post('/students', data);
+      const response = await apiClient.post("/students", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      email?: string;
-      password?: string;
-      fullName?: string;
-      studentCode?: string;
-      gradeLevel?: number;
-      schoolName?: string;
-      dateOfBirth?: string;
-      gender?: 'male' | 'female' | 'other';
-      avatarUrl?: string;
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        email?: string;
+        password?: string;
+        fullName?: string;
+        studentCode?: string;
+        gradeLevel?: number;
+        schoolName?: string;
+        dateOfBirth?: string;
+        gender?: "male" | "female" | "other";
+        avatarUrl?: string;
+      }
+    ) => {
       const response = await apiClient.patch(`/students/${id}`, data);
       return response.data;
     },
@@ -225,7 +255,7 @@ export const api = {
   // Parents endpoints
   parents: {
     getAll: async () => {
-      const response = await apiClient.get('/parents');
+      const response = await apiClient.get("/parents");
       return response.data;
     },
 
@@ -240,24 +270,27 @@ export const api = {
       fullName: string;
       phone: string;
       address: string;
-      relationshipType: 'father' | 'mother' | 'guardian';
+      relationshipType: "father" | "mother" | "guardian";
       avatarUrl?: string;
       studentIds: string[];
     }) => {
-      const response = await apiClient.post('/parents', data);
+      const response = await apiClient.post("/parents", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      email?: string;
-      password?: string;
-      fullName?: string;
-      phone?: string;
-      address?: string;
-      relationshipType?: 'father' | 'mother' | 'guardian';
-      avatarUrl?: string;
-      studentIds?: string[];
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        email?: string;
+        password?: string;
+        fullName?: string;
+        phone?: string;
+        address?: string;
+        relationshipType?: "father" | "mother" | "guardian";
+        avatarUrl?: string;
+        studentIds?: string[];
+      }
+    ) => {
       const response = await apiClient.patch(`/parents/${id}`, data);
       return response.data;
     },
@@ -268,12 +301,16 @@ export const api = {
     },
 
     addStudent: async (parentId: string, studentId: string) => {
-      const response = await apiClient.post(`/parents/${parentId}/students/${studentId}`);
+      const response = await apiClient.post(
+        `/parents/${parentId}/students/${studentId}`
+      );
       return response.data;
     },
 
     removeStudent: async (parentId: string, studentId: string) => {
-      const response = await apiClient.delete(`/parents/${parentId}/students/${studentId}`);
+      const response = await apiClient.delete(
+        `/parents/${parentId}/students/${studentId}`
+      );
       return response.data;
     },
 
@@ -286,7 +323,7 @@ export const api = {
   // Classes endpoints
   classes: {
     getAll: async () => {
-      const response = await apiClient.get('/classes');
+      const response = await apiClient.get("/classes");
       return response.data;
     },
 
@@ -301,16 +338,19 @@ export const api = {
       schoolYear: string;
       homeroomTeacherId?: string;
     }) => {
-      const response = await apiClient.post('/classes', data);
+      const response = await apiClient.post("/classes", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      className?: string;
-      gradeLevel?: number;
-      schoolYear?: string;
-      homeroomTeacherId?: string;
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        className?: string;
+        gradeLevel?: number;
+        schoolYear?: string;
+        homeroomTeacherId?: string;
+      }
+    ) => {
       const response = await apiClient.patch(`/classes/${id}`, data);
       return response.data;
     },
@@ -321,11 +361,17 @@ export const api = {
     },
 
     // Student Enrollment
-    enrollStudent: async (classId: string, data: {
-      studentId: string;
-      status?: 'active' | 'withdrawn' | 'completed';
-    }) => {
-      const response = await apiClient.post(`/classes/${classId}/students`, data);
+    enrollStudent: async (
+      classId: string,
+      data: {
+        studentId: string;
+        status?: "active" | "withdrawn" | "completed";
+      }
+    ) => {
+      const response = await apiClient.post(
+        `/classes/${classId}/students`,
+        data
+      );
       return response.data;
     },
 
@@ -335,17 +381,25 @@ export const api = {
     },
 
     removeStudent: async (classId: string, studentId: string) => {
-      const response = await apiClient.delete(`/classes/${classId}/students/${studentId}`);
+      const response = await apiClient.delete(
+        `/classes/${classId}/students/${studentId}`
+      );
       return response.data;
     },
 
     // Teacher Assignment
-    assignTeacher: async (classId: string, data: {
-      teacherId: string;
-      role: 'homeroom' | 'subject_teacher' | 'assistant';
-      status?: 'active' | 'inactive';
-    }) => {
-      const response = await apiClient.post(`/classes/${classId}/teachers`, data);
+    assignTeacher: async (
+      classId: string,
+      data: {
+        teacherId: string;
+        role: "homeroom" | "subject_teacher" | "assistant";
+        status?: "active" | "inactive";
+      }
+    ) => {
+      const response = await apiClient.post(
+        `/classes/${classId}/teachers`,
+        data
+      );
       return response.data;
     },
 
@@ -355,35 +409,55 @@ export const api = {
     },
 
     removeTeacher: async (classId: string, teacherId: string) => {
-      const response = await apiClient.delete(`/classes/${classId}/teachers/${teacherId}`);
+      const response = await apiClient.delete(
+        `/classes/${classId}/teachers/${teacherId}`
+      );
       return response.data;
     },
 
     // Course Assignment
-    assignCourse: async (classId: string, data: {
-      courseId: string;
-      assignedBy?: string;
-      status?: 'active' | 'inactive';
-    }) => {
-      const response = await apiClient.post(`/classes/${classId}/courses`, data);
+    assignCourse: async (
+      classId: string,
+      data: {
+        courseId: string;
+        assignedBy?: string;
+        status?: "active" | "inactive";
+      }
+    ) => {
+      const response = await apiClient.post(
+        `/classes/${classId}/courses`,
+        data
+      );
       return response.data;
     },
 
-    getClassCourses: async (classId: string, status?: 'active' | 'inactive') => {
-      const url = status 
+    getClassCourses: async (
+      classId: string,
+      status?: "active" | "inactive"
+    ) => {
+      const url = status
         ? `/classes/${classId}/courses?status=${status}`
         : `/classes/${classId}/courses`;
       const response = await apiClient.get(url);
       return response.data;
     },
 
-    updateClassCourseStatus: async (classId: string, courseId: string, status: 'active' | 'inactive') => {
-      const response = await apiClient.patch(`/classes/${classId}/courses/${courseId}/status`, { status });
+    updateClassCourseStatus: async (
+      classId: string,
+      courseId: string,
+      status: "active" | "inactive"
+    ) => {
+      const response = await apiClient.patch(
+        `/classes/${classId}/courses/${courseId}/status`,
+        { status }
+      );
       return response.data;
     },
 
     removeCourse: async (classId: string, courseId: string) => {
-      const response = await apiClient.delete(`/classes/${classId}/courses/${courseId}`);
+      const response = await apiClient.delete(
+        `/classes/${classId}/courses/${courseId}`
+      );
       return response.data;
     },
   },
@@ -396,12 +470,14 @@ export const api = {
       active?: boolean;
     }) => {
       const queryParams = new URLSearchParams();
-      if (params?.gradeLevel) queryParams.append('gradeLevel', params.gradeLevel.toString());
-      if (params?.subject) queryParams.append('subject', params.subject);
-      if (params?.active !== undefined) queryParams.append('active', params.active.toString());
-      
+      if (params?.gradeLevel)
+        queryParams.append("gradeLevel", params.gradeLevel.toString());
+      if (params?.subject) queryParams.append("subject", params.subject);
+      if (params?.active !== undefined)
+        queryParams.append("active", params.active.toString());
+
       const queryString = queryParams.toString();
-      const url = queryString ? `/courses?${queryString}` : '/courses';
+      const url = queryString ? `/courses?${queryString}` : "/courses";
       const response = await apiClient.get(url);
       return response.data;
     },
@@ -428,21 +504,24 @@ export const api = {
       subject: string;
       gradeLevel: number;
       active?: boolean;
-      visibility?: 'public' | 'private' | 'school_only';
+      visibility?: "public" | "private" | "school_only";
     }) => {
-      const response = await apiClient.post('/courses', data);
+      const response = await apiClient.post("/courses", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      title?: string;
-      description?: string;
-      thumbnailUrl?: string;
-      subject?: string;
-      gradeLevel?: number;
-      active?: boolean;
-      visibility?: 'public' | 'private' | 'school_only';
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        title?: string;
+        description?: string;
+        thumbnailUrl?: string;
+        subject?: string;
+        gradeLevel?: number;
+        active?: boolean;
+        visibility?: "public" | "private" | "school_only";
+      }
+    ) => {
       const response = await apiClient.patch(`/courses/${id}`, data);
       return response.data;
     },
@@ -469,16 +548,22 @@ export const api = {
       description: string;
       orderIndex: number;
     }) => {
-      const response = await apiClient.post('/courses/modules', data);
+      const response = await apiClient.post("/courses/modules", data);
       return response.data;
     },
 
-    updateModule: async (moduleId: string, data: {
-      title?: string;
-      description?: string;
-      orderIndex?: number;
-    }) => {
-      const response = await apiClient.patch(`/courses/modules/${moduleId}`, data);
+    updateModule: async (
+      moduleId: string,
+      data: {
+        title?: string;
+        description?: string;
+        orderIndex?: number;
+      }
+    ) => {
+      const response = await apiClient.patch(
+        `/courses/modules/${moduleId}`,
+        data
+      );
       return response.data;
     },
 
@@ -489,7 +574,9 @@ export const api = {
 
     // Sections
     getAllSections: async (moduleId: string) => {
-      const response = await apiClient.get(`/courses/modules/${moduleId}/sections`);
+      const response = await apiClient.get(
+        `/courses/modules/${moduleId}/sections`
+      );
       return response.data;
     },
 
@@ -510,16 +597,22 @@ export const api = {
         tags?: string[];
       }[];
     }) => {
-      const response = await apiClient.post('/courses/sections', data);
+      const response = await apiClient.post("/courses/sections", data);
       return response.data;
     },
 
-    updateSection: async (sectionId: string, data: {
-      title?: string;
-      summary?: string;
-      orderIndex?: number;
-    }) => {
-      const response = await apiClient.patch(`/courses/sections/${sectionId}`, data);
+    updateSection: async (
+      sectionId: string,
+      data: {
+        title?: string;
+        summary?: string;
+        orderIndex?: number;
+      }
+    ) => {
+      const response = await apiClient.patch(
+        `/courses/sections/${sectionId}`,
+        data
+      );
       return response.data;
     },
 
@@ -529,7 +622,9 @@ export const api = {
     },
 
     getSectionKnowledgePoints: async (sectionId: string) => {
-      const response = await apiClient.get(`/courses/sections/${sectionId}/knowledge-points`);
+      const response = await apiClient.get(
+        `/courses/sections/${sectionId}/knowledge-points`
+      );
       return response.data;
     },
   },
@@ -537,7 +632,7 @@ export const api = {
   // Knowledge Points endpoints
   knowledgePoints: {
     getAll: async () => {
-      const response = await apiClient.get('/knowledge-points');
+      const response = await apiClient.get("/knowledge-points");
       return response.data;
     },
 
@@ -552,7 +647,9 @@ export const api = {
     },
 
     getBySection: async (sectionId: string) => {
-      const response = await apiClient.get(`/knowledge-points/sections/${sectionId}/kps`);
+      const response = await apiClient.get(
+        `/knowledge-points/sections/${sectionId}/kps`
+      );
       return response.data;
     },
 
@@ -563,31 +660,34 @@ export const api = {
       tags?: string[];
       prerequisites?: string[];
       resources?: {
-        resourceType: 'video' | 'article' | 'interactive' | 'quiz' | 'other';
+        resourceType: "video" | "article" | "interactive" | "quiz" | "other";
         url: string;
         title: string;
         description: string;
         orderIndex: number;
       }[];
     }) => {
-      const response = await apiClient.post('/knowledge-points', data);
+      const response = await apiClient.post("/knowledge-points", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      title?: string;
-      description?: string;
-      difficultyLevel?: number;
-      tags?: string[];
-      prerequisites?: string[];
-      resources?: {
-        resourceType: 'video' | 'article' | 'interactive' | 'quiz' | 'other';
-        url: string;
-        title: string;
-        description: string;
-        orderIndex: number;
-      }[];
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        title?: string;
+        description?: string;
+        difficultyLevel?: number;
+        tags?: string[];
+        prerequisites?: string[];
+        resources?: {
+          resourceType: "video" | "article" | "interactive" | "quiz" | "other";
+          url: string;
+          title: string;
+          description: string;
+          orderIndex: number;
+        }[];
+      }
+    ) => {
       const response = await apiClient.patch(`/knowledge-points/${id}`, data);
       return response.data;
     },
@@ -602,28 +702,34 @@ export const api = {
       kpId: string;
       orderIndex: number;
     }) => {
-      const response = await apiClient.post('/knowledge-points/assign-to-section', data);
+      const response = await apiClient.post(
+        "/knowledge-points/assign-to-section",
+        data
+      );
       return response.data;
     },
 
     removeFromSection: async (sectionId: string, kpId: string) => {
-      const response = await apiClient.delete(`/knowledge-points/sections/${sectionId}/kps/${kpId}`);
+      const response = await apiClient.delete(
+        `/knowledge-points/sections/${sectionId}/kps/${kpId}`
+      );
       return response.data;
     },
   },
 
   // Question Bank endpoints
   questionBank: {
-    getAll: async (params?: {
-      questionType?: string;
-      isActive?: boolean;
-    }) => {
+    getAll: async (params?: { questionType?: string; isActive?: boolean }) => {
       const queryParams = new URLSearchParams();
-      if (params?.questionType) queryParams.append('questionType', params.questionType);
-      if (params?.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+      if (params?.questionType)
+        queryParams.append("questionType", params.questionType);
+      if (params?.isActive !== undefined)
+        queryParams.append("isActive", params.isActive.toString());
 
       const queryString = queryParams.toString();
-      const url = queryString ? `/question-bank?${queryString}` : '/question-bank';
+      const url = queryString
+        ? `/question-bank?${queryString}`
+        : "/question-bank";
       const response = await apiClient.get(url);
       return response.data;
     },
@@ -642,7 +748,11 @@ export const api = {
       questionText: string;
       options: string[];
       correctAnswer: string;
-      questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+      questionType:
+        | "multiple_choice"
+        | "true_false"
+        | "fill_in_blank"
+        | "short_answer";
       isActive?: boolean;
       metadata: {
         difficulty: number;
@@ -652,24 +762,31 @@ export const api = {
         estimatedTime?: number;
       };
     }) => {
-      const response = await apiClient.post('/question-bank', data);
+      const response = await apiClient.post("/question-bank", data);
       return response.data;
     },
 
-    update: async (id: string, data: {
-      questionText?: string;
-      options?: string[];
-      correctAnswer?: string;
-      questionType?: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
-      isActive?: boolean;
-      metadata?: {
-        difficulty?: number;
-        discrimination?: number;
-        skillId?: string;
-        tags?: string[];
-        estimatedTime?: number;
-      };
-    }) => {
+    update: async (
+      id: string,
+      data: {
+        questionText?: string;
+        options?: string[];
+        correctAnswer?: string;
+        questionType?:
+          | "multiple_choice"
+          | "true_false"
+          | "fill_in_blank"
+          | "short_answer";
+        isActive?: boolean;
+        metadata?: {
+          difficulty?: number;
+          discrimination?: number;
+          skillId?: string;
+          tags?: string[];
+          estimatedTime?: number;
+        };
+      }
+    ) => {
       const response = await apiClient.patch(`/question-bank/${id}`, data);
       return response.data;
     },
@@ -685,34 +802,47 @@ export const api = {
       questionId: string;
       difficulty: number;
     }) => {
-      const response = await apiClient.post('/question-bank/assign-to-kp', data);
+      const response = await apiClient.post(
+        "/question-bank/assign-to-kp",
+        data
+      );
       return response.data;
     },
 
     removeFromKp: async (kpId: string, questionId: string) => {
-      const response = await apiClient.delete(`/question-bank/kps/${kpId}/questions/${questionId}`);
+      const response = await apiClient.delete(
+        `/question-bank/kps/${kpId}/questions/${questionId}`
+      );
       return response.data;
     },
 
     getQuestionsByKp: async (kpId: string) => {
-      const response = await apiClient.get(`/question-bank/kps/${kpId}/questions`);
+      const response = await apiClient.get(
+        `/question-bank/kps/${kpId}/questions`
+      );
       return response.data;
     },
 
     getMetadata: async (questionId: string) => {
-      const response = await apiClient.get(`/question-bank/${questionId}/metadata`);
+      const response = await apiClient.get(
+        `/question-bank/${questionId}/metadata`
+      );
       return response.data;
     },
 
     generateQuestion: async (data: {
       knowledgePointTitle: string;
       knowledgePointDescription?: string;
-      aiModel: 'openai' | 'gemini';
-      questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+      aiModel: "openai" | "gemini";
+      questionType:
+        | "multiple_choice"
+        | "true_false"
+        | "fill_in_blank"
+        | "short_answer";
       difficulty: number;
       skillId?: string;
     }) => {
-      const response = await apiClient.post('/question-bank/generate', data);
+      const response = await apiClient.post("/question-bank/generate", data);
       return response.data;
     },
   },
@@ -721,12 +851,12 @@ export const api = {
   upload: {
     avatar: async (file: File): Promise<{ message: string; url: string }> => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      const response = await apiClient.post('/upload/avatar', formData, {
+      const response = await apiClient.post("/upload/avatar", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-api-key': API_KEY,
+          "Content-Type": "multipart/form-data",
+          "x-api-key": API_KEY,
         },
       });
       return response.data;
@@ -734,12 +864,12 @@ export const api = {
 
     file: async (file: File): Promise<{ message: string; url: string }> => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      const response = await apiClient.post('/upload/file', formData, {
+      const response = await apiClient.post("/upload/file", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-api-key': API_KEY,
+          "Content-Type": "multipart/form-data",
+          "x-api-key": API_KEY,
         },
       });
       return response.data;
@@ -753,11 +883,14 @@ export const api = {
       subject?: string;
     }) => {
       const queryParams = new URLSearchParams();
-      if (params?.gradeLevel) queryParams.append('gradeLevel', params.gradeLevel.toString());
-      if (params?.subject) queryParams.append('subject', params.subject);
-      
+      if (params?.gradeLevel)
+        queryParams.append("gradeLevel", params.gradeLevel.toString());
+      if (params?.subject) queryParams.append("subject", params.subject);
+
       const queryString = queryParams.toString();
-      const url = queryString ? `/explorer/courses?${queryString}` : '/explorer/courses';
+      const url = queryString
+        ? `/explorer/courses?${queryString}`
+        : "/explorer/courses";
       const response = await apiClient.get(url);
       return response.data;
     },
@@ -768,7 +901,9 @@ export const api = {
     },
 
     cloneCourse: async (courseId: string) => {
-      const response = await apiClient.post(`/explorer/courses/${courseId}/clone`);
+      const response = await apiClient.post(
+        `/explorer/courses/${courseId}/clone`
+      );
       return response.data;
     },
   },
@@ -776,12 +911,16 @@ export const api = {
   // Course Analytics endpoints
   courseAnalytics: {
     getCourseAnalytics: async (courseId: string) => {
-      const response = await apiClient.get(`/course-analytics/courses/${courseId}`);
+      const response = await apiClient.get(
+        `/course-analytics/courses/${courseId}`
+      );
       return response.data;
     },
 
     getModuleAnalytics: async (courseId: string, moduleId: string) => {
-      const response = await apiClient.get(`/course-analytics/courses/${courseId}/modules/${moduleId}`);
+      const response = await apiClient.get(
+        `/course-analytics/courses/${courseId}/modules/${moduleId}`
+      );
       return response.data;
     },
   },
@@ -795,7 +934,10 @@ export const api = {
       selectedAnswer: string;
       timeSpent?: number;
     }) => {
-      const response = await apiClient.post('/student-progress/submit-question', data);
+      const response = await apiClient.post(
+        "/student-progress/submit-question",
+        data
+      );
       return response.data;
     },
 
@@ -806,42 +948,59 @@ export const api = {
       confidence: number;
       lastAttemptId: string;
     }) => {
-      const response = await apiClient.post('/student-progress/kp-progress', data);
+      const response = await apiClient.post(
+        "/student-progress/kp-progress",
+        data
+      );
       return response.data;
     },
 
     getStudentKpProgress: async (studentId: string, kpId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/kps/${kpId}`
+      );
       return response.data;
     },
 
     getAllStudentProgress: async (studentId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/all-progress`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/all-progress`
+      );
       return response.data;
     },
 
     getKpHistory: async (studentId: string, kpId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}/history`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/kps/${kpId}/history`
+      );
       return response.data;
     },
 
     getStudentMastery: async (studentId: string, courseId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/mastery/${courseId}`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/mastery/${courseId}`
+      );
       return response.data;
     },
 
     getAllStudentMastery: async (studentId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/mastery`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/mastery`
+      );
       return response.data;
     },
 
     getStudentInsights: async (studentId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/insights`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/insights`
+      );
       return response.data;
     },
 
     getStudentQuestionAttempts: async (studentId: string, kpId: string) => {
-      const response = await apiClient.get(`/student-progress/students/${studentId}/kps/${kpId}/attempts`);
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/kps/${kpId}/attempts`
+      );
       return response.data;
     },
   },
@@ -854,36 +1013,45 @@ export const api = {
       gradeLevel?: number;
     }) => {
       const queryParams = new URLSearchParams();
-      if (params?.startDate) queryParams.append('startDate', params.startDate);
-      if (params?.endDate) queryParams.append('endDate', params.endDate);
-      if (params?.gradeLevel) queryParams.append('gradeLevel', params.gradeLevel.toString());
+      if (params?.startDate) queryParams.append("startDate", params.startDate);
+      if (params?.endDate) queryParams.append("endDate", params.endDate);
+      if (params?.gradeLevel)
+        queryParams.append("gradeLevel", params.gradeLevel.toString());
 
       const queryString = queryParams.toString();
-      const url = queryString ? `/dashboard/stats?${queryString}` : '/dashboard/stats';
+      const url = queryString
+        ? `/dashboard/stats?${queryString}`
+        : "/dashboard/stats";
       const response = await apiClient.get(url);
       return response.data;
     },
 
     getTopCourses: async (limit?: number) => {
-      const url = limit ? `/dashboard/top-courses?limit=${limit}` : '/dashboard/top-courses';
+      const url = limit
+        ? `/dashboard/top-courses?limit=${limit}`
+        : "/dashboard/top-courses";
       const response = await apiClient.get(url);
       return response.data;
     },
 
     getDifficultKPs: async (limit?: number) => {
-      const url = limit ? `/dashboard/difficult-kps?limit=${limit}` : '/dashboard/difficult-kps';
+      const url = limit
+        ? `/dashboard/difficult-kps?limit=${limit}`
+        : "/dashboard/difficult-kps";
       const response = await apiClient.get(url);
       return response.data;
     },
 
     getGameCompletions: async (limit?: number) => {
-      const url = limit ? `/dashboard/game-completions?limit=${limit}` : '/dashboard/game-completions';
+      const url = limit
+        ? `/dashboard/game-completions?limit=${limit}`
+        : "/dashboard/game-completions";
       const response = await apiClient.get(url);
       return response.data;
     },
 
     getClassDistribution: async () => {
-      const response = await apiClient.get('/dashboard/class-distribution');
+      const response = await apiClient.get("/dashboard/class-distribution");
       return response.data;
     },
 
@@ -892,50 +1060,74 @@ export const api = {
       endDate?: string;
     }) => {
       const queryParams = new URLSearchParams();
-      if (params?.startDate) queryParams.append('startDate', params.startDate);
-      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      if (params?.startDate) queryParams.append("startDate", params.startDate);
+      if (params?.endDate) queryParams.append("endDate", params.endDate);
 
       const queryString = queryParams.toString();
-      const url = queryString ? `/dashboard/learning-health?${queryString}` : '/dashboard/learning-health';
+      const url = queryString
+        ? `/dashboard/learning-health?${queryString}`
+        : "/dashboard/learning-health";
       const response = await apiClient.get(url);
       return response.data;
     },
 
     getTeacherHighlights: async (limit?: number) => {
-      const url = limit ? `/dashboard/teacher-highlights?limit=${limit}` : '/dashboard/teacher-highlights';
+      const url = limit
+        ? `/dashboard/teacher-highlights?limit=${limit}`
+        : "/dashboard/teacher-highlights";
       const response = await apiClient.get(url);
       return response.data;
     },
 
     getLowProgressClasses: async (limit?: number) => {
-      const url = limit ? `/dashboard/low-progress-classes?limit=${limit}` : '/dashboard/low-progress-classes';
+      const url = limit
+        ? `/dashboard/low-progress-classes?limit=${limit}`
+        : "/dashboard/low-progress-classes";
       const response = await apiClient.get(url);
       return response.data;
     },
   },
 
   // Generic request methods
-  get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  get: async <T = any>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     const response = await apiClient.get<T>(url, config);
     return response.data;
   },
 
-  post: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  post: async <T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     const response = await apiClient.post<T>(url, data, config);
     return response.data;
   },
 
-  put: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  put: async <T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     const response = await apiClient.put<T>(url, data, config);
     return response.data;
   },
 
-  patch: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  patch: async <T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     const response = await apiClient.patch<T>(url, data, config);
     return response.data;
   },
 
-  delete: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  delete: async <T = any>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<T> => {
     const response = await apiClient.delete<T>(url, config);
     return response.data;
   },

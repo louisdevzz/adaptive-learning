@@ -35,20 +35,20 @@ export function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-10">
-          <a 
-            className="text-sm font-medium text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors" 
+          <a
+            className="text-sm font-medium text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors"
             href="#features"
           >
             Tính năng
           </a>
-          <a 
-            className="text-sm font-medium text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors" 
+          <a
+            className="text-sm font-medium text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors"
             href="#solutions"
           >
             Giải pháp
           </a>
-          <a 
-            className="text-sm font-medium text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors" 
+          <a
+            className="text-sm font-medium text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors"
             href="#feedback"
           >
             Phản hồi
@@ -58,14 +58,8 @@ export function Header() {
         <div className="flex items-center gap-4">
           {loading || !user ? (
             <>
-              <Link 
-                className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-primary dark:text-slate-300" 
-                href="/login"
-              >
-                Đăng nhập
-              </Link>
-              <Link 
-                className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary-dark hover:shadow-primary/40 transition-all hover:-translate-y-0.5" 
+              <Link
+                className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary-dark hover:shadow-primary/40 transition-all hover:-translate-y-0.5"
                 href="/login"
               >
                 Bắt đầu ngay
@@ -76,7 +70,10 @@ export function Header() {
               <DropdownTrigger className="cursor-pointer">
                 <button className="flex gap-2 items-center hover:opacity-80 transition-opacity">
                   <Avatar
-                    src={user.avatarUrl || "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"}
+                    src={
+                      user.avatarUrl ||
+                      "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"
+                    }
                     size="md"
                     className="rounded-full"
                   />

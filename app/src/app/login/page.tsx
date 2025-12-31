@@ -14,22 +14,40 @@ import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 
 // Image assets from Figma
-const imgScreenMockupReplaceFill = "https://www.figma.com/api/mcp/asset/29b09a43-a041-46a3-878a-c7bf26444b65";
+const imgScreenMockupReplaceFill = "/meta_bg.png";
 
 // Google icon SVG
 const GoogleIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
   </svg>
 );
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,14 +81,17 @@ function LoginForm() {
       }
 
       // Wait a bit for cookie to be set by the backend
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Force a hard navigation to ensure cookies are recognized by middleware
       window.location.href = redirectTo;
     } catch (err: any) {
       console.error("Login error:", err);
       console.error("Error response:", err.response);
-      const errorMessage = err.response?.data?.message || err.message || "Login failed. Please check your credentials.";
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -101,13 +122,14 @@ function LoginForm() {
       }
 
       // Wait a bit for cookie to be set by the backend
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Force a hard navigation to ensure cookies are recognized by middleware
       window.location.href = redirectTo;
     } catch (err: any) {
       console.error("Google login error:", err);
-      const errorMessage = err.message || "Google login failed. Please try again.";
+      const errorMessage =
+        err.message || "Đăng nhập Google thất bại. Vui lòng thử lại.";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -121,8 +143,14 @@ function LoginForm() {
         {/* Left Section - Form */}
         <div className="flex flex-[1_0_0] flex-col h-full items-center justify-between min-h-px min-w-px relative">
           {/* Header */}
-          <div className="flex h-20 items-start p-8 relative w-full">
-            <p className="text-xl font-semibold text-[#181d27]">Adaptive Learning</p>
+          <div className="flex p-4 items-start relative w-full">
+            <Link href={"/"} className="flex flex-row items-center gap-2">
+              <img
+                src="/logo-text.png"
+                alt="Adapt"
+                className="w-36 object-cover"
+              />
+            </Link>
           </div>
 
           {/* Form Content */}
@@ -131,10 +159,10 @@ function LoginForm() {
               {/* Heading */}
               <div className="flex flex-col gap-3 items-start relative w-full">
                 <h1 className="font-semibold leading-[44px] text-[#181d27] text-[36px] tracking-[-0.72px] w-full">
-                  Log in
+                  Đăng nhập
                 </h1>
                 <p className="font-normal leading-6 text-[#535862] text-base w-full">
-                  Welcome back! Please enter your details.
+                  Chào mừng trở lại! Vui lòng nhập thông tin của bạn.
                 </p>
               </div>
 
@@ -146,7 +174,10 @@ function LoginForm() {
               )}
 
               {/* Form */}
-              <form onSubmit={handleLogin} className="flex flex-col gap-6 items-center relative rounded-[12px] w-full">
+              <form
+                onSubmit={handleLogin}
+                className="flex flex-col gap-6 items-center relative rounded-[12px] w-full"
+              >
                 <div className="flex flex-col gap-5 items-start relative w-full">
                   {/* Email Input */}
                   <div className="flex flex-col items-start relative w-full">
@@ -156,13 +187,14 @@ function LoginForm() {
                       </label>
                       <Input
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder="Nhập email của bạn"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full"
                         classNames={{
                           input: "text-base text-[#717680]",
-                          inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
+                          inputWrapper:
+                            "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                         }}
                       />
                     </div>
@@ -172,7 +204,7 @@ function LoginForm() {
                   <div className="flex flex-col items-start relative w-full">
                     <div className="flex flex-col gap-1.5 items-start relative w-full">
                       <label className="font-medium leading-5 text-[#414651] text-sm">
-                        Password
+                        Mật khẩu
                       </label>
                       <Input
                         type={isPasswordVisible ? "text" : "password"}
@@ -183,9 +215,15 @@ function LoginForm() {
                         endContent={
                           <button
                             type="button"
-                            onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                            onClick={() =>
+                              setIsPasswordVisible(!isPasswordVisible)
+                            }
                             className="focus:outline-none cursor-pointer"
-                            aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                            aria-label={
+                              isPasswordVisible
+                                ? "Ẩn mật khẩu"
+                                : "Hiện mật khẩu"
+                            }
                           >
                             {isPasswordVisible ? (
                               <EyeOff className="size-5 text-[#717680]" />
@@ -196,7 +234,8 @@ function LoginForm() {
                         }
                         classNames={{
                           input: "text-base text-[#717680]",
-                          inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
+                          inputWrapper:
+                            "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                         }}
                       />
                     </div>
@@ -212,13 +251,13 @@ function LoginForm() {
                       label: "font-medium leading-5 text-[#414651] text-sm",
                     }}
                   >
-                    Remember for 30 days
+                    Ghi nhớ đăng nhập 30 ngày
                   </Checkbox>
                   <Button
                     variant="light"
                     className="text-[#6941c6] font-semibold text-sm p-0 min-w-0 h-auto"
                   >
-                    Forgot password
+                    Quên mật khẩu
                   </Button>
                 </div>
 
@@ -231,7 +270,7 @@ function LoginForm() {
                     isLoading={loading}
                     disabled={loading}
                   >
-                    {loading ? "Signing in..." : "Sign in"}
+                    {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                   </Button>
                   <div className="flex flex-col gap-3 items-center justify-center relative w-full">
                     <Button
@@ -242,7 +281,7 @@ function LoginForm() {
                       onClick={handleGoogleLogin}
                       isDisabled={loading}
                     >
-                      Sign in with Google
+                      Đăng nhập bằng Google
                     </Button>
                   </div>
                 </div>
@@ -259,17 +298,20 @@ function LoginForm() {
         </div>
 
         {/* Right Section - Decorative Pattern & Mockup */}
-        <div className="bg-neutral-100 flex-[1_0_0] h-full min-h-px min-w-px overflow-clip relative">
+        <div className="bg-neutral-50 flex-[1_0_0] h-full min-h-px min-w-px overflow-clip relative">
           {/* Decorative pattern background - simplified version */}
           <div className="absolute inset-0 opacity-30">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '20px 20px',
-            }} />
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+                backgroundSize: "20px 20px",
+              }}
+            />
           </div>
-          
+
           {/* Screen Mockup */}
-          <div className="absolute border-6 border-[#181d27] border-solid h-[682px] left-24 rounded-xl top-1/2 -translate-y-1/2 w-[1024px]">
+          <div className="absolute border-6 border-[#181d27] border-solid h-[682px] left-20 rounded-xl top-1/2 -translate-y-1/2 w-[1024px]">
             <div className="absolute bg-[#181d27] bottom-0 left-2 right-2 rounded-xl shadow-[0px_32px_64px_-12px_rgba(10,13,18,0.14)] top-0" />
             <div className="absolute border border-neutral-100 border-solid inset-0 rounded-xl">
               <Image
@@ -288,13 +330,19 @@ function LoginForm() {
         <div className="flex flex-col gap-8 items-start relative w-full">
           {/* Header */}
           <div className="flex flex-col gap-6 items-start relative w-full">
-            <p className="text-xl font-semibold text-[#181d27]">Adaptive Learning</p>
+            <Link href={"/"} className="flex flex-row items-center gap-2">
+              <img
+                src="/logo-text.png"
+                alt="Adapt"
+                className="w-36 object-cover"
+              />
+            </Link>
             <div className="flex flex-col gap-2 items-start relative w-full">
               <h1 className="font-semibold leading-8 text-[#181d27] text-2xl w-full">
-                Log in
+                Đăng nhập
               </h1>
               <p className="font-normal leading-6 text-[#535862] text-base w-full">
-                Welcome back! Please enter your details.
+                Chào mừng trở lại! Vui lòng nhập thông tin của bạn.
               </p>
             </div>
           </div>
@@ -307,7 +355,10 @@ function LoginForm() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="flex flex-col gap-6 items-center relative rounded-[12px] w-full">
+          <form
+            onSubmit={handleLogin}
+            className="flex flex-col gap-6 items-center relative rounded-[12px] w-full"
+          >
             <div className="flex flex-col gap-5 items-start relative w-full">
               {/* Email Input */}
               <div className="flex flex-col items-start relative w-full">
@@ -317,13 +368,14 @@ function LoginForm() {
                   </label>
                   <Input
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Nhập email của bạn"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full"
                     classNames={{
                       input: "text-base text-[#717680]",
-                      inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
+                      inputWrapper:
+                        "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                     }}
                   />
                 </div>
@@ -333,7 +385,7 @@ function LoginForm() {
               <div className="flex flex-col items-start relative w-full">
                 <div className="flex flex-col gap-1.5 items-start relative w-full">
                   <label className="font-medium leading-5 text-[#414651] text-sm">
-                    Password
+                    Mật khẩu
                   </label>
                   <Input
                     type={isPasswordVisible ? "text" : "password"}
@@ -346,7 +398,9 @@ function LoginForm() {
                         type="button"
                         onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                         className="focus:outline-none"
-                        aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                        aria-label={
+                          isPasswordVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                        }
                       >
                         {isPasswordVisible ? (
                           <EyeOff className="size-5 text-[#717680]" />
@@ -357,7 +411,8 @@ function LoginForm() {
                     }
                     classNames={{
                       input: "text-base text-[#717680]",
-                      inputWrapper: "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
+                      inputWrapper:
+                        "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
                     }}
                   />
                 </div>
@@ -373,13 +428,13 @@ function LoginForm() {
                   label: "font-medium leading-5 text-[#414651] text-sm",
                 }}
               >
-                Remember for 30 days
+                Ghi nhớ đăng nhập 30 ngày
               </Checkbox>
               <Button
                 variant="light"
                 className="text-[#6941c6] font-semibold text-sm p-0 min-w-0 h-auto"
               >
-                Forgot password
+                Quên mật khẩu
               </Button>
             </div>
 
@@ -392,7 +447,7 @@ function LoginForm() {
                 isLoading={loading}
                 disabled={loading}
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
               </Button>
               <div className="flex flex-col gap-3 items-center justify-center relative w-full">
                 <Button
@@ -403,7 +458,7 @@ function LoginForm() {
                   onClick={handleGoogleLogin}
                   isDisabled={loading}
                 >
-                  Sign in with Google
+                  Đăng nhập bằng Google
                 </Button>
               </div>
             </div>
@@ -416,9 +471,14 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          Loading...
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
 }
-

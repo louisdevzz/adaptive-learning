@@ -8,7 +8,6 @@ import { SolutionsSection } from "@/components/layouts/SolutionsSection";
 import { VideoDemoSection } from "@/components/layouts/VideoDemoSection";
 import { TestimonialsSection } from "@/components/layouts/TestimonialsSection";
 import { FAQSection } from "@/components/layouts/FAQSection";
-import { IntegrationSection } from "@/components/layouts/IntegrationSection";
 import { CTASection } from "@/components/layouts/CTASection";
 import { Footer } from "@/components/layouts/Footer";
 
@@ -23,7 +22,6 @@ export default function Home() {
       <VideoDemoSection />
       <TestimonialsSection />
       <FAQSection />
-      <IntegrationSection />
       <CTASection />
       <Footer />
     </div>
