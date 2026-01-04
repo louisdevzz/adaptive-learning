@@ -31,10 +31,9 @@ export function ClassHeader({ onCreate }: ClassHeaderProps) {
           startContent={<UserPlus className="size-5" />}
           onPress={onCreate}
         >
-          Thêm Học sinh
+          Thêm Lớp Học
         </Button>
       </div>
     </div>
   );
 }
-

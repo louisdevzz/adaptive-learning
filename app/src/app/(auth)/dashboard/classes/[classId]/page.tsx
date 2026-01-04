@@ -1,432 +1,356 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
-import { FileEdit, UserPlus, BarChart3, UserCheck, Calendar, AlertTriangle, MessageCircle, Edit, Bell, Search, ChevronDown, RefreshCw, ChevronRight, ChevronLeft, Layout, TrendingUp } from "lucide-react";
+import {
+  FileEdit,
+  UserPlus,
+  BarChart3,
+  UserCheck,
+  Calendar,
+  AlertTriangle,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Layout,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { api } from "@/lib/api";
+import { Class, ClassEnrollment } from "@/types/class";
+import { useRouter } from "next/navigation";
 
 export default function ClassPage() {
-    const params = useParams();
-    const classId = params.classId as string;
+  const params = useParams();
+  const classId = params.classId as string;
+  const router = useRouter();
 
+  const [classData, setClassData] = useState<Class | null>(null);
+  const [students, setStudents] = useState<ClassEnrollment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = React.useCallback(async () => {
+    if (!classId) return;
+    try {
+      setLoading(true);
+      const [classRes, studentsRes] = await Promise.all([
+        api.classes.getById(classId),
+        api.classes.getClassStudents(classId),
+      ]);
+      setClassData(classRes);
+      setStudents(studentsRes);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load class data");
+    } finally {
+      setLoading(false);
+    }
+  }, [classId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  if (loading) {
     return (
-        <LayoutDashboard>
-            <div className="flex flex-col space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl md:text-3xl font-bold text-text-main dark:text-white tracking-tight">
-                            Tổng quan Lớp 10A
-                        </h2>
-                        <p className="text-text-muted dark:text-gray-400 text-sm mt-1">
-                            Thông tin chi tiết và quản lý học sinh cho Lớp 10A.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/dashboard/classes/${classId}/progress`}
-                            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                        >
-                            <TrendingUp className="w-[18px] h-[18px]" />
-                            Tiến độ & Can thiệp
-                        </Link>
-                        <Link
-                            href={`/dashboard/classes/${classId}/workspace`}
-                            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-                        >
-                            <Layout className="w-[18px] h-[18px]" />
-                            Không gian làm việc
-                        </Link>
-                        <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                            <FileEdit className="w-[18px] h-[18px]" />
-                            Quản lý điểm
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-primary-dark text-white rounded-lg text-sm font-bold transition-colors shadow-sm shadow-blue-200 dark:shadow-none">
-                            <UserPlus className="w-5 h-5" />
-                            Thêm Học sinh
-                        </button>
-                    </div>
-                </div>
+      <LayoutDashboard>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </LayoutDashboard>
+    );
+  }
 
-                {/* Metric Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Average Score Card */}
-                    <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="size-12 bg-primary/10 text-primary dark:bg-primary/20 rounded-full flex items-center justify-center">
-                                <BarChart3 className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-text-muted dark:text-gray-400">Điểm trung bình</p>
-                                <p className="text-2xl font-bold text-text-main dark:text-white">8.5</p>
-                            </div>
-                        </div>
-                        <span className="px-3 py-1 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">
-                            +0.2%
-                        </span>
-                    </div>
+  if (error || !classData) {
+    return (
+      <LayoutDashboard>
+        <div className="p-6 text-center text-red-500">
+          <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
+          <h2 className="text-xl font-bold">Error</h2>
+          <p>{error || "Class not found"}</p>
+        </div>
+      </LayoutDashboard>
+    );
+  }
 
-                    {/* Attendance Rate Card */}
-                    <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="size-12 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full flex items-center justify-center">
-                                <UserCheck className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-text-muted dark:text-gray-400">Tỷ lệ chuyên cần</p>
-                                <p className="text-2xl font-bold text-text-main dark:text-white">92%</p>
-                            </div>
-                        </div>
-                        <span className="px-3 py-1 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">
-                            ổn định
-                        </span>
-                    </div>
+  return (
+    <LayoutDashboard>
+      <div className="flex flex-col space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold text-text-main dark:text-white tracking-tight">
+              Tổng quan Lớp {classData.className}
+            </h2>
+            <p className="text-text-muted dark:text-gray-400 text-sm mt-1">
+              Thông tin chi tiết và quản lý học sinh cho Lớp{" "}
+              {classData.className} (Năm học {classData.schoolYear}).
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/dashboard/classes/${classId}/progress`}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <TrendingUp className="w-[18px] h-[18px]" />
+              Tiến độ & Can thiệp
+            </Link>
+            <Link
+              href={`/dashboard/classes/${classId}/workspace`}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Layout className="w-[18px] h-[18px]" />
+              Không gian làm việc
+            </Link>
+            <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+              <FileEdit className="w-[18px] h-[18px]" />
+              Quản lý điểm
+            </button>
+            <button
+              onClick={() => router.push(`/dashboard/users/create`)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 cursor-pointer text-white rounded-lg text-sm font-bold transition-colors shadow-blue-200 dark:shadow-none"
+            >
+              <UserPlus className="w-5 h-5" />
+              Thêm Học sinh
+            </button>
+          </div>
+        </div>
 
-                    {/* Upcoming Deadlines Card */}
-                    <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="size-12 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded-full flex items-center justify-center">
-                                <Calendar className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-text-muted dark:text-gray-400">Hạn chót sắp tới</p>
-                                <p className="text-2xl font-bold text-text-main dark:text-white">3</p>
-                            </div>
-                        </div>
-                        <a className="text-sm text-primary hover:underline font-medium" href="#">
-                            Xem chi tiết
-                        </a>
-                    </div>
-                </div>
-
-                {/* Action Items Section */}
-                <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-text-main dark:text-white flex items-center gap-2">
-                            <AlertTriangle className="text-orange-500 w-5 h-5" />
-                            Hành động cần thiết
-                        </h3>
-                        <a className="text-sm text-primary hover:underline font-medium" href="#">
-                            Xem tất cả
-                        </a>
-                    </div>
-
-                    <div className="space-y-4">
-                        {/* Student with Low Score */}
-                        <div className="flex items-center gap-4 p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900 rounded-lg">
-                            <div className="size-10 rounded-full bg-cover bg-center border border-red-200 shrink-0" style={{backgroundImage: "url('https://ui-avatars.com/api/?name=Nguyen+Thi+G&background=ef4444&color=fff')"}}></div>
-                            <div className="flex-1">
-                                <p className="font-medium text-text-main dark:text-white">
-                                    Nguyen Thi G
-                                    <span className="text-sm text-red-600 dark:text-red-400 ml-1">(Điểm thấp môn Toán)</span>
-                                </p>
-                                <p className="text-sm text-text-muted dark:text-gray-400">
-                                    Cần hỗ trợ thêm hoặc bài tập bổ sung.
-                                </p>
-                            </div>
-                            <div className="ml-auto flex gap-2">
-                                <button className="flex items-center gap-1 px-3 py-1 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-300 rounded-full text-xs font-medium transition-colors">
-                                    <MessageCircle className="w-4 h-4" />
-                                    Liên hệ
-                                </button>
-                                <button className="flex items-center gap-1 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-xs font-medium transition-colors">
-                                    <Edit className="w-4 h-4" />
-                                    Giao bài
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Student with Missing Assignments */}
-                        <div className="flex items-center gap-4 p-3 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900 rounded-lg">
-                            <div className="size-10 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 flex items-center justify-center font-bold text-sm border border-orange-200 shrink-0">
-                                LN
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-medium text-text-main dark:text-white">
-                                    Le Nguyen N
-                                    <span className="text-sm text-orange-600 dark:text-orange-400 ml-1">(Thiếu 2 bài tập)</span>
-                                </p>
-                                <p className="text-sm text-text-muted dark:text-gray-400">
-                                    Bài tập Ngữ văn và Lịch sử chưa nộp.
-                                </p>
-                            </div>
-                            <div className="ml-auto flex gap-2">
-                                <button className="flex items-center gap-1 px-3 py-1 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium transition-colors">
-                                    <MessageCircle className="w-4 h-4" />
-                                    Liên hệ
-                                </button>
-                                <button className="flex items-center gap-1 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-xs font-medium transition-colors">
-                                    <Bell className="w-4 h-4" />
-                                    Nhắc nhở
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Student List Table */}
-                <div className="bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-1">
-                    {/* Search and Filter Bar */}
-                    <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-                        <div className="flex flex-1 w-full md:w-auto gap-3 items-center">
-                            {/* Search Input */}
-                            <div className="relative flex-1 max-w-md w-full">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-gray-500 pointer-events-none">
-                                    <Search className="w-5 h-5" />
-                                </span>
-                                <input
-                                    className="w-full pl-10 pr-4 py-2.5 bg-background-soft dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-lg text-sm text-text-main dark:text-white placeholder-text-muted focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    placeholder="Tìm kiếm theo tên học sinh..."
-                                    type="text"
-                                />
-                            </div>
-
-                            {/* Status Filter */}
-                            <div className="relative min-w-[160px]">
-                                <select className="w-full pl-3 pr-10 py-2.5 bg-background-soft dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-lg text-sm text-text-main dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer">
-                                    <option value="">Tất cả trạng thái</option>
-                                    <option value="active">Active</option>
-                                    <option value="offline">Offline</option>
-                                    <option value="needs-attention">Cần chú ý</option>
-                                </select>
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-                                    <ChevronDown className="w-5 h-5" />
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Refresh Button */}
-                        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                            <div className="h-8 w-px bg-card-border dark:bg-gray-700 mx-2 hidden md:block"></div>
-                            <button className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted dark:text-gray-400 hover:text-text-main dark:hover:text-white transition-colors">
-                                <RefreshCw className="w-[18px] h-[18px]" />
-                                Làm mới
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-card-border dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-background-dark/50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                                        Học sinh
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                                        Email
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                                        Trạng thái
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                                        Điểm TB
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                                        Bài tập thiếu
-                                    </th>
-                                    <th className="relative px-6 py-3">
-                                        <span className="sr-only">Hành động</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-background-light dark:bg-background-dark divide-y divide-card-border dark:divide-gray-700">
-                                {/* Student 1 */}
-                                <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="shrink-0 size-10 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-700" style={{backgroundImage: "url('https://ui-avatars.com/api/?name=Tran+Thi+B&background=3b82f6&color=fff')"}}></div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-text-main dark:text-white">Tran Thi B</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                                        btran@adapt.edu.vn
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="size-2 rounded-full bg-green-500"></span>
-                                            <span className="text-sm text-text-muted dark:text-gray-300">Active</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main dark:text-white font-medium">
-                                        8.7
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                                        0
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1" href="#">
-                                            Xem
-                                            <ChevronRight className="w-4 h-4" />
-                                        </a>
-                                    </td>
-                                </tr>
-
-                                {/* Student 2 */}
-                                <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="shrink-0 size-10 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 flex items-center justify-center font-bold text-sm border border-green-200">
-                                                HE
-                                            </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-text-main dark:text-white">Hoang Van E</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                                        ehoang@adapt.edu.vn
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="size-2 rounded-full bg-green-500"></span>
-                                            <span className="text-sm text-text-muted dark:text-gray-300">Active</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main dark:text-white font-medium">
-                                        8.1
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                                        0
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1" href="#">
-                                            Xem
-                                            <ChevronRight className="w-4 h-4" />
-                                        </a>
-                                    </td>
-                                </tr>
-
-                                {/* Student 3 */}
-                                <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="shrink-0 size-10 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-700" style={{backgroundImage: "url('https://ui-avatars.com/api/?name=Nguyen+Thi+G&background=ef4444&color=fff')"}}></div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-text-main dark:text-white">Nguyen Thi G</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                                        gnguyen@adapt.edu.vn
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="size-2 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-                                            <span className="text-sm text-text-muted dark:text-gray-400">Offline</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
-                                        6.2
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
-                                        1
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1" href="#">
-                                            Xem
-                                            <ChevronRight className="w-4 h-4" />
-                                        </a>
-                                    </td>
-                                </tr>
-
-                                {/* Student 4 */}
-                                <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="shrink-0 size-10 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 flex items-center justify-center font-bold text-sm border border-orange-200">
-                                                PH
-                                            </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-text-main dark:text-white">Pham Hoang H</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                                        hpham@adapt.edu.vn
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="size-2 rounded-full bg-green-500"></span>
-                                            <span className="text-sm text-text-muted dark:text-gray-300">Active</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main dark:text-white font-medium">
-                                        7.9
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-500 font-medium">
-                                        2
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1" href="#">
-                                            Xem
-                                            <ChevronRight className="w-4 h-4" />
-                                        </a>
-                                    </td>
-                                </tr>
-
-                                {/* Student 5 */}
-                                <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="shrink-0 size-10 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-700" style={{backgroundImage: "url('https://ui-avatars.com/api/?name=Le+Kim+L&background=8b5cf6&color=fff')"}}></div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-text-main dark:text-white">Le Kim L</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                                        lle@adapt.edu.vn
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="size-2 rounded-full bg-green-500"></span>
-                                            <span className="text-sm text-text-muted dark:text-gray-300">Active</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main dark:text-white font-medium">
-                                        8.8
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                                        0
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1" href="#">
-                                            Xem
-                                            <ChevronRight className="w-4 h-4" />
-                                        </a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="px-6 py-4 border-t border-card-border dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-xl">
-                        <span className="text-sm text-text-muted dark:text-gray-400">
-                            Showing <span className="font-semibold text-text-main dark:text-white">1-5</span> of <span className="font-semibold text-text-main dark:text-white">15</span> students
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <button className="p-2 rounded-lg border border-card-border dark:border-gray-700 text-text-muted dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 disabled:opacity-50 transition-colors">
-                                <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <button className="min-w-[32px] h-8 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-medium">
-                                1
-                            </button>
-                            <button className="min-w-[32px] h-8 flex items-center justify-center rounded-lg text-text-muted dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 text-sm font-medium transition-colors">
-                                2
-                            </button>
-                            <button className="min-w-[32px] h-8 flex items-center justify-center rounded-lg text-text-muted dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 text-sm font-medium transition-colors">
-                                3
-                            </button>
-                            <button className="p-2 rounded-lg border border-card-border dark:border-gray-700 text-text-muted dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 transition-colors">
-                                <ChevronRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        {/* Metric Cards - Static for now as API doesn't return these stats yet */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Average Score Card */}
+          <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="size-12 bg-primary/10 text-primary dark:bg-primary/20 rounded-full flex items-center justify-center">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm text-text-muted dark:text-gray-400">
+                  Điểm trung bình
+                </p>
+                <p className="text-2xl font-bold text-text-main dark:text-white">
+                  --
+                </p>
+              </div>
             </div>
-        </LayoutDashboard>
-    )
+            <span className="px-3 py-1 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full text-xs font-medium">
+              N/A
+            </span>
+          </div>
+
+          {/* Attendance Rate Card */}
+          <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="size-12 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full flex items-center justify-center">
+                <UserCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm text-text-muted dark:text-gray-400">
+                  Sĩ số
+                </p>
+                <p className="text-2xl font-bold text-text-main dark:text-white">
+                  {students.length}
+                </p>
+              </div>
+            </div>
+            <span className="px-3 py-1 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">
+              Học sinh
+            </span>
+          </div>
+
+          {/* Upcoming Deadlines Card */}
+          <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="size-12 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded-full flex items-center justify-center">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm text-text-muted dark:text-gray-400">
+                  Giáo viên CN
+                </p>
+                <p className="text-lg font-bold text-text-main dark:text-white truncate max-w-[150px]">
+                  {classData.homeroomTeacher?.fullName || "Chưa gán"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Student List Table */}
+        <div className="bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-1">
+          {/* Search and Filter Bar */}
+          <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-1 w-full md:w-auto gap-3 items-center">
+              {/* Search Input */}
+              <div className="relative flex-1 max-w-md w-full">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-gray-500 pointer-events-none">
+                  <Search className="w-5 h-5" />
+                </span>
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-background-soft dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-lg text-sm text-text-main dark:text-white placeholder-text-muted focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  placeholder="Tìm kiếm theo tên học sinh..."
+                  type="text"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative min-w-[160px]">
+                <select className="w-full pl-3 pr-10 py-2.5 bg-background-soft dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-lg text-sm text-text-main dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="active">Active</option>
+                  <option value="withdrawn">Withdrawn</option>
+                  <option value="completed">Completed</option>
+                </select>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+                  <ChevronDown className="w-5 h-5" />
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-card-border dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-background-dark/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
+                    Học sinh
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
+                    Ngày sinh
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
+                    Giới tính
+                  </th>
+                  <th className="relative px-6 py-3">
+                    <span className="sr-only">Hành động</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-background-light dark:bg-background-dark divide-y divide-card-border dark:divide-gray-700">
+                {students.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-text-muted dark:text-gray-400"
+                    >
+                      Chưa có học sinh nào trong lớp này.
+                    </td>
+                  </tr>
+                ) : (
+                  students.map((enrollment) => (
+                    <tr key={enrollment.enrollmentId}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {enrollment.student.avatarUrl ? (
+                            <div
+                              className="shrink-0 size-10 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-700"
+                              style={{
+                                backgroundImage: `url('${enrollment.student.avatarUrl}')`,
+                              }}
+                            ></div>
+                          ) : (
+                            <div className="shrink-0 size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20">
+                              {enrollment.student.fullName
+                                .substring(0, 2)
+                                .toUpperCase()}
+                            </div>
+                          )}
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-text-main dark:text-white">
+                              {enrollment.student.fullName}
+                            </div>
+                            <div className="text-xs text-text-muted">
+                              {enrollment.student.studentInfo?.studentCode}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
+                        {enrollment.student.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`size-2 rounded-full ${
+                              enrollment.status === "active"
+                                ? "bg-green-500"
+                                : enrollment.status === "completed"
+                                ? "bg-blue-500"
+                                : "bg-red-500"
+                            }`}
+                          ></span>
+                          <span className="text-sm text-text-muted dark:text-gray-300 capitalize">
+                            {enrollment.status}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main dark:text-white font-medium">
+                        {enrollment.student.studentInfo?.dateOfBirth
+                          ? new Date(
+                              enrollment.student.studentInfo.dateOfBirth
+                            ).toLocaleDateString("vi-VN")
+                          : "--"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
+                        {enrollment.student.studentInfo?.gender === "male"
+                          ? "Nam"
+                          : enrollment.student.studentInfo?.gender === "female"
+                          ? "Nữ"
+                          : "Khác"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <Link
+                          href={`/dashboard/users/${enrollment.student.id}`} // Assuming this route exists or similar
+                          className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1"
+                        >
+                          Xem
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {students.length > 0 && (
+            <div className="px-6 py-4 border-t border-card-border dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-xl">
+              <span className="text-sm text-text-muted dark:text-gray-400">
+                Showing{" "}
+                <span className="font-semibold text-text-main dark:text-white">
+                  1-{students.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-text-main dark:text-white">
+                  {students.length}
+                </span>{" "}
+                students
+              </span>
+              <div className="flex items-center gap-1 opacity-50 pointer-events-none">
+                <button className="p-2 rounded-lg border border-card-border dark:border-gray-700 text-text-muted dark:text-gray-400">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button className="min-w-[32px] h-8 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-medium">
+                  1
+                </button>
+                <button className="p-2 rounded-lg border border-card-border dark:border-gray-700 text-text-muted dark:text-gray-400">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </LayoutDashboard>
+  );
 }

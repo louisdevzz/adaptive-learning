@@ -12,6 +12,7 @@ import { KnowledgePointsService } from './knowledge-points.service';
 import { CreateKnowledgePointDto } from './dto/create-knowledge-point.dto';
 import { UpdateKnowledgePointDto } from './dto/update-knowledge-point.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
+import { GenerateContentDto } from './dto/generate-content.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -25,7 +26,10 @@ export class KnowledgePointsController {
 
   @Post()
   @Roles('admin', 'teacher')
-  create(@Body() createKpDto: CreateKnowledgePointDto, @CurrentUser() user: ICurrentUser) {
+  create(
+    @Body() createKpDto: CreateKnowledgePointDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
     return this.kpService.create(createKpDto, user.userId);
   }
 
@@ -40,13 +44,20 @@ export class KnowledgePointsController {
   }
 
   @Get(':id/details')
-  findOneWithDetails(@Param('id') id: string, @CurrentUser() user?: ICurrentUser) {
+  findOneWithDetails(
+    @Param('id') id: string,
+    @CurrentUser() user?: ICurrentUser,
+  ) {
     return this.kpService.findOneWithDetails(id, user?.userId, user?.role);
   }
 
   @Patch(':id')
   @Roles('admin', 'teacher')
-  update(@Param('id') id: string, @Body() updateKpDto: UpdateKnowledgePointDto, @CurrentUser() user: ICurrentUser) {
+  update(
+    @Param('id') id: string,
+    @Body() updateKpDto: UpdateKnowledgePointDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
     return this.kpService.update(id, updateKpDto, user.userId, user.role);
   }
 
@@ -60,7 +71,10 @@ export class KnowledgePointsController {
 
   @Post('assign-to-section')
   @Roles('admin', 'teacher')
-  assignToSection(@Body() assignDto: AssignToSectionDto, @CurrentUser() user: ICurrentUser) {
+  assignToSection(
+    @Body() assignDto: AssignToSectionDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
     return this.kpService.assignToSection(assignDto, user.userId, user.role);
   }
 
@@ -71,18 +85,29 @@ export class KnowledgePointsController {
     @Param('kpId') kpId: string,
     @CurrentUser() user: ICurrentUser,
   ) {
-    return this.kpService.removeFromSection(sectionId, kpId, user.userId, user.role);
+    return this.kpService.removeFromSection(
+      sectionId,
+      kpId,
+      user.userId,
+      user.role,
+    );
   }
 
   @Get('sections/:sectionId/kps')
-  getKpsBySection(@Param('sectionId') sectionId: string, @CurrentUser() user?: ICurrentUser) {
+  getKpsBySection(
+    @Param('sectionId') sectionId: string,
+    @CurrentUser() user?: ICurrentUser,
+  ) {
     return this.kpService.getKpsBySection(sectionId, user?.userId, user?.role);
   }
 
   // ==================== PREREQUISITES ====================
 
   @Get(':id/prerequisites')
-  getPrerequisites(@Param('id') id: string, @CurrentUser() user?: ICurrentUser) {
+  getPrerequisites(
+    @Param('id') id: string,
+    @CurrentUser() user?: ICurrentUser,
+  ) {
     return this.kpService.getPrerequisites(id, user?.userId, user?.role);
   }
 
@@ -96,5 +121,11 @@ export class KnowledgePointsController {
   @Get(':id/resources')
   getResources(@Param('id') id: string, @CurrentUser() user?: ICurrentUser) {
     return this.kpService.getResources(id, user?.userId, user?.role);
+  }
+
+  @Post('generate-content')
+  @Roles('admin', 'teacher')
+  generateContent(@Body() generateDto: GenerateContentDto) {
+    return this.kpService.generateContent(generateDto);
   }
 }

@@ -25,9 +25,38 @@ class KpResourceDto {
   title: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString()
   description?: string;
+
+  @IsInt()
+  @Min(0)
+  orderIndex: number;
+}
+
+class KpQuestionDto {
+  @IsEnum(['multiple_choice', 'true_false', 'fill_blank', 'game'])
+  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'game';
+
+  @IsString()
+  @IsNotEmpty()
+  questionText: string;
+
+  @IsOptional()
+  @IsArray()
+  options?: string[];
+
+  @IsOptional()
+  @IsString()
+  correctAnswer?: string;
+
+  @IsOptional()
+  @IsString()
+  explanation?: string;
+
+  @IsOptional()
+  @IsEnum(['flashcard', 'matching', 'sorting'])
+  gameType?: 'flashcard' | 'matching' | 'sorting';
 
   @IsInt()
   @Min(0)
@@ -39,18 +68,17 @@ export class CreateKnowledgePointDto {
   @IsNotEmpty()
   title: string;
 
+  @IsOptional()
   @IsString()
+  description?: string;
+
   @IsNotEmpty()
-  description: string;
+  content: any;
 
   @IsInt()
   @Min(1)
   @Max(5)
   difficultyLevel: number;
-
-  @IsArray()
-  @IsString({ each: true })
-  tags: string[];
 
   @IsArray()
   @IsUUID('4', { each: true })
@@ -62,4 +90,10 @@ export class CreateKnowledgePointDto {
   @Type(() => KpResourceDto)
   @IsOptional()
   resources?: KpResourceDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => KpQuestionDto)
+  @IsOptional()
+  questions?: KpQuestionDto[];
 }

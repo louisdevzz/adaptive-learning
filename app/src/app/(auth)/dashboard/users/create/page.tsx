@@ -23,29 +23,37 @@ import {
   Building,
   Save,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { addToast } from "@heroui/react";
 
 type UserRole = "admin" | "teacher" | "student" | "parent";
 
 const roleOptions = [
-  { value: "admin", label: "Admin", icon: Shield },
-  { value: "teacher", label: "Teacher", icon: GraduationCap },
-  { value: "student", label: "Student", icon: User },
-  { value: "parent", label: "Parent", icon: UsersRound },
+  { value: "admin", label: "Quản trị viên", icon: Shield },
+  { value: "teacher", label: "Giáo viên", icon: GraduationCap },
+  { value: "student", label: "Học sinh", icon: User },
+  { value: "parent", label: "Phụ huynh", icon: UsersRound },
 ];
 
 export default function CreateUserPage() {
   const router = useRouter();
   const [role, setRole] = useState<UserRole>("teacher");
   const [loading, setLoading] = useState(false);
-  
+
   // General information
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+
+  const toggleVisibility = () => setIsVisible(!isVisible);
+  const toggleConfirmVisibility = () => setIsConfirmVisible(!isConfirmVisible);
 
   // Teacher specific
   const [staffId, setStaffId] = useState("");
@@ -63,11 +71,15 @@ export default function CreateUserPage() {
 
   // Parent specific
   const [address, setAddress] = useState("");
-  const [relationshipType, setRelationshipType] = useState<"father" | "mother" | "guardian">("father");
+  const [relationshipType, setRelationshipType] = useState<
+    "father" | "mother" | "guardian"
+  >("father");
   const [studentIds, setStudentIds] = useState<string[]>([]);
 
   // Admin specific
-  const [adminLevel, setAdminLevel] = useState<"super" | "system" | "support">("system");
+  const [adminLevel, setAdminLevel] = useState<"super" | "system" | "support">(
+    "system"
+  );
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const handleAddClass = () => {
@@ -86,17 +98,29 @@ export default function CreateUserPage() {
 
     // Validation
     if (!email || !password || !firstName || !lastName) {
-      alert("Vui lòng điền đầy đủ thông tin bắt buộc");
+      addToast({
+        title: "Thông báo",
+        description: "Vui lòng điền đầy đủ thông tin bắt buộc",
+        color: "warning",
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Mật khẩu xác nhận không khớp");
+      addToast({
+        title: "Thông báo",
+        description: "Mật khẩu xác nhận không khớp",
+        color: "warning",
+      });
       return;
     }
 
     if (password.length < 8) {
-      alert("Mật khẩu phải có ít nhất 8 ký tự");
+      addToast({
+        title: "Thông báo",
+        description: "Mật khẩu phải có ít nhất 8 ký tự",
+        color: "warning",
+      });
       return;
     }
 
@@ -155,17 +179,25 @@ export default function CreateUserPage() {
           break;
       }
 
-      alert("Tạo người dùng thành công!");
+      addToast({
+        title: "Thành công",
+        description: "Tạo người dùng thành công!",
+        color: "success",
+      });
       router.push("/dashboard/users");
     } catch (error: any) {
       console.error("Error creating user:", error);
-      alert(error.response?.data?.message || "Không thể tạo người dùng. Vui lòng thử lại.");
+      addToast({
+        title: "Lỗi",
+        description:
+          error.response?.data?.message ||
+          "Không thể tạo người dùng. Vui lòng thử lại.",
+        color: "danger",
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  const RoleIcon = roleOptions.find((r) => r.value === role)?.icon || Shield;
 
   return (
     <LayoutDashboard>
@@ -174,20 +206,23 @@ export default function CreateUserPage() {
         <div className="flex flex-wrap justify-between gap-3 px-4">
           <div className="flex min-w-72 flex-col gap-2">
             <h1 className="text-3xl font-bold text-[#0d121b] dark:text-white tracking-tight">
-              Create New User
+              Tạo người dùng mới
             </h1>
             <p className="text-[#4c669a] dark:text-gray-400 text-sm">
-              Enter details to onboard a new user into the system.
+              Nhập thông tin để thêm người dùng mới vào hệ thống.
             </p>
           </div>
         </div>
 
         {/* Main Form Container */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-[#2d3748] shadow-sm p-6 md:p-8">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-[#2d3748] shadow-sm p-6 md:p-8"
+        >
           {/* Role Selection Section */}
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-bold text-[#0d121b] dark:text-white border-b border-[#f0f2f5] dark:border-[#2d3748] pb-3">
-              <span className="text-[#135bec] mr-2">01.</span> Account Role
+              <span className="text-[#135bec] mr-2">01.</span> Vai trò tài khoản
             </h3>
             <div className="flex flex-wrap gap-3">
               {roleOptions.map((option) => {
@@ -225,68 +260,99 @@ export default function CreateUserPage() {
           {/* General Information Section */}
           <div className="flex flex-col gap-6 mt-4">
             <h3 className="text-lg font-bold text-[#0d121b] dark:text-white border-b border-[#f0f2f5] dark:border-[#2d3748] pb-3">
-              <span className="text-[#135bec] mr-2">02.</span> General Information
+              <span className="text-[#135bec] mr-2">02.</span> Thông tin chung
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
-                label="First Name"
-                placeholder="e.g. Sarah"
+                label="Tên"
+                placeholder="Ví dụ: Nam"
                 value={firstName}
                 onValueChange={setFirstName}
                 isRequired
                 classNames={{
                   input: "text-sm",
-                  inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                  inputWrapper:
+                    "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                 }}
               />
               <Input
-                label="Last Name"
-                placeholder="e.g. Connor"
+                label="Họ"
+                placeholder="Ví dụ: Nguyễn"
                 value={lastName}
                 onValueChange={setLastName}
                 isRequired
                 classNames={{
                   input: "text-sm",
-                  inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                  inputWrapper:
+                    "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                 }}
               />
               <Input
-                label="Email Address"
+                label="Địa chỉ Email"
                 type="email"
-                placeholder="sarah.connor@school.edu"
+                placeholder="nam.nguyen@school.edu"
                 value={email}
                 onValueChange={setEmail}
                 isRequired
                 startContent={<Mail className="size-4 text-[#9ca3af]" />}
                 classNames={{
                   input: "text-sm",
-                  inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                  inputWrapper:
+                    "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                 }}
               />
               <Input
-                label="Password"
-                type="password"
+                label="Mật khẩu"
+                type={isVisible ? "text" : "password"}
                 value={password}
                 onValueChange={setPassword}
                 isRequired
-                description="Must be at least 8 characters."
+                description="Tối thiểu 8 ký tự."
                 startContent={<Lock className="size-4 text-[#9ca3af]" />}
+                endContent={
+                  <button
+                    className="focus:outline-none cursor-pointer"
+                    type="button"
+                    onClick={toggleVisibility}
+                  >
+                    {isVisible ? (
+                      <EyeOff className="size-4 text-[#9ca3af]" />
+                    ) : (
+                      <Eye className="size-4 text-[#9ca3af]" />
+                    )}
+                  </button>
+                }
                 classNames={{
                   input: "text-sm",
-                  inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                  inputWrapper:
+                    "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   description: "text-xs text-[#4c669a]",
                 }}
               />
               <Input
-                label="Confirm Password"
-                type="password"
+                label="Xác nhận mật khẩu"
+                type={isConfirmVisible ? "text" : "password"}
                 value={confirmPassword}
                 onValueChange={setConfirmPassword}
                 isRequired
                 startContent={<LockKeyhole className="size-4 text-[#9ca3af]" />}
+                endContent={
+                  <button
+                    className="focus:outline-none cursor-pointer"
+                    type="button"
+                    onClick={toggleConfirmVisibility}
+                  >
+                    {isConfirmVisible ? (
+                      <EyeOff className="size-4 text-[#9ca3af]" />
+                    ) : (
+                      <Eye className="size-4 text-[#9ca3af]" />
+                    )}
+                  </button>
+                }
                 classNames={{
                   input: "text-sm",
-                  inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                  inputWrapper:
+                    "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                 }}
               />
             </div>
@@ -296,38 +362,51 @@ export default function CreateUserPage() {
           {role === "teacher" && (
             <div className="flex flex-col gap-6 mt-4">
               <h3 className="text-lg font-bold text-[#0d121b] dark:text-white border-b border-[#f0f2f5] dark:border-[#2d3748] pb-3 flex items-center justify-between">
-    <div>
-                  <span className="text-[#135bec] mr-2">03.</span> Professional Details
+                <div>
+                  <span className="text-[#135bec] mr-2">03.</span> Thông tin
+                  chuyên môn
                 </div>
                 <span className="text-xs font-normal bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                  Teacher Role Selected
+                  Đã chọn vai trò Giáo viên
                 </span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Staff ID"
+                  label="Mã nhân viên"
                   placeholder="T-2024-XXX"
                   value={staffId}
                   onValueChange={setStaffId}
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
                 <Dropdown>
                   <DropdownTrigger>
                     <Input
-                      label="Department / Specialization"
-                      placeholder="Select department"
+                      label="Khoa / Chuyên môn"
+                      placeholder="Chọn khoa"
                       value={department}
                       readOnly
                       classNames={{
                         input: "text-sm cursor-pointer",
-                        inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                        inputWrapper:
+                          "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                       }}
                       endContent={
-                        <svg className="w-4 h-4 text-[#9ca3af]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="w-4 h-4 text-[#9ca3af]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       }
                     />
@@ -340,15 +419,15 @@ export default function CreateUserPage() {
                       setDepartment(selected || "");
                     }}
                   >
-                    <DropdownItem key="mathematics">Mathematics</DropdownItem>
-                    <DropdownItem key="science">Science</DropdownItem>
-                    <DropdownItem key="literature">Literature</DropdownItem>
-                    <DropdownItem key="history">History</DropdownItem>
+                    <DropdownItem key="mathematics">Toán Học</DropdownItem>
+                    <DropdownItem key="science">Khoa Học</DropdownItem>
+                    <DropdownItem key="literature">Văn Học</DropdownItem>
+                    <DropdownItem key="history">Lịch Sử</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <label className="text-sm font-medium text-[#0d121b] dark:text-gray-200">
-                    Assigned Classes
+                    Lớp được phân công
                   </label>
                   <div className="w-full rounded-lg border border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748] p-2 min-h-[50px] flex flex-wrap gap-2">
                     {assignedClasses.map((className) => (
@@ -368,7 +447,7 @@ export default function CreateUserPage() {
                     ))}
                     <input
                       className="flex-1 bg-transparent outline-none min-w-[150px] px-2 text-sm text-[#0d121b] dark:text-white placeholder-[#9ca3af]"
-                      placeholder="Type to search classes..."
+                      placeholder="Nhập để tìm lớp..."
                       value={classInput}
                       onChange={(e) => setClassInput(e.target.value)}
                       onKeyPress={(e) => {
@@ -381,15 +460,16 @@ export default function CreateUserPage() {
                   </div>
                 </div>
                 <Input
-                  label="Contact Number"
+                  label="Số điện thoại liên hệ"
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+84 (000) 000-0000"
                   value={phone}
                   onValueChange={setPhone}
                   startContent={<Phone className="size-4 text-[#9ca3af]" />}
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
               </div>
@@ -399,32 +479,45 @@ export default function CreateUserPage() {
           {role === "student" && (
             <div className="flex flex-col gap-6 mt-4">
               <h3 className="text-lg font-bold text-[#0d121b] dark:text-white border-b border-[#f0f2f5] dark:border-[#2d3748] pb-3">
-                <span className="text-[#135bec] mr-2">03.</span> Student Information
+                <span className="text-[#135bec] mr-2">03.</span> Thông tin học
+                sinh
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Student Code"
+                  label="Mã học sinh"
                   placeholder="STU-2024-XXX"
                   value={studentCode}
                   onValueChange={setStudentCode}
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
                 <Dropdown>
                   <DropdownTrigger>
                     <Input
-                      label="Grade Level"
-                      value={`Grade ${gradeLevel}`}
+                      label="Khối lớp"
+                      value={`Khối ${gradeLevel}`}
                       readOnly
                       classNames={{
                         input: "text-sm cursor-pointer",
-                        inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                        inputWrapper:
+                          "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                       }}
                       endContent={
-                        <svg className="w-4 h-4 text-[#9ca3af]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="w-4 h-4 text-[#9ca3af]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       }
                     />
@@ -437,45 +530,68 @@ export default function CreateUserPage() {
                       setGradeLevel(parseInt(selected) || 1);
                     }}
                   >
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((grade) => (
-                      <DropdownItem key={grade.toString()}>Grade {grade}</DropdownItem>
-                    ))}
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                      (grade) => (
+                        <DropdownItem key={grade.toString()}>
+                          Khối {grade}
+                        </DropdownItem>
+                      )
+                    )}
                   </DropdownMenu>
                 </Dropdown>
                 <Input
-                  label="School Name"
-                  placeholder="Enter school name"
+                  label="Tên trường"
+                  placeholder="Nhập tên trường"
                   value={schoolName}
                   onValueChange={setSchoolName}
                   startContent={<Building className="size-4 text-[#9ca3af]" />}
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
                 <Input
-                  label="Date of Birth"
+                  label="Ngày sinh"
                   type="date"
                   value={dateOfBirth}
                   onValueChange={setDateOfBirth}
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
                 <Dropdown>
                   <DropdownTrigger>
                     <Input
-                      label="Gender"
-                      value={gender.charAt(0).toUpperCase() + gender.slice(1)}
+                      label="Giới tính"
+                      value={
+                        gender === "male"
+                          ? "Nam"
+                          : gender === "female"
+                          ? "Nữ"
+                          : "Khác"
+                      }
                       readOnly
                       classNames={{
                         input: "text-sm cursor-pointer",
-                        inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                        inputWrapper:
+                          "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                       }}
                       endContent={
-                        <svg className="w-4 h-4 text-[#9ca3af]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="w-4 h-4 text-[#9ca3af]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       }
                     />
@@ -485,12 +601,14 @@ export default function CreateUserPage() {
                     selectionMode="single"
                     onSelectionChange={(keys) => {
                       const selected = Array.from(keys)[0] as string;
-                      setGender((selected as "male" | "female" | "other") || "male");
+                      setGender(
+                        (selected as "male" | "female" | "other") || "male"
+                      );
                     }}
                   >
-                    <DropdownItem key="male">Male</DropdownItem>
-                    <DropdownItem key="female">Female</DropdownItem>
-                    <DropdownItem key="other">Other</DropdownItem>
+                    <DropdownItem key="male">Nam</DropdownItem>
+                    <DropdownItem key="female">Nữ</DropdownItem>
+                    <DropdownItem key="other">Khác</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
               </div>
@@ -500,34 +618,53 @@ export default function CreateUserPage() {
           {role === "parent" && (
             <div className="flex flex-col gap-6 mt-4">
               <h3 className="text-lg font-bold text-[#0d121b] dark:text-white border-b border-[#f0f2f5] dark:border-[#2d3748] pb-3">
-                <span className="text-[#135bec] mr-2">03.</span> Parent Information
+                <span className="text-[#135bec] mr-2">03.</span> Thông tin phụ
+                huynh
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Phone Number"
+                  label="Số điện thoại"
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+84 (000) 000-0000"
                   value={phone}
                   onValueChange={setPhone}
                   startContent={<Phone className="size-4 text-[#9ca3af]" />}
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
                 <Dropdown>
                   <DropdownTrigger>
                     <Input
-                      label="Relationship Type"
-                      value={relationshipType.charAt(0).toUpperCase() + relationshipType.slice(1)}
+                      label="Mối quan hệ"
+                      value={
+                        relationshipType === "father"
+                          ? "Bố"
+                          : relationshipType === "mother"
+                          ? "Mẹ"
+                          : "Người giám hộ"
+                      }
                       readOnly
                       classNames={{
                         input: "text-sm cursor-pointer",
-                        inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                        inputWrapper:
+                          "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                       }}
                       endContent={
-                        <svg className="w-4 h-4 text-[#9ca3af]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="w-4 h-4 text-[#9ca3af]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       }
                     />
@@ -537,23 +674,27 @@ export default function CreateUserPage() {
                     selectionMode="single"
                     onSelectionChange={(keys) => {
                       const selected = Array.from(keys)[0] as string;
-                      setRelationshipType((selected as "father" | "mother" | "guardian") || "father");
+                      setRelationshipType(
+                        (selected as "father" | "mother" | "guardian") ||
+                          "father"
+                      );
                     }}
                   >
-                    <DropdownItem key="father">Father</DropdownItem>
-                    <DropdownItem key="mother">Mother</DropdownItem>
-                    <DropdownItem key="guardian">Guardian</DropdownItem>
+                    <DropdownItem key="father">Bố</DropdownItem>
+                    <DropdownItem key="mother">Mẹ</DropdownItem>
+                    <DropdownItem key="guardian">Người giám hộ</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
                 <Input
-                  label="Address"
-                  placeholder="Enter address"
+                  label="Địa chỉ"
+                  placeholder="Nhập địa chỉ"
                   value={address}
                   onValueChange={setAddress}
                   className="md:col-span-2"
                   classNames={{
                     input: "text-sm",
-                    inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                    inputWrapper:
+                      "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                   }}
                 />
               </div>
@@ -563,22 +704,40 @@ export default function CreateUserPage() {
           {role === "admin" && (
             <div className="flex flex-col gap-6 mt-4">
               <h3 className="text-lg font-bold text-[#0d121b] dark:text-white border-b border-[#f0f2f5] dark:border-[#2d3748] pb-3">
-                <span className="text-[#135bec] mr-2">03.</span> Admin Configuration
+                <span className="text-[#135bec] mr-2">03.</span> Cấu hình quản
+                trị
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Dropdown>
                   <DropdownTrigger>
                     <Input
-                      label="Admin Level"
-                      value={adminLevel === "super" ? "Super Admin" : adminLevel === "system" ? "System Admin" : "Support"}
+                      label="Cấp độ quản trị"
+                      value={
+                        adminLevel === "super"
+                          ? "Quản trị cấp cao"
+                          : adminLevel === "system"
+                          ? "Quản trị hệ thống"
+                          : "Hỗ trợ"
+                      }
                       readOnly
                       classNames={{
                         input: "text-sm cursor-pointer",
-                        inputWrapper: "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
+                        inputWrapper:
+                          "border-[#cfd7e7] dark:border-[#4a5568] bg-[#f8f9fc] dark:bg-[#2d3748]",
                       }}
                       endContent={
-                        <svg className="w-4 h-4 text-[#9ca3af]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="w-4 h-4 text-[#9ca3af]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       }
                     />
@@ -588,12 +747,14 @@ export default function CreateUserPage() {
                     selectionMode="single"
                     onSelectionChange={(keys) => {
                       const selected = Array.from(keys)[0] as string;
-                      setAdminLevel((selected as "super" | "system" | "support") || "system");
+                      setAdminLevel(
+                        (selected as "super" | "system" | "support") || "system"
+                      );
                     }}
                   >
-                    <DropdownItem key="super">Super Admin</DropdownItem>
-                    <DropdownItem key="system">System Admin</DropdownItem>
-                    <DropdownItem key="support">Support</DropdownItem>
+                    <DropdownItem key="super">Quản trị cấp cao</DropdownItem>
+                    <DropdownItem key="system">Quản trị hệ thống</DropdownItem>
+                    <DropdownItem key="support">Hỗ trợ</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
               </div>
@@ -607,7 +768,7 @@ export default function CreateUserPage() {
               className="border-[#cfd7e7] text-[#4c669a] dark:text-gray-300"
               onPress={() => router.push("/dashboard/users")}
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               type="submit"
@@ -615,11 +776,11 @@ export default function CreateUserPage() {
               className="bg-[#135bec] hover:bg-blue-700 text-white"
               startContent={!loading && <Save className="size-4" />}
             >
-              Create User
+              Tạo người dùng
             </Button>
           </div>
         </form>
-    </div>
+      </div>
     </LayoutDashboard>
   );
 }

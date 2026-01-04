@@ -13,14 +13,21 @@ export class UploadService {
   constructor(private configService: ConfigService) {
     const accountId = this.configService.get<string>('r2.accountId');
     const accessKeyId = this.configService.get<string>('r2.accessKeyId');
-    const secretAccessKey = this.configService.get<string>('r2.secretAccessKey');
+    const secretAccessKey =
+      this.configService.get<string>('r2.secretAccessKey');
     const bucketName = this.configService.get<string>('r2.bucketName');
     const publicUrl = this.configService.get<string>('r2.publicUrl');
 
     // Validate required configuration
-    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicUrl) {
+    if (
+      !accountId ||
+      !accessKeyId ||
+      !secretAccessKey ||
+      !bucketName ||
+      !publicUrl
+    ) {
       throw new Error(
-        'Missing required R2 configuration. Please check your .env file for R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_URL'
+        'Missing required R2 configuration. Please check your .env file for R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_URL',
       );
     }
 
@@ -37,15 +44,25 @@ export class UploadService {
     });
   }
 
-  async uploadFile(file: Express.Multer.File, folder: string = 'avatars'): Promise<string> {
+  async uploadFile(
+    file: Express.Multer.File,
+    folder: string = 'avatars',
+  ): Promise<string> {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
 
     // Validate file type
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed');
+      throw new BadRequestException(
+        'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed',
+      );
     }
 
     // Validate file size (5MB max)

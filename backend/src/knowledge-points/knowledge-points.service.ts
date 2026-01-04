@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { eq, and, inArray, or } from 'drizzle-orm';
 import {
   db,
@@ -12,7 +17,14 @@ import {
 import { CreateKnowledgePointDto } from './dto/create-knowledge-point.dto';
 import { UpdateKnowledgePointDto } from './dto/update-knowledge-point.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
-import { getAccessibleKnowledgePointIds, getAccessibleSectionIds } from '../courses/helpers/course-access.helper';
+import {
+  getAccessibleKnowledgePointIds,
+  getAccessibleSectionIds,
+} from '../courses/helpers/course-access.helper';
+import { GenerateContentDto } from './dto/generate-content.dto';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { HumanMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class KnowledgePointsService {
@@ -27,30 +39,41 @@ export class KnowledgePointsService {
         .where(inArray(knowledgePoint.id, createKpDto.prerequisites));
 
       if (existingKps.length !== createKpDto.prerequisites.length) {
-        throw new BadRequestException('One or more prerequisite KPs do not exist');
+        throw new BadRequestException(
+          'One or more prerequisite KPs do not exist',
+        );
       }
     }
 
     // Use transaction to create KP with related entities
     return await db.transaction(async (tx) => {
+      // Merge questions into content object if provided
+      const content = {
+        ...createKpDto.content,
+        ...(createKpDto.questions && { questions: createKpDto.questions }),
+      };
+
       // 1. Create the knowledge point
       const [kp] = await tx
         .insert(knowledgePoint)
         .values({
           title: createKpDto.title,
-          description: createKpDto.description,
+          description: createKpDto.description || '',
+          content: content,
           difficultyLevel: createKpDto.difficultyLevel,
-          tags: createKpDto.tags,
+
           createdBy: userId ?? null,
         })
         .returning();
 
       // 2. Create prerequisites if provided
       if (createKpDto.prerequisites && createKpDto.prerequisites.length > 0) {
-        const prerequisiteValues = createKpDto.prerequisites.map((prereqId) => ({
-          kpId: kp.id,
-          prerequisiteKpId: prereqId,
-        }));
+        const prerequisiteValues = createKpDto.prerequisites.map(
+          (prereqId) => ({
+            kpId: kp.id,
+            prerequisiteKpId: prereqId,
+          }),
+        );
 
         await tx.insert(kpPrerequisites).values(prerequisiteValues);
       }
@@ -85,7 +108,10 @@ export class KnowledgePointsService {
   async findAll(userId?: string, userRole?: string) {
     // Filter by role: teacher only sees their KPs or KPs from accessible sections
     if (userRole === 'teacher' && userId) {
-      const accessibleKpIds = await getAccessibleKnowledgePointIds(userId, userRole);
+      const accessibleKpIds = await getAccessibleKnowledgePointIds(
+        userId,
+        userRole,
+      );
       if (accessibleKpIds.length === 0) {
         return [];
       }
@@ -114,9 +140,14 @@ export class KnowledgePointsService {
 
     // Check access permission for teachers
     if (userRole === 'teacher' && userId) {
-      const accessibleKpIds = await getAccessibleKnowledgePointIds(userId, userRole);
+      const accessibleKpIds = await getAccessibleKnowledgePointIds(
+        userId,
+        userRole,
+      );
       if (!accessibleKpIds.includes(id)) {
-        throw new ForbiddenException('You do not have access to this knowledge point');
+        throw new ForbiddenException(
+          'You do not have access to this knowledge point',
+        );
       }
     }
 
@@ -134,7 +165,7 @@ export class KnowledgePointsService {
       .from(kpPrerequisites)
       .innerJoin(
         knowledgePoint,
-        eq(kpPrerequisites.prerequisiteKpId, knowledgePoint.id)
+        eq(kpPrerequisites.prerequisiteKpId, knowledgePoint.id),
       )
       .where(eq(kpPrerequisites.kpId, id));
 
@@ -159,7 +190,12 @@ export class KnowledgePointsService {
     };
   }
 
-  async update(id: string, updateKpDto: UpdateKnowledgePointDto, userId?: string, userRole?: string) {
+  async update(
+    id: string,
+    updateKpDto: UpdateKnowledgePointDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     await this.findOne(id, userId, userRole);
 
     // Validate prerequisite KPs if provided
@@ -170,7 +206,9 @@ export class KnowledgePointsService {
         .where(inArray(knowledgePoint.id, updateKpDto.prerequisites));
 
       if (existingKps.length !== updateKpDto.prerequisites.length) {
-        throw new BadRequestException('One or more prerequisite KPs do not exist');
+        throw new BadRequestException(
+          'One or more prerequisite KPs do not exist',
+        );
       }
     }
 
@@ -178,9 +216,19 @@ export class KnowledgePointsService {
       // 1. Update the knowledge point
       const updateData: any = { updatedAt: new Date() };
       if (updateKpDto.title) updateData.title = updateKpDto.title;
-      if (updateKpDto.description) updateData.description = updateKpDto.description;
-      if (updateKpDto.difficultyLevel) updateData.difficultyLevel = updateKpDto.difficultyLevel;
-      if (updateKpDto.tags) updateData.tags = updateKpDto.tags;
+      if (updateKpDto.description !== undefined)
+        updateData.description = updateKpDto.description;
+
+      // Merge questions into content if provided
+      if (updateKpDto.content !== undefined) {
+        updateData.content = {
+          ...updateKpDto.content,
+          ...(updateKpDto.questions && { questions: updateKpDto.questions }),
+        };
+      }
+
+      if (updateKpDto.difficultyLevel)
+        updateData.difficultyLevel = updateKpDto.difficultyLevel;
 
       const [updated] = await tx
         .update(knowledgePoint)
@@ -195,10 +243,12 @@ export class KnowledgePointsService {
 
         // Insert new prerequisites
         if (updateKpDto.prerequisites.length > 0) {
-          const prerequisiteValues = updateKpDto.prerequisites.map((prereqId) => ({
-            kpId: id,
-            prerequisiteKpId: prereqId,
-          }));
+          const prerequisiteValues = updateKpDto.prerequisites.map(
+            (prereqId) => ({
+              kpId: id,
+              prerequisiteKpId: prereqId,
+            }),
+          );
 
           await tx.insert(kpPrerequisites).values(prerequisiteValues);
         }
@@ -247,7 +297,11 @@ export class KnowledgePointsService {
 
   // ==================== SECTION ASSIGNMENTS ====================
 
-  async assignToSection(assignDto: AssignToSectionDto, userId?: string, userRole?: string) {
+  async assignToSection(
+    assignDto: AssignToSectionDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     // Validate section exists and check access
     const sectionResult = await db
       .select()
@@ -261,7 +315,10 @@ export class KnowledgePointsService {
 
     // Check section access for teachers
     if (userRole === 'teacher' && userId) {
-      const accessibleSectionIds = await getAccessibleSectionIds(userId, userRole);
+      const accessibleSectionIds = await getAccessibleSectionIds(
+        userId,
+        userRole,
+      );
       if (!accessibleSectionIds.includes(assignDto.sectionId)) {
         throw new ForbiddenException('You do not have access to this section');
       }
@@ -277,8 +334,8 @@ export class KnowledgePointsService {
       .where(
         and(
           eq(sectionKpMap.sectionId, assignDto.sectionId),
-          eq(sectionKpMap.kpId, assignDto.kpId)
-        )
+          eq(sectionKpMap.kpId, assignDto.kpId),
+        ),
       )
       .limit(1);
 
@@ -298,10 +355,18 @@ export class KnowledgePointsService {
     return assignment;
   }
 
-  async removeFromSection(sectionId: string, kpId: string, userId?: string, userRole?: string) {
+  async removeFromSection(
+    sectionId: string,
+    kpId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     // Check section access for teachers
     if (userRole === 'teacher' && userId) {
-      const accessibleSectionIds = await getAccessibleSectionIds(userId, userRole);
+      const accessibleSectionIds = await getAccessibleSectionIds(
+        userId,
+        userRole,
+      );
       if (!accessibleSectionIds.includes(sectionId)) {
         throw new ForbiddenException('You do not have access to this section');
       }
@@ -309,10 +374,7 @@ export class KnowledgePointsService {
     const result = await db
       .delete(sectionKpMap)
       .where(
-        and(
-          eq(sectionKpMap.sectionId, sectionId),
-          eq(sectionKpMap.kpId, kpId)
-        )
+        and(eq(sectionKpMap.sectionId, sectionId), eq(sectionKpMap.kpId, kpId)),
       )
       .returning();
 
@@ -326,7 +388,10 @@ export class KnowledgePointsService {
   async getKpsBySection(sectionId: string, userId?: string, userRole?: string) {
     // Check section access for teachers
     if (userRole === 'teacher' && userId) {
-      const accessibleSectionIds = await getAccessibleSectionIds(userId, userRole);
+      const accessibleSectionIds = await getAccessibleSectionIds(
+        userId,
+        userRole,
+      );
       if (!accessibleSectionIds.includes(sectionId)) {
         throw new ForbiddenException('You do not have access to this section');
       }
@@ -356,7 +421,7 @@ export class KnowledgePointsService {
           orderIndex: row.mapping.orderIndex,
           prerequisites: prereqs.map((p) => p.prerequisiteKpId),
         };
-      })
+      }),
     );
 
     return kpsWithPrerequisites;
@@ -374,7 +439,7 @@ export class KnowledgePointsService {
       .from(kpPrerequisites)
       .innerJoin(
         knowledgePoint,
-        eq(kpPrerequisites.prerequisiteKpId, knowledgePoint.id)
+        eq(kpPrerequisites.prerequisiteKpId, knowledgePoint.id),
       )
       .where(eq(kpPrerequisites.kpId, kpId));
 
@@ -407,5 +472,143 @@ export class KnowledgePointsService {
       .orderBy(kpResources.orderIndex);
 
     return resources;
+  }
+
+  // ==================== AI CONTENT GENERATION ====================
+
+  async generateContent(generateDto: GenerateContentDto) {
+    // Build prompt for visualization based on theory content
+    let prompt = `Create an interactive visualization/game for the topic "${generateDto.topic}".
+
+    Theory Content:
+    ${generateDto.theoryContent || generateDto.description || 'No theory content provided'}
+
+    ${generateDto.prompt ? `Additional Requirements:\n${generateDto.prompt}\n` : ''}
+
+    CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE EXACTLY:
+
+    1. OUTPUT FORMAT:
+       - Output ONLY raw HTML starting with <div> and ending with </div>
+       - Do NOT wrap in markdown code blocks (\`\`\`html or \`\`\`)
+       - Do NOT include <!DOCTYPE>, <html>, <head>, or <body> tags
+
+    2. CSS STYLING (MUST BE SCOPED):
+       - Use <style scoped> tag inside the root <div>
+       - ALL CSS selectors MUST use a unique class prefix like ".viz-container-{random-id}"
+       - Example: .viz-container-abc123 .button { ... }
+       - This prevents CSS conflicts with the main website
+
+    3. JAVASCRIPT (MUST BE SELF-CONTAINED):
+       - Use <script> tag inside the root <div>
+       - Wrap ALL code in an Immediately Invoked Function Expression (IIFE):
+         (function() {
+           // All your code here
+         })();
+       - Define ALL functions INSIDE the IIFE before using them
+       - Do NOT call functions that are not defined
+       - Use vanilla JavaScript only - NO external libraries
+       - Use const/let for all variables (no global pollution)
+
+    4. STRUCTURE EXAMPLE:
+       <div class="viz-container-abc123">
+         <style scoped>
+           .viz-container-abc123 {
+             width: 100%;
+             padding: 20px;
+           }
+           .viz-container-abc123 .button {
+             background: #007bff;
+             color: white;
+             border: none;
+             padding: 10px 20px;
+             cursor: pointer;
+           }
+         </style>
+
+         <div class="content">
+           <!-- Your interactive elements here -->
+         </div>
+
+         <script>
+           (function() {
+             // Get container
+             const container = document.currentScript.parentElement;
+
+             // Define ALL helper functions first
+             function updateDisplay() {
+               // Implementation
+             }
+
+             function handleClick(event) {
+               // Implementation
+             }
+
+             // Then use them
+             const button = container.querySelector('.button');
+             button.addEventListener('click', handleClick);
+
+             // Initialize
+             updateDisplay();
+           })();
+         </script>
+       </div>
+
+    5. FUNCTIONALITY:
+       - Make it interactive (buttons, sliders, animations)
+       - Clearly demonstrate the concept from theory
+       - Use Canvas API for graphics if needed
+       - Add clear labels and instructions
+       - Make it visually appealing and educational
+
+    6. IMPORTANT - FUNCTION DEFINITIONS:
+       - ALWAYS define functions BEFORE calling them
+       - All event handlers must be defined functions
+       - No references to undefined variables or functions
+       - Test that all code paths work
+
+    Output the complete, working HTML now:`;
+
+    try {
+      // Initialize AI model based on selection
+      let model;
+      if (generateDto.aiModel === 'openai') {
+        const openaiApiKey = process.env.OPENAI_API_KEY;
+        if (!openaiApiKey) {
+          throw new BadRequestException('OpenAI API key is not configured');
+        }
+        model = new ChatOpenAI({
+          modelName: 'gpt-4o-mini',
+          temperature: 0.7,
+          apiKey: openaiApiKey,
+        });
+      } else {
+        const googleApiKey = process.env.GOOGLE_API_KEY;
+        if (!googleApiKey) {
+          throw new BadRequestException('Google API key is not configured');
+        }
+        model = new ChatGoogleGenerativeAI({
+          model: 'gemini-1.5-flash',
+          temperature: 0.7,
+          apiKey: googleApiKey,
+        });
+      }
+
+      // Generate content
+      const response = await model.invoke([new HumanMessage(prompt)]);
+      let content = response.content as string;
+
+      // Clean up markdown code blocks if present
+      content = content.replace(/```html/g, '').replace(/```/g, '');
+
+      return {
+        content: content.trim(),
+        type: generateDto.contentType,
+      };
+    } catch (error) {
+      console.error('AI content generation error:', error);
+      throw new BadRequestException(
+        `Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 }

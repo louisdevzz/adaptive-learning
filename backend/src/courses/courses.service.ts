@@ -1,11 +1,33 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { eq, and, desc, SQL, or, inArray } from 'drizzle-orm';
-import { db, courses, modules, sections, sectionKpMap, teacherCourseMap, teachers, knowledgePoint, kpPrerequisites, kpResources } from '../../db';
+import {
+  db,
+  courses,
+  modules,
+  sections,
+  sectionKpMap,
+  teacherCourseMap,
+  teachers,
+  knowledgePoint,
+  kpPrerequisites,
+  kpResources,
+} from '../../db';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
-import { hasCourseAccess, hasCourseWriteAccess, getAccessibleCourseIds, getAccessibleModuleIds, getAccessibleSectionIds } from './helpers/course-access.helper';
+import {
+  hasCourseAccess,
+  hasCourseWriteAccess,
+  getAccessibleCourseIds,
+  getAccessibleModuleIds,
+  getAccessibleSectionIds,
+} from './helpers/course-access.helper';
 
 @Injectable()
 export class CoursesService {
@@ -30,20 +52,29 @@ export class CoursesService {
     return result[0];
   }
 
-  async findAll(gradeLevel?: number, subject?: string, active?: boolean, userId?: string, userRole?: string) {
+  async findAll(
+    gradeLevel?: number,
+    subject?: string,
+    active?: boolean,
+    userId?: string,
+    userRole?: string,
+  ) {
     let query = db.select().from(courses);
 
     const conditions: SQL[] = [];
-    
+
     // Filter by role: teacher only sees their courses
     if (userRole === 'teacher' && userId) {
-      const accessibleCourseIds = await getAccessibleCourseIds(userId, userRole);
+      const accessibleCourseIds = await getAccessibleCourseIds(
+        userId,
+        userRole,
+      );
       if (accessibleCourseIds.length === 0) {
         return [];
       }
       conditions.push(inArray(courses.id, accessibleCourseIds));
     }
-    
+
     if (gradeLevel) conditions.push(eq(courses.gradeLevel, gradeLevel));
     if (subject) conditions.push(eq(courses.subject, subject));
     if (active !== undefined) conditions.push(eq(courses.active, active));
@@ -78,15 +109,22 @@ export class CoursesService {
     return result[0];
   }
 
-  async update(id: string, updateCourseDto: UpdateCourseDto, userId?: string, userRole?: string) {
+  async update(
+    id: string,
+    updateCourseDto: UpdateCourseDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     // Check read access first
     await this.findOne(id, userId, userRole);
-    
+
     // Check write access for teachers (can't edit public courses they don't own)
     if (userRole === 'teacher' && userId) {
       const hasWriteAccess = await hasCourseWriteAccess(id, userId, userRole);
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to edit this course');
+        throw new ForbiddenException(
+          'You do not have permission to edit this course',
+        );
       }
     }
 
@@ -107,12 +145,14 @@ export class CoursesService {
   async remove(id: string, userId?: string, userRole?: string) {
     // Check read access first
     await this.findOne(id, userId, userRole);
-    
+
     // Check write access for teachers (can't delete public courses they don't own)
     if (userRole === 'teacher' && userId) {
       const hasWriteAccess = await hasCourseWriteAccess(id, userId, userRole);
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to delete this course');
+        throw new ForbiddenException(
+          'You do not have permission to delete this course',
+        );
       }
     }
 
@@ -123,15 +163,25 @@ export class CoursesService {
 
   // ==================== MODULES ====================
 
-  async createModule(createModuleDto: CreateModuleDto, userId?: string, userRole?: string) {
+  async createModule(
+    createModuleDto: CreateModuleDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     // Validate course exists and check read access
     await this.findOne(createModuleDto.courseId, userId, userRole);
-    
+
     // Check write access for teachers (can't create modules in public courses they don't own)
     if (userRole === 'teacher' && userId) {
-      const hasWriteAccess = await hasCourseWriteAccess(createModuleDto.courseId, userId, userRole);
+      const hasWriteAccess = await hasCourseWriteAccess(
+        createModuleDto.courseId,
+        userId,
+        userRole,
+      );
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to create modules in this course');
+        throw new ForbiddenException(
+          'You do not have permission to create modules in this course',
+        );
       }
     }
 
@@ -149,7 +199,11 @@ export class CoursesService {
     return module;
   }
 
-  async findModulesByCourse(courseId: string, userId?: string, userRole?: string) {
+  async findModulesByCourse(
+    courseId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     await this.findOne(courseId, userId, userRole);
 
     const result = await db
@@ -175,7 +229,11 @@ export class CoursesService {
     // Check access permission for teachers
     if (userRole === 'teacher' && userId) {
       const module = result[0];
-      const hasAccess = await hasCourseAccess(module.courseId, userId, userRole);
+      const hasAccess = await hasCourseAccess(
+        module.courseId,
+        userId,
+        userRole,
+      );
       if (!hasAccess) {
         throw new ForbiddenException('You do not have access to this module');
       }
@@ -184,14 +242,25 @@ export class CoursesService {
     return result[0];
   }
 
-  async updateModule(moduleId: string, updateData: Partial<CreateModuleDto>, userId?: string, userRole?: string) {
+  async updateModule(
+    moduleId: string,
+    updateData: Partial<CreateModuleDto>,
+    userId?: string,
+    userRole?: string,
+  ) {
     const module = await this.findModule(moduleId, userId, userRole);
-    
+
     // Check write access for teachers (can't edit modules in public courses they don't own)
     if (userRole === 'teacher' && userId) {
-      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      const hasWriteAccess = await hasCourseWriteAccess(
+        module.courseId,
+        userId,
+        userRole,
+      );
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to edit this module');
+        throw new ForbiddenException(
+          'You do not have permission to edit this module',
+        );
       }
     }
 
@@ -206,12 +275,18 @@ export class CoursesService {
 
   async removeModule(moduleId: string, userId?: string, userRole?: string) {
     const module = await this.findModule(moduleId, userId, userRole);
-    
+
     // Check write access for teachers (can't delete modules in public courses they don't own)
     if (userRole === 'teacher' && userId) {
-      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      const hasWriteAccess = await hasCourseWriteAccess(
+        module.courseId,
+        userId,
+        userRole,
+      );
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to delete this module');
+        throw new ForbiddenException(
+          'You do not have permission to delete this module',
+        );
       }
     }
 
@@ -222,15 +297,29 @@ export class CoursesService {
 
   // ==================== SECTIONS ====================
 
-  async createSection(createSectionDto: CreateSectionDto, userId?: string, userRole?: string) {
+  async createSection(
+    createSectionDto: CreateSectionDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     // Validate module exists and check read access
-    const module = await this.findModule(createSectionDto.moduleId, userId, userRole);
-    
+    const module = await this.findModule(
+      createSectionDto.moduleId,
+      userId,
+      userRole,
+    );
+
     // Check write access for teachers (can't create sections in public courses they don't own)
     if (userRole === 'teacher' && userId) {
-      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      const hasWriteAccess = await hasCourseWriteAccess(
+        module.courseId,
+        userId,
+        userRole,
+      );
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to create sections in this course');
+        throw new ForbiddenException(
+          'You do not have permission to create sections in this course',
+        );
       }
     }
 
@@ -242,14 +331,16 @@ export class CoursesService {
         .values({
           moduleId: createSectionDto.moduleId,
           title: createSectionDto.title,
-          summary: createSectionDto.summary,
           orderIndex: createSectionDto.orderIndex,
           createdBy: userId ?? null,
         })
         .returning();
 
       // 2. Create knowledge points and section-kp mappings if provided
-      if (createSectionDto.knowledgePoints && createSectionDto.knowledgePoints.length > 0) {
+      if (
+        createSectionDto.knowledgePoints &&
+        createSectionDto.knowledgePoints.length > 0
+      ) {
         const sectionKpValues: Array<{
           sectionId: string;
           kpId: string;
@@ -273,8 +364,9 @@ export class CoursesService {
             .values({
               title: kpData.title,
               description: kpData.description,
+              content: kpData.content,
               difficultyLevel: kpData.difficultyLevel,
-              tags: kpData.tags || [],
+
               createdBy: userId ?? null,
             })
             .returning();
@@ -314,7 +406,11 @@ export class CoursesService {
     });
   }
 
-  async findSectionsByModule(moduleId: string, userId?: string, userRole?: string) {
+  async findSectionsByModule(
+    moduleId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     await this.findModule(moduleId, userId, userRole);
 
     const result = await db
@@ -347,7 +443,11 @@ export class CoursesService {
     return result[0];
   }
 
-  async getSectionKnowledgePoints(sectionId: string, userId?: string, userRole?: string) {
+  async getSectionKnowledgePoints(
+    sectionId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     await this.findSection(sectionId, userId, userRole);
 
     const result = await db
@@ -374,21 +474,32 @@ export class CoursesService {
           ...row.knowledgePoint,
           prerequisites: prereqs.map((p) => p.prerequisiteKpId),
         };
-      })
+      }),
     );
 
     return kpsWithPrerequisites;
   }
 
-  async updateSection(sectionId: string, updateData: Partial<CreateSectionDto>, userId?: string, userRole?: string) {
+  async updateSection(
+    sectionId: string,
+    updateData: Partial<CreateSectionDto>,
+    userId?: string,
+    userRole?: string,
+  ) {
     const section = await this.findSection(sectionId, userId, userRole);
     const module = await this.findModule(section.moduleId, userId, userRole);
-    
+
     // Check write access for teachers (can't edit sections in public courses they don't own)
     if (userRole === 'teacher' && userId) {
-      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      const hasWriteAccess = await hasCourseWriteAccess(
+        module.courseId,
+        userId,
+        userRole,
+      );
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to edit this section');
+        throw new ForbiddenException(
+          'You do not have permission to edit this section',
+        );
       }
     }
 
@@ -404,12 +515,18 @@ export class CoursesService {
   async removeSection(sectionId: string, userId?: string, userRole?: string) {
     const section = await this.findSection(sectionId, userId, userRole);
     const module = await this.findModule(section.moduleId, userId, userRole);
-    
+
     // Check write access for teachers (can't delete sections in public courses they don't own)
     if (userRole === 'teacher' && userId) {
-      const hasWriteAccess = await hasCourseWriteAccess(module.courseId, userId, userRole);
+      const hasWriteAccess = await hasCourseWriteAccess(
+        module.courseId,
+        userId,
+        userRole,
+      );
       if (!hasWriteAccess) {
-        throw new ForbiddenException('You do not have permission to delete this section');
+        throw new ForbiddenException(
+          'You do not have permission to delete this section',
+        );
       }
     }
 
@@ -420,7 +537,11 @@ export class CoursesService {
 
   // ==================== COURSE STRUCTURE ====================
 
-  async getCourseStructure(courseId: string, userId?: string, userRole?: string) {
+  async getCourseStructure(
+    courseId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     const course = await this.findOne(courseId, userId, userRole);
 
     const courseModules = await db
@@ -437,11 +558,34 @@ export class CoursesService {
           .where(eq(sections.moduleId, module.id))
           .orderBy(sections.orderIndex);
 
+        // Fetch knowledge points for each section
+        const sectionsWithKps = await Promise.all(
+          moduleSections.map(async (section) => {
+            const kps = await db
+              .select({
+                kp: knowledgePoint,
+                mapping: sectionKpMap,
+              })
+              .from(sectionKpMap)
+              .innerJoin(
+                knowledgePoint,
+                eq(sectionKpMap.kpId, knowledgePoint.id),
+              )
+              .where(eq(sectionKpMap.sectionId, section.id))
+              .orderBy(sectionKpMap.orderIndex);
+
+            return {
+              ...section,
+              knowledgePoints: kps.map((row) => row.kp),
+            };
+          }),
+        );
+
         return {
           ...module,
-          sections: moduleSections,
+          sections: sectionsWithKps,
         };
-      })
+      }),
     );
 
     return {
@@ -452,7 +596,11 @@ export class CoursesService {
 
   // ==================== TEACHER ASSIGNMENTS ====================
 
-  async assignTeacherToCourse(courseId: string, teacherId: string, role: 'creator' | 'collaborator' = 'collaborator') {
+  async assignTeacherToCourse(
+    courseId: string,
+    teacherId: string,
+    role: 'creator' | 'collaborator' = 'collaborator',
+  ) {
     // Validate course exists
     await this.findOne(courseId);
 
@@ -474,8 +622,8 @@ export class CoursesService {
       .where(
         and(
           eq(teacherCourseMap.teacherId, teacherId),
-          eq(teacherCourseMap.courseId, courseId)
-        )
+          eq(teacherCourseMap.courseId, courseId),
+        ),
       )
       .limit(1);
 
@@ -495,7 +643,11 @@ export class CoursesService {
     return assignment;
   }
 
-  async getCourseTeachers(courseId: string, userId?: string, userRole?: string) {
+  async getCourseTeachers(
+    courseId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     await this.findOne(courseId, userId, userRole);
 
     const result = await db
@@ -512,7 +664,11 @@ export class CoursesService {
 
   // ==================== COURSE LEARNING DETAILS ====================
 
-  async getCourseForLearning(courseId: string, userId?: string, userRole?: string) {
+  async getCourseForLearning(
+    courseId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
     const course = await this.findOne(courseId, userId, userRole);
 
     const courseModules = await db
@@ -538,7 +694,10 @@ export class CoursesService {
                 mapping: sectionKpMap,
               })
               .from(sectionKpMap)
-              .innerJoin(knowledgePoint, eq(sectionKpMap.kpId, knowledgePoint.id))
+              .innerJoin(
+                knowledgePoint,
+                eq(sectionKpMap.kpId, knowledgePoint.id),
+              )
               .where(eq(sectionKpMap.sectionId, section.id))
               .orderBy(sectionKpMap.orderIndex);
 
@@ -556,21 +715,21 @@ export class CoursesService {
                   orderIndex: row.mapping.orderIndex,
                   resources,
                 };
-              })
+              }),
             );
 
             return {
               ...section,
               knowledgePoints: kpsWithResources,
             };
-          })
+          }),
         );
 
         return {
           ...module,
           sections: sectionsWithKps,
         };
-      })
+      }),
     );
 
     return {

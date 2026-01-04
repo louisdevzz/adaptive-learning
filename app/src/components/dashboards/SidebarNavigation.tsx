@@ -19,7 +19,7 @@ import {
   Compass,
   TrendingUp,
   Award,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -48,7 +48,11 @@ type MenuItem = {
 // Submenu items for course management
 const courseManagementSubmenu: MenuSubItem[] = [
   { icon: Book, label: "Quản lý môn học", href: "/dashboard/courses" },
-  { icon: Compass, label: "Khám phá khóa học", href: "/dashboard/courses/explorer" },
+  {
+    icon: Compass,
+    label: "Khám phá khóa học",
+    href: "/dashboard/courses/explorer",
+  },
 ];
 
 // Menu items for each role
@@ -56,22 +60,41 @@ const menuItems: Record<string, MenuItem[]> = {
   admin: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Người dùng", href: "/dashboard/users" },
-    { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    {
+      icon: BookOpen,
+      label: "Khóa học",
+      href: "/dashboard/courses",
+      hasSubmenu: true,
+      submenu: courseManagementSubmenu,
+    },
     { icon: School, label: "Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
-    { icon: Settings, label: "Cài đặt", href: "/dashboard/settings" },
   ],
   teacher: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
-    { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    {
+      icon: BookOpen,
+      label: "Khóa học",
+      href: "/dashboard/courses",
+      hasSubmenu: true,
+      submenu: courseManagementSubmenu,
+    },
     { icon: Users, label: "Quản lý học sinh", href: "/dashboard/students" },
     { icon: School, label: "Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
   student: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
-    { icon: BookOpen, label: "Khóa học của tôi", href: "/dashboard/my-courses" },
-    { icon: TrendingUp, label: "Lộ trình học tập", href: "/dashboard/learning-path" },
+    {
+      icon: BookOpen,
+      label: "Khóa học của tôi",
+      href: "/dashboard/my-courses",
+    },
+    {
+      icon: TrendingUp,
+      label: "Lộ trình học tập",
+      href: "/dashboard/learning-path",
+    },
     { icon: Award, label: "Tiến độ", href: "/dashboard/progress" },
   ],
   parent: [
@@ -90,7 +113,8 @@ export function SidebarNavigation() {
   };
 
   const role = user?.role?.toLowerCase() || "";
-  const currentMenuItems = menuItems[role as keyof typeof menuItems] || menuItems.student;
+  const currentMenuItems =
+    menuItems[role as keyof typeof menuItems] || menuItems.student;
 
   // Check if menu item is active
   const isActive = (item: MenuItem) => {
@@ -108,7 +132,8 @@ export function SidebarNavigation() {
       const hasMoreSpecificMatch = currentMenuItems.some((otherItem) => {
         if (otherItem.href === item.href) return false;
         return (
-          pathname?.startsWith(otherItem.href + "/") &&
+          (pathname === otherItem.href ||
+            pathname?.startsWith(otherItem.href + "/")) &&
           otherItem.href.startsWith(item.href + "/")
         );
       });
@@ -124,8 +149,15 @@ export function SidebarNavigation() {
         {/* Left: Logo & Nav */}
         <div className="flex items-center gap-8 overflow-x-auto no-scrollbar flex-1 min-w-0">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 text-[#135bec] shrink-0">
-            <img src="/logo-text.png" alt="Adapt" className="w-36 object-cover" />
+          <Link
+            href="/"
+            className="flex items-center gap-3 text-[#135bec] shrink-0"
+          >
+            <img
+              src="/logo-text.png"
+              alt="Adapt"
+              className="w-32 object-cover"
+            />
           </Link>
 
           {/* Navigation Links - Desktop */}
@@ -140,7 +172,7 @@ export function SidebarNavigation() {
                   <Dropdown key={item.label} placement="bottom-start">
                     <DropdownTrigger>
                       <button
-                        className={`flex items-center gap-1.5 font-medium text-sm transition-colors ${
+                        className={`flex items-center gap-1.5 font-medium text-sm transition-colors cursor-pointer ${
                           active
                             ? "text-[#135bec] font-semibold"
                             : "text-[#4c669a] dark:text-gray-400 hover:text-[#135bec]"
@@ -163,10 +195,16 @@ export function SidebarNavigation() {
                         return (
                           <DropdownItem
                             key={subItem.label}
-                            startContent={<SubIconComponent className="w-4 h-4 text-[#4c669a]" />}
+                            startContent={
+                              <SubIconComponent className="w-4 h-4 text-[#4c669a]" />
+                            }
                             as={Link}
                             href={subItem.href}
-                            className={isSubActive ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                            className={
+                              isSubActive
+                                ? "bg-blue-50 dark:bg-blue-900/20"
+                                : ""
+                            }
                           >
                             <span
                               className={
@@ -204,9 +242,7 @@ export function SidebarNavigation() {
           </nav>
         </div>
 
-        {/* Right: Utilities */}
         <div className="flex items-center gap-4 shrink-0">
-          {/* Search - Desktop */}
           <div className="hidden md:flex items-center bg-[#f0f2f5] dark:bg-gray-800 rounded-lg px-3 py-2 w-64 focus-within:ring-2 focus-within:ring-[#135bec]/20 transition-all">
             <Search className="w-4 h-4 text-[#4c669a] dark:text-gray-400" />
             <input
@@ -216,7 +252,6 @@ export function SidebarNavigation() {
             />
           </div>
 
-          {/* Notification Button */}
           <Button
             variant="light"
             isIconOnly
@@ -233,7 +268,10 @@ export function SidebarNavigation() {
               <DropdownTrigger>
                 <button className="flex items-center gap-2 pl-2 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <Avatar
-                    src={user.avatarUrl || "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"}
+                    src={
+                      user.avatarUrl ||
+                      "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"
+                    }
                     size="sm"
                     className="w-8 h-8 border border-gray-200 dark:border-gray-700"
                   />
@@ -256,14 +294,20 @@ export function SidebarNavigation() {
                   as={Link}
                   href="/dashboard/settings"
                 >
-                  <span className="text-[#0d121b] dark:text-gray-200">Cài đặt</span>
+                  <span className="text-[#0d121b] dark:text-gray-200">
+                    Cài đặt
+                  </span>
                 </DropdownItem>
                 <DropdownItem
                   key="help"
                   textValue="Help"
-                  startContent={<HelpCircle className="w-4 h-4 text-[#4c669a]" />}
+                  startContent={
+                    <HelpCircle className="w-4 h-4 text-[#4c669a]" />
+                  }
                 >
-                  <span className="text-[#0d121b] dark:text-gray-200">Hỗ trợ</span>
+                  <span className="text-[#0d121b] dark:text-gray-200">
+                    Hỗ trợ
+                  </span>
                 </DropdownItem>
                 <DropdownItem
                   key="logout"
@@ -313,10 +357,14 @@ export function SidebarNavigation() {
                     return (
                       <DropdownItem
                         key={subItem.label}
-                        startContent={<SubIconComponent className="w-4 h-4 text-[#4c669a]" />}
+                        startContent={
+                          <SubIconComponent className="w-4 h-4 text-[#4c669a]" />
+                        }
                         as={Link}
                         href={subItem.href}
-                        className={isSubActive ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                        className={
+                          isSubActive ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                        }
                       >
                         <span
                           className={

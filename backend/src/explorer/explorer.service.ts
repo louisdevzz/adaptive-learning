@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import {
   db,
@@ -29,9 +33,9 @@ export class ExplorerService {
   async getPublicCourses(gradeLevel?: number, subject?: string) {
     const conditions: any[] = [
       eq(courses.visibility, 'public'),
-      eq(courses.active, true)
+      eq(courses.active, true),
     ];
-    
+
     if (gradeLevel) {
       conditions.push(eq(courses.gradeLevel, gradeLevel));
     }
@@ -44,7 +48,7 @@ export class ExplorerService {
       .from(courses)
       .where(and(...conditions))
       .orderBy(courses.createdAt);
-    
+
     return result;
   }
 
@@ -59,8 +63,8 @@ export class ExplorerService {
         and(
           eq(courses.id, courseId),
           eq(courses.visibility, 'public'),
-          eq(courses.active, true)
-        )
+          eq(courses.active, true),
+        ),
       )
       .limit(1);
 
@@ -86,8 +90,8 @@ export class ExplorerService {
         and(
           eq(courses.id, courseId),
           eq(courses.visibility, 'public'),
-          eq(courses.active, true)
-        )
+          eq(courses.active, true),
+        ),
       )
       .limit(1);
 
@@ -104,8 +108,8 @@ export class ExplorerService {
       .where(
         and(
           eq(courses.originCourseId, courseId),
-          eq(courses.createdBy, teacherId)
-        )
+          eq(courses.createdBy, teacherId),
+        ),
       )
       .limit(1);
 
@@ -174,7 +178,6 @@ export class ExplorerService {
             .values({
               moduleId: newModule.id,
               title: sourceSection.title,
-              summary: sourceSection.summary,
               orderIndex: sourceSection.orderIndex,
               createdBy: teacherId,
             })
@@ -219,8 +222,9 @@ export class ExplorerService {
               .values({
                 title: kp.title,
                 description: kp.description,
+                content: kp.content,
                 difficultyLevel: kp.difficultyLevel,
-                tags: kp.tags,
+
                 createdBy: teacherId,
               })
               .returning();
@@ -348,4 +352,3 @@ export class ExplorerService {
     });
   }
 }
-

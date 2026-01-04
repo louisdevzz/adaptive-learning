@@ -15,10 +15,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   TrendingUp,
   MessageSquare,
-  Filter,
 } from "lucide-react";
 import { Class, ClassEnrollment } from "@/types/class";
 import { api } from "@/lib/api";
@@ -47,12 +45,13 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>("");
-  const [classesWithStudents, setClassesWithStudents] = useState<ClassWithStudents[]>([]);
+  const [classesWithStudents, setClassesWithStudents] = useState<
+    ClassWithStudents[]
+  >([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // 5 classes per page
+  const itemsPerPage = 5;
 
-  // Fetch students for all classes
   useEffect(() => {
     if (classes.length > 0) {
       fetchStudentsForClasses();
@@ -67,7 +66,10 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
           const students = await api.classes.getClassStudents(classItem.id);
           return { ...classItem, students };
         } catch (error) {
-          console.error(`Error fetching students for class ${classItem.id}:`, error);
+          console.error(
+            `Error fetching students for class ${classItem.id}:`,
+            error
+          );
           return { ...classItem, students: [] };
         }
       });
@@ -86,12 +88,14 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
       classItem.className.toLowerCase().includes(searchQuery.toLowerCase()) ||
       classItem.gradeLevel.toString().includes(searchQuery) ||
       classItem.schoolYear.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      classItem.homeroomTeacher?.fullName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      classItem.homeroomTeacher?.fullName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
     if (selectedClassFilter && selectedClassFilter !== "") {
       if (classItem.className !== selectedClassFilter) return false;
     }
-    
+
     return matchesSearch;
   });
 
@@ -145,29 +149,11 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                 })),
               ]}
             >
-              {(item) => <DropdownItem key={item.key}>{item.label}</DropdownItem>}
+              {(item) => (
+                <DropdownItem key={item.key}>{item.label}</DropdownItem>
+              )}
             </DropdownMenu>
           </Dropdown>
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          <Button
-            variant="light"
-            size="sm"
-            className="sm:hidden text-[#4c669a] dark:text-gray-400 border border-[#e7ebf3] dark:border-[#2a3447]"
-            isIconOnly
-          >
-            <Filter className="size-5" />
-          </Button>
-          <div className="h-8 w-px bg-[#e7ebf3] dark:bg-[#2a3447] mx-2 hidden md:block" />
-          <Button
-            variant="light"
-            size="sm"
-            className="text-[#4c669a] dark:text-gray-400"
-            startContent={<RefreshCw className="size-4" />}
-            onPress={fetchStudentsForClasses}
-          >
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -203,7 +189,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                     return (
                       <div
                         key={enrollment.enrollmentId}
-                        className="bg-[#f8f9fc] dark:bg-[#101622] border border-[#e7ebf3] dark:border-[#2a3447] rounded-lg p-4 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow"
+                        className="bg-[#f8f9fcc6] dark:bg-[#101622] border border-[#e7ebf3] dark:border-[#2a3447] rounded-lg p-4 flex flex-col items-center text-center hover:shadow-sm transition-shadow"
                       >
                         {student.avatarUrl ? (
                           <Avatar
@@ -225,7 +211,9 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                         <div className="flex items-center gap-1.5 mb-4">
                           <span
                             className={`size-2 rounded-full ${
-                              isActive ? "bg-success" : "bg-gray-300 dark:bg-gray-600"
+                              isActive
+                                ? "bg-success"
+                                : "bg-gray-300 dark:bg-gray-600"
                             }`}
                           />
                           <span className="text-[#4c669a] dark:text-gray-300 text-sm">
@@ -238,7 +226,11 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                             size="sm"
                             className="bg-[#135bec]/10 hover:bg-[#135bec]/20 text-[#135bec]"
                             startContent={<TrendingUp className="size-4" />}
-                            onPress={() => router.push(`/dashboard/classes/${classItem.id}?tab=progress`)}
+                            onPress={() =>
+                              router.push(
+                                `/dashboard/classes/${classItem.id}?tab=progress`
+                              )
+                            }
                           >
                             Tiến độ
                           </Button>
@@ -287,6 +279,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                 <ChevronLeft className="size-4" />
               </Button>
               {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => {
+                // @ts-ignore
                 let pageNum;
                 if (totalPages <= 3) {
                   pageNum = i + 1;
@@ -307,6 +300,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                         ? "bg-[#135bec] text-white"
                         : "text-[#4c669a] dark:text-gray-400"
                     }`}
+                    // @ts-ignore
                     onPress={() => setCurrentPage(pageNum)}
                   >
                     {pageNum}
@@ -330,4 +324,3 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
     </div>
   );
 }
-

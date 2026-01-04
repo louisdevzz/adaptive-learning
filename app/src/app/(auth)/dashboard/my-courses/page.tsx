@@ -58,7 +58,7 @@ interface Material {
 
 interface CourseWithProgress extends Course {
   progress?: number;
-  status?: 'not_started' | 'in_progress' | 'completed';
+  status?: "not_started" | "in_progress" | "completed";
   masteredKps?: number;
   totalKps?: number;
 }
@@ -67,14 +67,21 @@ export default function MyCoursesPage() {
   const [courses, setCourses] = useState<CourseWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MaterialStatus | "all">("all");
-  const [selectedCourse, setSelectedCourse] = useState<CourseWithProgress | null>(null);
+  const [statusFilter, setStatusFilter] = useState<MaterialStatus | "all">(
+    "all"
+  );
+  const [selectedCourse, setSelectedCourse] =
+    useState<CourseWithProgress | null>(null);
   const [courseStructure, setCourseStructure] = useState<any>(null);
   const [courseAnalytics, setCourseAnalytics] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const router = useRouter();
-  const { isOpen: isDetailOpen, onOpen: onDetailOpen, onOpenChange: onDetailOpenChange } = useDisclosure();
+  const {
+    isOpen: isDetailOpen,
+    onOpen: onDetailOpen,
+    onOpenChange: onDetailOpenChange,
+  } = useDisclosure();
 
   // Convert courses to materials format
   const materials = useMemo<Material[]>(() => {
@@ -91,14 +98,14 @@ export default function MyCoursesPage() {
         progress,
         status,
         tags: [course.subject, "Không khẩn cấp"],
-        badge: course.totalKps ? `${course.totalKps} Điểm kiến thức` : undefined,
+        badge: course.totalKps
+          ? `${course.totalKps} Điểm kiến thức`
+          : undefined,
         materials: course.totalKps,
       };
     });
   }, [courses]);
 
-  // Get in-progress materials for "Continue Learning" section
-  // Only show courses that are actually in progress (not completed, not not_started)
   const continueLearningMaterials = useMemo(() => {
     return materials.filter((m) => m.status === "in_progress").slice(0, 2);
   }, [materials]);
@@ -199,7 +206,10 @@ export default function MyCoursesPage() {
     }
   };
 
-  const renderMaterialCard = (material: Material, isContinueLearning = false) => {
+  const renderMaterialCard = (
+    material: Material,
+    isContinueLearning = false
+  ) => {
     const Icon = getMaterialIcon(material.type);
     const isHorizontal = isContinueLearning;
 
@@ -219,9 +229,7 @@ export default function MyCoursesPage() {
         {/* Thumbnail/Illustration */}
         <div
           className={`relative ${
-            isHorizontal
-              ? "w-48 h-full min-h-[200px]"
-              : "w-full h-48"
+            isHorizontal ? "w-48 h-full min-h-[200px]" : "w-full h-48"
           } bg-gradient-to-br from-purple-50 to-blue-50 overflow-hidden`}
         >
           {material.thumbnailUrl ? (
@@ -243,17 +251,22 @@ export default function MyCoursesPage() {
               </span>
             </div>
           )}
-          {material.status === "in_progress" && material.progress !== undefined && (
-            <div className="absolute top-3 right-3">
-              <span className="bg-[#7f56d9]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium shadow-sm">
-                {material.progress}%
-              </span>
-            </div>
-          )}
+          {material.status === "in_progress" &&
+            material.progress !== undefined && (
+              <div className="absolute top-3 right-3">
+                <span className="bg-[#7f56d9]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium shadow-sm">
+                  {material.progress}%
+                </span>
+              </div>
+            )}
         </div>
 
         {/* Content */}
-        <div className={`flex flex-col ${isHorizontal ? "flex-1 p-6" : "p-4"} gap-3`}>
+        <div
+          className={`flex flex-col ${
+            isHorizontal ? "flex-1 p-6" : "p-4"
+          } gap-3`}
+        >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <Icon className="w-4 h-4 text-[#7f56d9]" />
@@ -372,7 +385,9 @@ export default function MyCoursesPage() {
       <div className="bg-white flex flex-1 flex-col gap-8 items-start overflow-y-auto pb-8 pt-6 px-12 w-full relative shrink-0 mt-[140px]">
         {/* Header */}
         <div className="flex flex-col gap-2 w-full">
-          <h1 className="text-2xl font-bold text-[#181d27]">Khóa học của tôi</h1>
+          <h1 className="text-2xl font-bold text-[#181d27]">
+            Khóa học của tôi
+          </h1>
         </div>
 
         {loading ? (
@@ -414,27 +429,27 @@ export default function MyCoursesPage() {
               <div className="flex flex-wrap items-center gap-3 w-full">
                 {/* Status Filters */}
                 <div className="flex items-center gap-2">
-                  {(["all", "not_started", "in_progress", "completed"] as const).map(
-                    (status) => (
-                      <button
-                        key={status}
-                        onClick={() => setStatusFilter(status)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          statusFilter === status
-                            ? "bg-[#7f56d9] text-white"
-                            : "bg-gray-100 text-[#535862] hover:bg-gray-200"
-                        }`}
-                      >
-                        {status === "all"
-                          ? "Tất cả"
-                          : status === "not_started"
-                          ? "Chưa bắt đầu"
-                          : status === "in_progress"
-                          ? "Đang học"
-                          : "Hoàn thành"}
-                      </button>
-                    )
-                  )}
+                  {(
+                    ["all", "not_started", "in_progress", "completed"] as const
+                  ).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        statusFilter === status
+                          ? "bg-[#7f56d9] text-white"
+                          : "bg-gray-100 text-[#535862] hover:bg-gray-200"
+                      }`}
+                    >
+                      {status === "all"
+                        ? "Tất cả"
+                        : status === "not_started"
+                        ? "Chưa bắt đầu"
+                        : status === "in_progress"
+                        ? "Đang học"
+                        : "Hoàn thành"}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Search */}
@@ -607,7 +622,8 @@ export default function MyCoursesPage() {
 
                             {/* Most Difficult Modules */}
                             {courseAnalytics.mostDifficultModules &&
-                              courseAnalytics.mostDifficultModules.length > 0 && (
+                              courseAnalytics.mostDifficultModules.length >
+                                0 && (
                                 <div className="mt-4 border border-[#e9eaeb] rounded-lg p-4 bg-orange-50/50">
                                   <div className="flex items-center gap-2 mb-3">
                                     <TrendingDown className="w-4 h-4 text-orange-600" />
@@ -639,7 +655,9 @@ export default function MyCoursesPage() {
 
                         {loadingAnalytics && (
                           <div className="flex items-center justify-center py-4">
-                            <p className="text-sm text-[#535862]">Đang tải phân tích...</p>
+                            <p className="text-sm text-[#535862]">
+                              Đang tải phân tích...
+                            </p>
                           </div>
                         )}
 
@@ -689,11 +707,7 @@ export default function MyCoursesPage() {
                   )}
                 </ModalBody>
                 <ModalFooter>
-                  <Button
-                    color="default"
-                    variant="light"
-                    onPress={onClose}
-                  >
+                  <Button color="default" variant="light" onPress={onClose}>
                     Đóng
                   </Button>
                   {selectedCourse && (

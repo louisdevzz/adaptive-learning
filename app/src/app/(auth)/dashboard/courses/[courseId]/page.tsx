@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { toast } from "sonner";
+import { addToast } from "@heroui/react";
 import { useUser } from "@/hooks/useUser";
 import {
   ChevronLeft,
@@ -32,8 +32,12 @@ interface KnowledgePoint {
   title: string;
   description: string;
   difficultyLevel: number;
-  tags: string[];
   orderIndex: number;
+  content?: {
+    theory?: string;
+    visualization?: string;
+    questions?: any[];
+  };
   resources: Resource[];
 }
 
@@ -50,7 +54,6 @@ interface Section {
   id: string;
   moduleId: string;
   title: string;
-  summary: string;
   orderIndex: number;
   knowledgePoints: KnowledgePoint[];
 }
@@ -81,23 +84,38 @@ export default function CoursePage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedKpId, setSelectedKpId] = useState<string | null>(null);
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(
+    new Set()
+  );
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [bookmarkedKps, setBookmarkedKps] = useState<Set<string>>(new Set());
   const [questions, setQuestions] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-  const [submittedQuestions, setSubmittedQuestions] = useState<Set<string>>(new Set());
-  const [retryingQuestions, setRetryingQuestions] = useState<Set<string>>(new Set()); // Questions being retried
-  const [questionAttempts, setQuestionAttempts] = useState<Record<string, { isCorrect: boolean; selectedAnswer: string }>>({});
-  const [kpProgress, setKpProgress] = useState<Record<string, { masteryScore: number; confidence: number }>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<string, string>
+  >({});
+  const [submittedQuestions, setSubmittedQuestions] = useState<Set<string>>(
+    new Set()
+  );
+  const [retryingQuestions, setRetryingQuestions] = useState<Set<string>>(
+    new Set()
+  ); // Questions being retried
+  const [questionAttempts, setQuestionAttempts] = useState<
+    Record<string, { isCorrect: boolean; selectedAnswer: string }>
+  >({});
+  const [kpProgress, setKpProgress] = useState<
+    Record<string, { masteryScore: number; confidence: number }>
+  >({});
   const questionStartTimeRefs = useRef<Record<string, number>>({});
 
   // Get all knowledge points in order
   const allKnowledgePoints = useMemo(() => {
     if (!course) return [];
-    const kps: { kp: KnowledgePoint; moduleId: string; sectionId: string }[] = [];
+    const kps: { kp: KnowledgePoint; moduleId: string; sectionId: string }[] =
+      [];
     course.modules.forEach((module) => {
       module.sections.forEach((section) => {
         section.knowledgePoints.forEach((kp) => {
@@ -111,7 +129,9 @@ export default function CoursePage() {
   // Get current knowledge point
   const currentKp = useMemo(() => {
     if (!selectedKpId) return null;
-    const found = allKnowledgePoints.find((item) => item.kp.id === selectedKpId);
+    const found = allKnowledgePoints.find(
+      (item) => item.kp.id === selectedKpId
+    );
     return found?.kp || null;
   }, [selectedKpId, allKnowledgePoints]);
 
@@ -134,7 +154,10 @@ export default function CoursePage() {
         try {
           const progressPromises = allKnowledgePoints.map(async (item) => {
             try {
-              const progress = await api.studentProgress.getStudentKpProgress(user.id, item.kp.id);
+              const progress = await api.studentProgress.getStudentKpProgress(
+                user.id,
+                item.kp.id
+              );
               // If progress is null, student hasn't started this KP yet
               if (progress) {
                 return {
@@ -151,13 +174,19 @@ export default function CoursePage() {
               if (error.response?.status === 404) {
                 return null; // KP not started yet
               }
-              console.error(`Failed to load progress for KP ${item.kp.id}:`, error);
+              console.error(
+                `Failed to load progress for KP ${item.kp.id}:`,
+                error
+              );
               return null;
             }
           });
 
           const results = await Promise.all(progressPromises);
-          const progressMap: Record<string, { masteryScore: number; confidence: number }> = {};
+          const progressMap: Record<
+            string,
+            { masteryScore: number; confidence: number }
+          > = {};
 
           results.forEach((result) => {
             if (result) {
@@ -180,11 +209,11 @@ export default function CoursePage() {
     if (course && course.modules.length > 0 && !selectedKpId) {
       const firstModule = course.modules[0];
       setExpandedModules(new Set([firstModule.id]));
-      
+
       if (firstModule.sections.length > 0) {
         const firstSection = firstModule.sections[0];
         setExpandedSections(new Set([firstSection.id]));
-        
+
         if (firstSection.knowledgePoints.length > 0) {
           setSelectedKpId(firstSection.knowledgePoints[0].id);
         }
@@ -199,7 +228,10 @@ export default function CoursePage() {
       setCourse(data);
     } catch (error: any) {
       console.error("Failed to fetch course:", error);
-      toast.error("Không thể tải thông tin khóa học");
+      addToast({
+        description: "Không thể tải thông tin khóa học",
+        color: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -229,13 +261,16 @@ export default function CoursePage() {
     // Check if KP is locked
     const kpIndex = allKnowledgePoints.findIndex((item) => item.kp.id === kpId);
     if (kpIndex === -1) return;
-    
+
     if (isKpLocked(kpIndex)) {
       const previousKp = allKnowledgePoints[kpIndex - 1];
-      toast.warning(`Vui lòng hoàn thành "${previousKp.kp.title}" trước khi học bài này`);
+      addToast({
+        description: `Vui lòng hoàn thành "${previousKp.kp.title}" trước khi học bài này`,
+        color: "warning",
+      });
       return;
     }
-    
+
     setSelectedKpId(kpId);
     // Auto-expand parent module and section
     const found = allKnowledgePoints.find((item) => item.kp.id === kpId);
@@ -246,57 +281,54 @@ export default function CoursePage() {
     // fetchQuestions will be called automatically by useEffect when selectedKpId changes
   };
 
-  const fetchQuestions = useCallback(async (kpId: string) => {
-    try {
-      setLoadingQuestions(true);
-      const data = await api.questionBank.getQuestionsByKp(kpId);
-      setQuestions(Array.isArray(data) ? data : []);
-      
-      // Load previous attempts if user is logged in
-      if (user?.id) {
-        try {
-          const attempts = await api.studentProgress.getStudentQuestionAttempts(user.id, kpId);
-          
-          // Restore selected answers and submitted questions from attempts
-          const restoredAnswers: Record<string, string> = {};
-          const restoredSubmitted = new Set<string>();
-          
-          const restoredAttempts: Record<string, { isCorrect: boolean; selectedAnswer: string }> = {};
-          
-          attempts.forEach((attempt: any) => {
-            restoredAnswers[attempt.questionId] = attempt.selectedAnswer;
-            restoredSubmitted.add(attempt.questionId);
-            restoredAttempts[attempt.questionId] = {
-              isCorrect: attempt.isCorrect,
-              selectedAnswer: attempt.selectedAnswer,
-            };
-          });
-          
-          setSelectedAnswers(restoredAnswers);
-          setSubmittedQuestions(restoredSubmitted);
-          setQuestionAttempts(restoredAttempts);
-        } catch (error: any) {
-          // If no attempts found or error, start fresh
-          console.log("No previous attempts found or error:", error);
-          setSelectedAnswers({});
-          setSubmittedQuestions(new Set());
-          setRetryingQuestions(new Set());
+  const fetchQuestions = useCallback(
+    async (kpId: string) => {
+      try {
+        setLoadingQuestions(true);
+
+        // Get questions from KP content first
+        const kp = allKnowledgePoints.find((item) => item.kp.id === kpId);
+        let questionsData: any[] = [];
+
+        if (kp?.kp.content?.questions && kp.kp.content.questions.length > 0) {
+          // Use questions from content, add IDs if needed
+          questionsData = kp.kp.content.questions.map((q, index) => ({
+            ...q,
+            id: q.id || `content-q-${index}`,
+            questionType: q.type || "multiple_choice",
+            questionText: q.questionText,
+            correctAnswer: q.correctAnswer,
+            options: q.options || [],
+          }));
+        } else {
+          // Fallback to question bank if no content questions
+          try {
+            const data = await api.questionBank.getQuestionsByKp(kpId);
+            questionsData = Array.isArray(data) ? data : [];
+          } catch (error) {
+            console.log("No question bank questions found");
+          }
         }
-      } else {
-        // No user, reset everything
+
+        setQuestions(questionsData);
+
+        // Reset answers for new KP
         setSelectedAnswers({});
         setSubmittedQuestions(new Set());
+        setRetryingQuestions(new Set());
+        setQuestionAttempts({});
+
+        // Reset question start times
+        questionStartTimeRefs.current = {};
+      } catch (error: any) {
+        console.error("Failed to fetch questions:", error);
+        setQuestions([]);
+      } finally {
+        setLoadingQuestions(false);
       }
-      
-      // Reset question start times
-      questionStartTimeRefs.current = {};
-    } catch (error: any) {
-      console.error("Failed to fetch questions:", error);
-      setQuestions([]);
-    } finally {
-      setLoadingQuestions(false);
-    }
-  }, [user?.id]);
+    },
+    [allKnowledgePoints]
+  );
 
   // Fetch questions when selectedKpId changes
   useEffect(() => {
@@ -316,14 +348,17 @@ export default function CoursePage() {
     if (currentIndex < allKnowledgePoints.length - 1) {
       const nextIndex = currentIndex + 1;
       const nextKp = allKnowledgePoints[nextIndex];
-      
+
       // Check if next KP is locked
       if (isKpLocked(nextIndex)) {
         const currentKp = allKnowledgePoints[currentIndex];
-        toast.warning(`Vui lòng hoàn thành "${currentKp.kp.title}" (đạt 80% điểm nắm vững) để tiếp tục`);
+        addToast({
+          description: `Vui lòng hoàn thành "${currentKp.kp.title}" (đạt 80% điểm nắm vững) để tiếp tục`,
+          color: "warning",
+        });
         return;
       }
-      
+
       handleSelectKp(nextKp.kp.id);
     }
   };
@@ -332,38 +367,40 @@ export default function CoursePage() {
     const newBookmarked = new Set(bookmarkedKps);
     if (newBookmarked.has(kpId)) {
       newBookmarked.delete(kpId);
-      toast.success("Đã bỏ đánh dấu");
+      addToast({ description: "Đã bỏ đánh dấu", color: "success" });
     } else {
       newBookmarked.add(kpId);
-      toast.success("Đã đánh dấu trang");
+      addToast({ description: "Đã đánh dấu trang", color: "success" });
     }
     setBookmarkedKps(newBookmarked);
   };
 
-  const getKpStatus = (kpId: string): "not_started" | "in_progress" | "completed" => {
+  const getKpStatus = (
+    kpId: string
+  ): "not_started" | "in_progress" | "completed" => {
     if (kpId === selectedKpId) return "in_progress";
-    
+
     // Check progress from state
     const progress = kpProgress[kpId];
     if (progress) {
       if (progress.masteryScore >= 80) return "completed";
       if (progress.masteryScore > 0) return "in_progress";
     }
-    
+
     return "not_started";
   };
 
   // Check if KP is locked (previous KP not completed)
   const isKpLocked = (kpIndex: number): boolean => {
     if (kpIndex === 0) return false; // First KP is always unlocked
-    
+
     // Check if previous KP is completed
     const previousKp = allKnowledgePoints[kpIndex - 1];
     if (!previousKp) return false;
-    
+
     const previousProgress = kpProgress[previousKp.kp.id];
     if (!previousProgress) return true; // Previous KP not started = locked
-    
+
     // Previous KP must have masteryScore >= 80 to unlock next KP
     return previousProgress.masteryScore < 80;
   };
@@ -379,7 +416,10 @@ export default function CoursePage() {
     const loadKpProgress = async () => {
       if (selectedKpId && user?.id) {
         try {
-          const progress = await api.studentProgress.getStudentKpProgress(user.id, selectedKpId);
+          const progress = await api.studentProgress.getStudentKpProgress(
+            user.id,
+            selectedKpId
+          );
           setKpProgress((prev) => ({
             ...prev,
             [selectedKpId]: {
@@ -399,7 +439,9 @@ export default function CoursePage() {
     loadKpProgress();
   }, [selectedKpId, user?.id]);
 
-  const getStatusIcon = (status: "not_started" | "in_progress" | "completed") => {
+  const getStatusIcon = (
+    status: "not_started" | "in_progress" | "completed"
+  ) => {
     switch (status) {
       case "completed":
         return <CheckCircle2 className="w-5 h-5 text-green-500" />;
@@ -415,7 +457,7 @@ export default function CoursePage() {
       ...prev,
       [questionId]: answer,
     }));
-    
+
     // Track start time if this is the first interaction with this question
     if (!questionStartTimeRefs.current[questionId]) {
       questionStartTimeRefs.current[questionId] = Date.now();
@@ -441,13 +483,19 @@ export default function CoursePage() {
 
   const handleSubmitAnswer = async (questionId: string) => {
     if (!user?.id || !selectedKpId) {
-      toast.error("Không thể lưu kết quả. Vui lòng thử lại.");
+      addToast({
+        description: "Không thể lưu kết quả. Vui lòng thử lại.",
+        color: "danger",
+      });
       return;
     }
 
     const selectedAnswer = selectedAnswers[questionId];
     if (!selectedAnswer) {
-      toast.error("Vui lòng chọn đáp án trước khi nộp bài");
+      addToast({
+        description: "Vui lòng chọn đáp án trước khi nộp bài",
+        color: "danger",
+      });
       return;
     }
 
@@ -458,68 +506,101 @@ export default function CoursePage() {
     // Find the question to get correct answer
     const question = questions.find((q) => q.id === questionId);
     if (!question) {
-      toast.error("Không tìm thấy câu hỏi");
+      addToast({ description: "Không tìm thấy câu hỏi", color: "danger" });
       return;
     }
 
-    try {
-      // Submit question attempt and update progress
-      const result = await api.studentProgress.submitQuestionAttempt({
-        studentId: user.id,
-        questionId: questionId,
-        kpId: selectedKpId,
+    const correctAnswerText = getCorrectAnswerText(question);
+    const isCorrect = selectedAnswer === correctAnswerText;
+
+    // Mark question as submitted immediately
+    setSubmittedQuestions((prev) => new Set(prev).add(questionId));
+
+    // Remove from retrying set
+    setRetryingQuestions((prev) => {
+      const newRetrying = new Set(prev);
+      newRetrying.delete(questionId);
+      return newRetrying;
+    });
+
+    // Save attempt result locally
+    setQuestionAttempts((prev) => ({
+      ...prev,
+      [questionId]: {
+        isCorrect: isCorrect,
         selectedAnswer: selectedAnswer,
-        timeSpent: timeSpent,
-      });
+      },
+    }));
 
-      // Mark question as submitted
-      setSubmittedQuestions((prev) => new Set(prev).add(questionId));
-      
-      // Remove from retrying set
-      setRetryingQuestions((prev) => {
-        const newRetrying = new Set(prev);
-        newRetrying.delete(questionId);
-        return newRetrying;
-      });
+    // Check if this is a content question (not from question bank)
+    const isContentQuestion = questionId.startsWith("content-q-");
 
-      // Save attempt result
-      setQuestionAttempts((prev) => ({
-        ...prev,
-        [questionId]: {
-          isCorrect: result.isCorrect,
+    if (!isContentQuestion) {
+      // Only submit to server for question bank questions
+      try {
+        const result = await api.studentProgress.submitQuestionAttempt({
+          studentId: user.id,
+          questionId: questionId,
+          kpId: selectedKpId,
           selectedAnswer: selectedAnswer,
-        },
-      }));
+          timeSpent: timeSpent,
+        });
 
-      // Update KP progress state
-      setKpProgress((prev) => ({
-        ...prev,
-        [selectedKpId]: {
-          masteryScore: result.masteryScore,
-          confidence: result.confidence,
-        },
-      }));
+        // Update KP progress state
+        setKpProgress((prev) => ({
+          ...prev,
+          [selectedKpId]: {
+            masteryScore: result.masteryScore,
+            confidence: result.confidence,
+          },
+        }));
 
-      // Show success message
-      if (result.isCorrect) {
-        toast.success(`Chính xác! Điểm nắm vững: ${result.masteryScore}%`);
-      } else {
-        toast.info(`Câu trả lời chưa đúng. Điểm nắm vững: ${result.masteryScore}%`);
+        // Show success message
+        if (result.isCorrect) {
+          addToast({
+            description: `Chính xác! Điểm nắm vững: ${result.masteryScore}%`,
+            color: "success",
+          });
+        } else {
+          addToast({
+            description: `Câu trả lời chưa đúng. Điểm nắm vững: ${result.masteryScore}%`,
+            color: "primary",
+          });
+        }
+      } catch (error: any) {
+        console.error("Failed to submit answer:", error);
+        addToast({
+          description: "Không thể lưu kết quả. Vui lòng thử lại.",
+          color: "danger",
+        });
       }
-    } catch (error: any) {
-      console.error("Failed to submit answer:", error);
-      toast.error("Không thể lưu kết quả. Vui lòng thử lại.");
-      // Still mark as submitted so user can see feedback
-      setSubmittedQuestions((prev) => new Set(prev).add(questionId));
+    } else {
+      // For content questions, just show immediate feedback
+      if (isCorrect) {
+        addToast({ description: "Chính xác!", color: "success" });
+      } else {
+        addToast({
+          description: "Câu trả lời chưa đúng. Hãy thử lại!",
+          color: "primary",
+        });
+      }
     }
   };
 
   // Get the actual correct answer text (handles both index and text format)
   const getCorrectAnswerText = (question: any): string => {
-    if (question.questionType === "multiple_choice" && question.options && Array.isArray(question.options)) {
+    if (
+      question.questionType === "multiple_choice" &&
+      question.options &&
+      Array.isArray(question.options)
+    ) {
       // Check if correctAnswer is an index (1-based)
       const answerIndex = parseInt(question.correctAnswer);
-      if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= question.options.length) {
+      if (
+        !isNaN(answerIndex) &&
+        answerIndex >= 1 &&
+        answerIndex <= question.options.length
+      ) {
         // Return the option text at that index (1-based to 0-based conversion)
         return question.options[answerIndex - 1];
       }
@@ -571,7 +652,7 @@ export default function CoursePage() {
 
   return (
     <LayoutDashboard>
-      <div className="flex h-[calc(100vh-140px)] w-full mt-[140px] overflow-hidden">
+      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-white">
         {/* Sidebar Navigation */}
         <div
           className={`bg-white border-r border-[#e9eaeb] transition-all duration-300 ${
@@ -581,8 +662,8 @@ export default function CoursePage() {
           {isSidebarOpen && (
             <>
               {/* Sidebar Header */}
-              <div className="p-4 border-b border-[#e9eaeb] flex items-center justify-between bg-gradient-to-r from-purple-50 to-blue-50 rounded-br-3xl">
-                <div className="flex items-center gap-3">
+              <div className="p-2 py-4 border-b border-[#e9eaeb] flex items-center justify-between rounded-br-3xl">
+                <div className="flex items-center">
                   <Button
                     isIconOnly
                     variant="light"
@@ -593,7 +674,7 @@ export default function CoursePage() {
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
                   <div className="flex-1 min-w-0">
-                    <h2 className="font-semibold text-[#181d27] text-sm truncate">
+                    <h2 className="font-semibold text-[#181d27] text-xs truncate">
                       {course.title}
                     </h2>
                   </div>
@@ -651,14 +732,18 @@ export default function CoursePage() {
                                 {section.knowledgePoints.map((kp) => {
                                   const status = getKpStatus(kp.id);
                                   const isSelected = kp.id === selectedKpId;
-                                  const kpIndex = allKnowledgePoints.findIndex((item) => item.kp.id === kp.id);
+                                  const kpIndex = allKnowledgePoints.findIndex(
+                                    (item) => item.kp.id === kp.id
+                                  );
                                   const isLocked = isKpLocked(kpIndex);
                                   const hasStudied = hasKpBeenStudied(kp.id);
-                                  
+
                                   return (
                                     <button
                                       key={kp.id}
-                                      onClick={() => !isLocked && handleSelectKp(kp.id)}
+                                      onClick={() =>
+                                        !isLocked && handleSelectKp(kp.id)
+                                      }
                                       disabled={isLocked}
                                       className={`w-full flex items-center gap-2 p-2 rounded-xl transition-all ${
                                         isLocked
@@ -667,7 +752,11 @@ export default function CoursePage() {
                                           ? "bg-[#7f56d9]/10 border border-[#7f56d9]"
                                           : "hover:bg-gray-50"
                                       }`}
-                                      title={isLocked ? "Vui lòng hoàn thành bài học trước đó" : undefined}
+                                      title={
+                                        isLocked
+                                          ? "Vui lòng hoàn thành bài học trước đó"
+                                          : undefined
+                                      }
                                     >
                                       {isLocked ? (
                                         <Lock className="w-5 h-5 text-gray-400" />
@@ -690,11 +779,15 @@ export default function CoursePage() {
                                       {status === "completed" && !isLocked && (
                                         <Trophy className="w-3 h-3 text-yellow-500" />
                                       )}
-                                      {hasStudied && !isLocked && status !== "completed" && (
-                                        <span className="text-xs text-blue-500 font-medium">
-                                          {kpProgress[kp.id]?.masteryScore || 0}%
-                                        </span>
-                                      )}
+                                      {hasStudied &&
+                                        !isLocked &&
+                                        status !== "completed" && (
+                                          <span className="text-xs text-blue-500 font-medium">
+                                            {kpProgress[kp.id]?.masteryScore ||
+                                              0}
+                                            %
+                                          </span>
+                                        )}
                                     </button>
                                   );
                                 })}
@@ -725,7 +818,7 @@ export default function CoursePage() {
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {currentKp ? (
             <>
               {/* Top Navigation */}
@@ -799,12 +892,45 @@ export default function CoursePage() {
                     </div>
 
                     {/* Description */}
-                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#e9eaeb] mb-6">
-                      <p className="text-[#535862] leading-relaxed whitespace-pre-line">
-                        {currentKp.description ||
-                          "Nội dung bài học sẽ được hiển thị ở đây. Đây là một trình soạn thảo HTML thô lưu nội dung HTML chính xác như bạn nhập. Điều này có nghĩa là ngay cả các thẻ HTML không đúng định dạng cũng sẽ được lưu và hiển thị nguyên văn."}
-                      </p>
-                    </div>
+                    {currentKp.description && (
+                      <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mb-6">
+                        <p className="text-[#535862] leading-relaxed whitespace-pre-line">
+                          {currentKp.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Theory Content */}
+                    {currentKp.content?.theory && (
+                      <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mb-6">
+                        <h3 className="text-xl font-semibold text-[#181d27] mb-4 flex items-center gap-3">
+                          <BookOpen className="w-6 h-6 text-[#7f56d9]" />
+                          Lý thuyết
+                        </h3>
+                        <div
+                          className="prose dark:prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{
+                            __html: currentKp.content.theory,
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Visualization Content */}
+                    {currentKp.content?.visualization && (
+                      <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mb-6">
+                        <h3 className="text-xl font-semibold text-[#181d27] mb-4 flex items-center gap-3">
+                          <Play className="w-6 h-6 text-[#7f56d9]" />
+                          Trực quan hoá
+                        </h3>
+                        <div
+                          className="bg-gray-50 rounded-2xl p-4 min-h-[300px]"
+                          dangerouslySetInnerHTML={{
+                            __html: currentKp.content.visualization,
+                          }}
+                        />
+                      </div>
+                    )}
 
                     {/* Resources */}
                     {currentKp.resources && currentKp.resources.length > 0 && (
@@ -812,7 +938,7 @@ export default function CoursePage() {
                         {currentKp.resources.map((resource) => (
                           <div
                             key={resource.id}
-                            className="bg-white rounded-3xl p-6 shadow-sm border border-[#e9eaeb]"
+                            className="bg-white rounded-lg p-6 border border-[#e9eaeb]"
                           >
                             <div className="flex items-center gap-3 mb-4">
                               {resource.resourceType === "video" ? (
@@ -859,24 +985,8 @@ export default function CoursePage() {
                       </div>
                     )}
 
-                    {/* Default Video Section if no resources */}
-                    {(!currentKp.resources || currentKp.resources.length === 0) && (
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#e9eaeb]">
-                        <h3 className="text-xl font-semibold text-[#181d27] mb-4 flex items-center gap-3">
-                          <Video className="w-6 h-6 text-[#7f56d9]" />
-                          Video
-                        </h3>
-                        <div className="rounded-2xl overflow-hidden bg-gray-900 aspect-video flex items-center justify-center">
-                          <div className="text-white text-center">
-                            <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                            <p className="text-gray-400">Video sẽ được hiển thị ở đây</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Questions Section */}
-                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#e9eaeb] mt-6">
+                    <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mt-6">
                       <div className="flex items-center gap-3 mb-6">
                         <HelpCircle className="w-6 h-6 text-[#7f56d9]" />
                         <h3 className="text-xl font-semibold text-[#181d27]">
@@ -903,16 +1013,23 @@ export default function CoursePage() {
                       ) : (
                         <div className="space-y-6">
                           {questions.map((question, index) => {
-                            const isSubmitted = submittedQuestions.has(question.id);
-                            const isRetrying = retryingQuestions.has(question.id);
-                            const isCorrect = isSubmitted && !isRetrying && isAnswerCorrect(question);
+                            const isSubmitted = submittedQuestions.has(
+                              question.id
+                            );
+                            const isRetrying = retryingQuestions.has(
+                              question.id
+                            );
+                            const isCorrect =
+                              isSubmitted &&
+                              !isRetrying &&
+                              isAnswerCorrect(question);
                             const selectedAnswer = selectedAnswers[question.id];
-                            const canInteract = !isSubmitted || isRetrying; // Can interact if not submitted or retrying
+                            const canInteract = !isSubmitted || isRetrying;
 
                             return (
                               <div
                                 key={question.id}
-                                className="border border-[#e9eaeb] rounded-2xl p-6 bg-gray-50"
+                                className="border border-[#e9eaeb] rounded-lg p-6 bg-gray-50"
                               >
                                 {/* Question Header */}
                                 <div className="flex items-start justify-between mb-4">
@@ -922,7 +1039,9 @@ export default function CoursePage() {
                                     </span>
                                     <div>
                                       <span className="text-xs text-[#7f56d9] bg-purple-100 px-2 py-1 rounded-full font-medium">
-                                        {getQuestionTypeLabel(question.questionType)}
+                                        {getQuestionTypeLabel(
+                                          question.questionType
+                                        )}
                                       </span>
                                     </div>
                                   </div>
@@ -948,49 +1067,73 @@ export default function CoursePage() {
                                   Array.isArray(question.options) &&
                                   question.options.length > 0 && (
                                     <div className="space-y-2 mb-4">
-                                      {question.options.map((option: string, optIndex: number) => {
-                                        const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D
-                                        const isSelected = selectedAnswer === option;
-                                        const correctAnswerText = getCorrectAnswerText(question);
-                                        const isCorrectOption = option === correctAnswerText;
+                                      {question.options.map(
+                                        (option: string, optIndex: number) => {
+                                          const optionLetter =
+                                            String.fromCharCode(65 + optIndex); // A, B, C, D
+                                          const isSelected =
+                                            selectedAnswer === option;
+                                          const correctAnswerText =
+                                            getCorrectAnswerText(question);
+                                          const isCorrectOption =
+                                            option === correctAnswerText;
 
-                                        let optionClass = "w-full text-left p-4 rounded-xl border-2 transition-all ";
-                                        if (isSubmitted && !isRetrying) {
-                                          if (isCorrectOption) {
-                                            optionClass += "bg-green-50 border-green-500 text-green-700";
-                                          } else if (isSelected && !isCorrect) {
-                                            optionClass += "bg-red-50 border-red-500 text-red-700";
-                                          } else {
-                                            optionClass += "bg-gray-50 border-gray-200 text-gray-600";
-                                          }
-                                        } else {
-                                          optionClass += isSelected
-                                            ? "bg-[#7f56d9]/10 border-[#7f56d9] text-[#7f56d9]"
-                                            : "bg-white border-gray-200 hover:border-[#7f56d9]/50 hover:bg-gray-50";
-                                        }
-
-                                        return (
-                                          <button
-                                            key={optIndex}
-                                            onClick={() =>
-                                              canInteract && handleAnswerSelect(question.id, option)
+                                          let optionClass =
+                                            "w-full text-left p-4 rounded-xl border-2 transition-all ";
+                                          if (isSubmitted && !isRetrying) {
+                                            if (isCorrectOption) {
+                                              optionClass +=
+                                                "bg-green-50 border-green-500 text-green-700";
+                                            } else if (
+                                              isSelected &&
+                                              !isCorrect
+                                            ) {
+                                              optionClass +=
+                                                "bg-red-50 border-red-500 text-red-700";
+                                            } else {
+                                              optionClass +=
+                                                "bg-gray-50 border-gray-200 text-gray-600";
                                             }
-                                            disabled={!canInteract}
-                                            className={optionClass}
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <span className="font-semibold">{optionLetter}.</span>
-                                              <span>{option}</span>
-                                              {isSubmitted && !isRetrying && isCorrectOption && (
-                                                <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
-                                              )}
-                                              {isSubmitted && !isRetrying && isSelected && !isCorrect && (
-                                                <XCircle className="w-5 h-5 text-red-500 ml-auto" />
-                                              )}
-                                            </div>
-                                          </button>
-                                        );
-                                      })}
+                                          } else {
+                                            optionClass += isSelected
+                                              ? "bg-[#7f56d9]/10 border-[#7f56d9] text-[#7f56d9]"
+                                              : "bg-white border-gray-200 hover:border-[#7f56d9]/50 hover:bg-gray-50";
+                                          }
+
+                                          return (
+                                            <button
+                                              key={optIndex}
+                                              onClick={() =>
+                                                canInteract &&
+                                                handleAnswerSelect(
+                                                  question.id,
+                                                  option
+                                                )
+                                              }
+                                              disabled={!canInteract}
+                                              className={optionClass}
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <span className="font-semibold">
+                                                  {optionLetter}.
+                                                </span>
+                                                <span>{option}</span>
+                                                {isSubmitted &&
+                                                  !isRetrying &&
+                                                  isCorrectOption && (
+                                                    <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
+                                                  )}
+                                                {isSubmitted &&
+                                                  !isRetrying &&
+                                                  isSelected &&
+                                                  !isCorrect && (
+                                                    <XCircle className="w-5 h-5 text-red-500 ml-auto" />
+                                                  )}
+                                              </div>
+                                            </button>
+                                          );
+                                        }
+                                      )}
                                     </div>
                                   )}
 
@@ -998,18 +1141,25 @@ export default function CoursePage() {
                                 {question.questionType === "true_false" && (
                                   <div className="grid grid-cols-2 gap-4 mb-4">
                                     {["Đúng", "Sai"].map((option) => {
-                                      const isSelected = selectedAnswer === option;
-                                      const correctAnswerText = getCorrectAnswerText(question);
-                                      const isCorrectOption = option === correctAnswerText;
+                                      const isSelected =
+                                        selectedAnswer === option;
+                                      const correctAnswerText =
+                                        getCorrectAnswerText(question);
+                                      const isCorrectOption =
+                                        option === correctAnswerText;
 
-                                      let optionClass = "p-4 rounded-xl border-2 transition-all text-center font-medium ";
+                                      let optionClass =
+                                        "p-4 rounded-xl border-2 transition-all text-center font-medium ";
                                       if (isSubmitted && !isRetrying) {
                                         if (isCorrectOption) {
-                                          optionClass += "bg-green-50 border-green-500 text-green-700";
+                                          optionClass +=
+                                            "bg-green-50 border-green-500 text-green-700";
                                         } else if (isSelected && !isCorrect) {
-                                          optionClass += "bg-red-50 border-red-500 text-red-700";
+                                          optionClass +=
+                                            "bg-red-50 border-red-500 text-red-700";
                                         } else {
-                                          optionClass += "bg-gray-50 border-gray-200 text-gray-600";
+                                          optionClass +=
+                                            "bg-gray-50 border-gray-200 text-gray-600";
                                         }
                                       } else {
                                         optionClass += isSelected
@@ -1021,7 +1171,11 @@ export default function CoursePage() {
                                         <button
                                           key={option}
                                           onClick={() =>
-                                            canInteract && handleAnswerSelect(question.id, option)
+                                            canInteract &&
+                                            handleAnswerSelect(
+                                              question.id,
+                                              option
+                                            )
                                           }
                                           disabled={!canInteract}
                                           className={optionClass}
@@ -1040,7 +1194,11 @@ export default function CoursePage() {
                                     <textarea
                                       value={selectedAnswer || ""}
                                       onChange={(e) =>
-                                        canInteract && handleAnswerSelect(question.id, e.target.value)
+                                        canInteract &&
+                                        handleAnswerSelect(
+                                          question.id,
+                                          e.target.value
+                                        )
                                       }
                                       disabled={!canInteract}
                                       placeholder="Nhập câu trả lời của bạn..."
@@ -1051,7 +1209,9 @@ export default function CoursePage() {
                                         <p className="text-sm font-medium text-blue-900 mb-1">
                                           Đáp án đúng:
                                         </p>
-                                        <p className="text-blue-700">{getCorrectAnswerText(question)}</p>
+                                        <p className="text-blue-700">
+                                          {getCorrectAnswerText(question)}
+                                        </p>
                                       </div>
                                     )}
                                   </div>
@@ -1060,7 +1220,9 @@ export default function CoursePage() {
                                 {/* Submit Button */}
                                 {canInteract && selectedAnswer && (
                                   <Button
-                                    onClick={() => handleSubmitAnswer(question.id)}
+                                    onClick={() =>
+                                      handleSubmitAnswer(question.id)
+                                    }
                                     className="bg-[#7f56d9] text-white rounded-xl"
                                   >
                                     {isRetrying ? "Nộp lại" : "Nộp bài"}
@@ -1070,7 +1232,9 @@ export default function CoursePage() {
                                 {/* Retry Button - Show for incorrect answers */}
                                 {isSubmitted && !isCorrect && !isRetrying && (
                                   <Button
-                                    onClick={() => handleRetryQuestion(question.id)}
+                                    onClick={() =>
+                                      handleRetryQuestion(question.id)
+                                    }
                                     variant="light"
                                     className="mt-2 border border-[#7f56d9] text-[#7f56d9] rounded-xl"
                                   >
@@ -1106,7 +1270,8 @@ export default function CoursePage() {
                                     </div>
                                     {!isCorrect && (
                                       <p className="text-sm text-red-600">
-                                        Đáp án đúng: {getCorrectAnswerText(question)}
+                                        Đáp án đúng:{" "}
+                                        {getCorrectAnswerText(question)}
                                       </p>
                                     )}
                                   </div>

@@ -12,8 +12,11 @@ import {
 } from "@heroui/modal";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
-import { CourseHeader, CourseTable } from "@/components/dashboards/admin/management/course";
-import { Course, CourseStats } from "@/types/course";
+import {
+  CourseHeader,
+  CourseTable,
+} from "@/components/dashboards/admin/management/course";
+import { Course } from "@/types/course";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -28,7 +31,11 @@ export default function CoursesPage() {
   const itemsPerPage = 10;
 
   // Modal states
-  const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onOpenChange: onDeleteModalOpenChange } = useDisclosure();
+  const {
+    isOpen: isDeleteModalOpen,
+    onOpen: onDeleteModalOpen,
+    onOpenChange: onDeleteModalOpenChange,
+  } = useDisclosure();
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -58,8 +65,31 @@ export default function CoursesPage() {
     try {
       setLoading(true);
       const data = await api.courses.getAll();
-      setCourses(data);
-      setFilteredCourses(data);
+
+      // Fetch module counts for each course
+      const coursesWithModuleCounts = await Promise.all(
+        data.map(async (course: Course) => {
+          try {
+            const modules = await api.courses.getAllModules(course.id);
+            return {
+              ...course,
+              moduleCount: Array.isArray(modules) ? modules.length : 0,
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching modules for course ${course.id}:`,
+              error
+            );
+            return {
+              ...course,
+              moduleCount: 0,
+            };
+          }
+        })
+      );
+
+      setCourses(coursesWithModuleCounts);
+      setFilteredCourses(coursesWithModuleCounts);
     } catch (error) {
       console.error("Error fetching courses:", error);
       toast.error("Lỗi khi tải danh sách môn học");
@@ -67,20 +97,6 @@ export default function CoursesPage() {
       setLoading(false);
     }
   };
-
-  // Calculate stats
-  const stats: CourseStats = {
-    total: courses.length,
-    byGradeLevel: courses.reduce((acc, course) => {
-      acc[course.gradeLevel] = (acc[course.gradeLevel] || 0) + 1;
-      return acc;
-    }, {} as { [key: number]: number }),
-    bySubject: courses.reduce((acc, course) => {
-      acc[course.subject] = (acc[course.subject] || 0) + 1;
-      return acc;
-    }, {} as { [key: string]: number }),
-  };
-
   // Pagination
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
   const paginatedCourses = filteredCourses.slice(
@@ -99,7 +115,7 @@ export default function CoursesPage() {
 
   const confirmDelete = async () => {
     if (!deletingCourseId) return;
-    
+
     let toastId: string | number | undefined;
     try {
       setIsDeleting(true);
@@ -111,7 +127,8 @@ export default function CoursesPage() {
       setDeletingCourseId(null);
     } catch (error: any) {
       console.error("Error deleting course:", error);
-      const errorMessage = error.response?.data?.message || "Lỗi khi xóa môn học";
+      const errorMessage =
+        error.response?.data?.message || "Lỗi khi xóa môn học";
       if (toastId) {
         toast.error(errorMessage, { id: toastId });
       } else {
@@ -132,7 +149,9 @@ export default function CoursesPage() {
 
   const handleSelectCourse = (id: string) => {
     if (selectedCourses.includes(id)) {
-      setSelectedCourses(selectedCourses.filter((selectedId) => selectedId !== id));
+      setSelectedCourses(
+        selectedCourses.filter((selectedId) => selectedId !== id)
+      );
     } else {
       setSelectedCourses([...selectedCourses, id]);
     }
@@ -149,21 +168,19 @@ export default function CoursesPage() {
         <CourseTable
           courses={paginatedCourses}
           loading={loading}
-          selectedCourses={selectedCourses}
           searchQuery={searchQuery}
-          onSelectAll={handleSelectAll}
-          onSelectCourse={handleSelectCourse}
           onDelete={handleDelete}
           onSearchChange={setSearchQuery}
-          selectedCount={selectedCourses.length}
-          onClearSelection={handleClearSelection}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
         />
 
         {/* Delete Confirmation Modal */}
-        <Modal isOpen={isDeleteModalOpen} onOpenChange={onDeleteModalOpenChange}>
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onOpenChange={onDeleteModalOpenChange}
+        >
           <ModalContent>
             {(onClose) => (
               <>
@@ -174,7 +191,8 @@ export default function CoursesPage() {
                 </ModalHeader>
                 <ModalBody>
                   <p className="text-sm text-[#535862]">
-                    Bạn có chắc chắn muốn xóa môn học này? Hành động này không thể hoàn tác.
+                    Bạn có chắc chắn muốn xóa môn học này? Hành động này không
+                    thể hoàn tác.
                   </p>
                 </ModalBody>
                 <ModalFooter>

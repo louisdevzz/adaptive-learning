@@ -588,11 +588,11 @@ export const api = {
     createSection: async (data: {
       moduleId: string;
       title: string;
-      summary: string;
       orderIndex: number;
       knowledgePoints?: {
         title: string;
         description: string;
+        content: any;
         difficultyLevel: number;
         tags?: string[];
       }[];
@@ -605,7 +605,6 @@ export const api = {
       sectionId: string,
       data: {
         title?: string;
-        summary?: string;
         orderIndex?: number;
       }
     ) => {
@@ -637,7 +636,7 @@ export const api = {
     },
 
     getById: async (id: string) => {
-      const response = await apiClient.get(`/knowledge-points/${id}`);
+      const response = await apiClient.get(`/knowledge-points/${id}/details`);
       return response.data;
     },
 
@@ -653,11 +652,24 @@ export const api = {
       return response.data;
     },
 
+    assignToSection: async (data: {
+      sectionId: string;
+      kpId: string;
+      orderIndex: number;
+    }) => {
+      const response = await apiClient.post(
+        "/knowledge-points/assign-to-section",
+        data
+      );
+      return response.data;
+    },
+
     create: async (data: {
       title: string;
       description: string;
+      content: any;
       difficultyLevel: number;
-      tags?: string[];
+
       prerequisites?: string[];
       resources?: {
         resourceType: "video" | "article" | "interactive" | "quiz" | "other";
@@ -676,8 +688,9 @@ export const api = {
       data: {
         title?: string;
         description?: string;
+        content?: any;
         difficultyLevel?: number;
-        tags?: string[];
+
         prerequisites?: string[];
         resources?: {
           resourceType: "video" | "article" | "interactive" | "quiz" | "other";
@@ -697,21 +710,24 @@ export const api = {
       return response.data;
     },
 
-    assignToSection: async (data: {
-      sectionId: string;
-      kpId: string;
-      orderIndex: number;
-    }) => {
-      const response = await apiClient.post(
-        "/knowledge-points/assign-to-section",
-        data
+    removeFromSection: async (sectionId: string, kpId: string) => {
+      const response = await apiClient.delete(
+        `/knowledge-points/sections/${sectionId}/kps/${kpId}`
       );
       return response.data;
     },
 
-    removeFromSection: async (sectionId: string, kpId: string) => {
-      const response = await apiClient.delete(
-        `/knowledge-points/sections/${sectionId}/kps/${kpId}`
+    generateContent: async (data: {
+      topic: string;
+      description?: string;
+      theoryContent?: string;
+      prompt?: string;
+      contentType: "visualization";
+      aiModel: "openai" | "gemini";
+    }) => {
+      const response = await apiClient.post(
+        "/knowledge-points/generate-content",
+        data
       );
       return response.data;
     },
@@ -849,7 +865,10 @@ export const api = {
 
   // Upload endpoints
   upload: {
-    avatar: async (file: File): Promise<{ message: string; url: string }> => {
+    avatar: async (
+      file: File,
+      onProgress?: (progress: number) => void
+    ): Promise<{ message: string; url: string }> => {
       const formData = new FormData();
       formData.append("file", file);
 
@@ -858,11 +877,22 @@ export const api = {
           "Content-Type": "multipart/form-data",
           "x-api-key": API_KEY,
         },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onProgress(percentCompleted);
+          }
+        },
       });
       return response.data;
     },
 
-    file: async (file: File): Promise<{ message: string; url: string }> => {
+    file: async (
+      file: File,
+      onProgress?: (progress: number) => void
+    ): Promise<{ message: string; url: string }> => {
       const formData = new FormData();
       formData.append("file", file);
 
@@ -871,8 +901,23 @@ export const api = {
           "Content-Type": "multipart/form-data",
           "x-api-key": API_KEY,
         },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onProgress(percentCompleted);
+          }
+        },
       });
       return response.data;
+    },
+
+    image: async (
+      file: File,
+      onProgress?: (progress: number) => void
+    ): Promise<{ message: string; url: string }> => {
+      return api.upload.file(file, onProgress);
     },
   },
 

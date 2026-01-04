@@ -19,7 +19,7 @@ export function CourseHeader({ onCreate }: CourseHeaderProps) {
       </div>
       <button
         onClick={onCreate}
-        className="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary hover:bg-blue-700 text-white text-sm font-bold leading-normal transition-all shadow-sm hover:shadow-md"
+        className="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary hover:bg-blue-700 text-white text-sm font-bold leading-normal transition-all shadow-sm hover:shadow-md cursor-pointer"
       >
         <Plus className="w-5 h-5" />
         <span className="truncate">Tạo khóa học</span>
@@ -27,4 +27,3 @@ export function CourseHeader({ onCreate }: CourseHeaderProps) {
     </div>
   );
 }
-

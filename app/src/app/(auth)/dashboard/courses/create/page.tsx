@@ -16,12 +16,16 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   CloudUploadIcon,
   ImageIcon,
-  Download03Icon
+  Download03Icon,
+  Loading03Icon,
 } from "@hugeicons/core-free-icons";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CourseFormData } from "@/types/course";
 import { GRADE_LEVELS, SUBJECTS } from "@/constants/course";
+import { api } from "@/lib/api";
+import { addToast } from "@heroui/toast";
 
 const VISIBILITY_OPTIONS = [
   { value: "public" as const, label: "Công khai" },
@@ -29,6 +33,7 @@ const VISIBILITY_OPTIONS = [
 ];
 
 export default function CreateCoursePage() {
+  const router = useRouter();
   const [formData, setFormData] = useState<CourseFormData>({
     title: "",
     description: "",
@@ -42,9 +47,176 @@ export default function CreateCoursePage() {
   const [isSubjectOpen, setIsSubjectOpen] = useState(false);
   const [isGradeOpen, setIsGradeOpen] = useState(false);
   const [isVisibilityOpen, setIsVisibilityOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [imagePreview, setImagePreview] = useState<string>("");
 
   const updateFormData = (updates: Partial<CourseFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleImageUpload = async (file: File) => {
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+    if (!allowedTypes.includes(file.type)) {
+      addToast({
+        title: "Định dạng không hợp lệ",
+        description: "Chỉ chấp nhận file JPG hoặc PNG",
+        color: "danger",
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      addToast({
+        title: "File quá lớn",
+        description: "Kích thước file không được vượt quá 5MB",
+        color: "danger",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      addToast({
+        title: "Đang tải ảnh lên...",
+        description: "Vui lòng đợi trong giây lát",
+        color: "primary",
+      });
+
+      const response = await api.upload.image(file, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      updateFormData({ thumbnailUrl: response.url });
+      setImagePreview(response.url);
+
+      addToast({
+        title: "Tải ảnh thành công!",
+        description: "Ảnh bìa đã được tải lên",
+        color: "success",
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      addToast({
+        title: "Tải ảnh thất bại",
+        description:
+          error.response?.data?.message || "Đã có lỗi xảy ra khi tải ảnh",
+        color: "danger",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+  };
+
+  const removeImage = () => {
+    updateFormData({ thumbnailUrl: "" });
+    setImagePreview("");
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.title.trim()) {
+      addToast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập tên khóa học",
+        color: "danger",
+      });
+      return false;
+    }
+
+    if (!formData.subject) {
+      addToast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng chọn môn học",
+        color: "danger",
+      });
+      return false;
+    }
+
+    if (!formData.gradeLevel) {
+      addToast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng chọn khối",
+        color: "danger",
+      });
+      return false;
+    }
+
+    if (!formData.thumbnailUrl) {
+      addToast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng tải lên ảnh bìa",
+        color: "danger",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      addToast({
+        title: "Đang tạo khóa học...",
+        description: "Vui lòng đợi trong giây lát",
+        color: "primary",
+      });
+
+      await api.courses.create({
+        title: formData.title,
+        description: formData.description,
+        thumbnailUrl: formData.thumbnailUrl,
+        subject: formData.subject,
+        gradeLevel: formData.gradeLevel,
+        active: formData.active ?? true,
+        visibility: formData.visibility,
+      });
+
+      addToast({
+        title: "Tạo khóa học thành công!",
+        description: "Khóa học đã được tạo và lưu vào hệ thống",
+        color: "success",
+      });
+
+      setTimeout(() => {
+        router.push("/dashboard/courses");
+      }, 1000);
+    } catch (error: any) {
+      console.error("Create course error:", error);
+      addToast({
+        title: "Tạo khóa học thất bại",
+        description:
+          error.response?.data?.message || "Đã có lỗi xảy ra khi tạo khóa học",
+        color: "danger",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCancel = () => {
+    router.push("/dashboard/courses");
   };
 
   return (
@@ -60,7 +232,7 @@ export default function CreateCoursePage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <form className="p-6 md:p-8 space-y-8">
+          <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Course Name */}
               <div className="md:col-span-12 space-y-1.5">
@@ -73,6 +245,7 @@ export default function CreateCoursePage() {
                   className="h-11"
                   value={formData.title}
                   onChange={(e) => updateFormData({ title: e.target.value })}
+                  disabled={isCreating}
                 />
               </div>
 
@@ -88,6 +261,7 @@ export default function CreateCoursePage() {
                     step="0.5"
                     placeholder="0"
                     className="h-11 pr-12"
+                    disabled={isCreating}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none">
                     h
@@ -100,12 +274,16 @@ export default function CreateCoursePage() {
                 <Label className="text-slate-700 dark:text-slate-300">
                   Môn học <span className="text-red-500">*</span>
                 </Label>
-                <Dropdown isOpen={isSubjectOpen} onOpenChange={setIsSubjectOpen}>
+                <Dropdown
+                  isOpen={isSubjectOpen}
+                  onOpenChange={setIsSubjectOpen}
+                >
                   <DropdownTrigger>
                     <Button
                       variant="bordered"
                       className="w-full justify-between border-slate-300 dark:border-slate-600 h-11"
                       endContent={<ChevronDown className="size-4" />}
+                      isDisabled={isCreating}
                     >
                       {formData.subject || "Chọn môn học"}
                     </Button>
@@ -140,6 +318,7 @@ export default function CreateCoursePage() {
                       variant="bordered"
                       className="w-full justify-between border-slate-300 dark:border-slate-600 h-11"
                       endContent={<ChevronDown className="size-4" />}
+                      isDisabled={isCreating}
                     >
                       {formData.gradeLevel
                         ? `Khối ${formData.gradeLevel}`
@@ -186,6 +365,7 @@ export default function CreateCoursePage() {
                       variant="bordered"
                       className="w-full justify-between border-slate-300 dark:border-slate-600 h-11"
                       endContent={<ChevronDown className="size-4" />}
+                      isDisabled={isCreating}
                     >
                       {formData.visibility
                         ? VISIBILITY_OPTIONS.find(
@@ -203,9 +383,7 @@ export default function CreateCoursePage() {
                     }
                     selectionMode="single"
                     onSelectionChange={(keys) => {
-                      const value = Array.from(keys)[0] as
-                        | "public"
-                        | "private";
+                      const value = Array.from(keys)[0] as "public" | "private";
                       updateFormData({ visibility: value });
                       setIsVisibilityOpen(false);
                     }}
@@ -232,6 +410,7 @@ export default function CreateCoursePage() {
                   onChange={(e) =>
                     updateFormData({ description: e.target.value })
                   }
+                  disabled={isCreating}
                 />
               </div>
 
@@ -240,6 +419,7 @@ export default function CreateCoursePage() {
                 <Switch
                   isSelected={formData.active ?? true}
                   onValueChange={(value) => updateFormData({ active: value })}
+                  isDisabled={isCreating}
                 >
                   <div className="flex flex-col">
                     <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -265,39 +445,63 @@ export default function CreateCoursePage() {
                   className="text-primary"
                   size={20}
                 />
-                Thiết lập ảnh bìa
+                Thiết lập ảnh bìa <span className="text-red-500">*</span>
               </h3>
               <div className="flex flex-col sm:flex-row gap-6">
                 <div className="shrink-0">
                   <div className="relative w-full sm:w-[320px] aspect-video rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden group hover:border-primary dark:hover:border-primary transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // Handle file upload
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            updateFormData({
-                              thumbnailUrl: reader.result as string,
-                            });
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                    <div className="relative z-10 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 p-4 text-center">
-                      <HugeiconsIcon
-                        icon={CloudUploadIcon}
-                        size={32}
-                        className="mb-2 group-hover:text-primary transition-colors"
-                      />
-                      <p className="text-xs font-medium group-hover:text-primary transition-colors">
-                        Kéo thả hoặc click để tải lên
-                      </p>
-                    </div>
+                    {imagePreview ? (
+                      <>
+                        <img
+                          src={imagePreview}
+                          alt="Course thumbnail preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          disabled={isCreating}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors disabled:opacity-50"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                          onChange={handleFileChange}
+                          disabled={isUploading || isCreating}
+                        />
+                        <div className="relative z-10 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 p-4 text-center">
+                          {isUploading ? (
+                            <>
+                              <HugeiconsIcon
+                                icon={Loading03Icon}
+                                size={32}
+                                className="mb-2 animate-spin text-primary"
+                              />
+                              <p className="text-xs font-medium text-primary">
+                                Đang tải lên... {uploadProgress}%
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <HugeiconsIcon
+                                icon={CloudUploadIcon}
+                                size={32}
+                                className="mb-2 group-hover:text-primary transition-colors"
+                              />
+                              <p className="text-xs font-medium group-hover:text-primary transition-colors">
+                                Kéo thả hoặc click để tải lên
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -318,18 +522,31 @@ export default function CreateCoursePage() {
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               <Button
+                type="button"
                 variant="light"
-                onPress={() => {}}
+                onPress={handleCancel}
                 className="text-slate-600 dark:text-slate-300"
+                isDisabled={isCreating}
               >
                 Hủy bỏ
               </Button>
               <Button
-                onPress={() => {}}
+                type="submit"
                 className="bg-blue-600 text-white rounded-lg"
-                startContent={<HugeiconsIcon icon={Download03Icon} size={18} />}
+                startContent={
+                  isCreating ? (
+                    <HugeiconsIcon
+                      icon={Loading03Icon}
+                      size={18}
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <HugeiconsIcon icon={Download03Icon} size={18} />
+                  )
+                }
+                isDisabled={isCreating || isUploading}
               >
-                Lưu khóa học
+                {isCreating ? "Đang lưu..." : "Lưu khóa học"}
               </Button>
             </div>
           </form>
