@@ -15,12 +15,128 @@ import {
   ChevronLeft,
   Layout,
   TrendingUp,
+  MoreVertical,
+  GraduationCap,
+  Mail,
+  Phone,
+  MapPin,
+  ArrowUpRight,
+  Users,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Class, ClassEnrollment } from "@/types/class";
 import { useRouter } from "next/navigation";
+import {
+  Button,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Avatar,
+  Progress,
+} from "@heroui/react";
+
+// Stat Card Component
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color,
+  trend,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+  icon: any;
+  color: string;
+  trend?: { value: string; positive: boolean };
+}) {
+  return (
+    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div
+          className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center`}
+        >
+          <Icon className="w-6 h-6" />
+        </div>
+        {trend && (
+          <span
+            className={`text-xs font-medium px-2 py-1 rounded-full ${
+              trend.positive
+                ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            }`}
+          >
+            {trend.value}
+          </span>
+        )}
+      </div>
+      <div className="mt-4">
+        <p className="text-2xl font-bold text-[#181d27] dark:text-white">
+          {value}
+        </p>
+        <p className="text-sm text-[#717680] dark:text-gray-400">{title}</p>
+        {subtitle && (
+          <p className="text-xs text-[#a4a7ae] dark:text-gray-500 mt-1">
+            {subtitle}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Progress Ring Component
+function ProgressRing({
+  progress,
+  size = 48,
+  strokeWidth = 4,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          className="text-gray-200 dark:text-gray-700"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-primary transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-bold text-[#181d27] dark:text-white">
+          {progress}%
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function ClassPage() {
   const params = useParams();
@@ -31,6 +147,8 @@ export default function ClassPage() {
   const [students, setStudents] = useState<ClassEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
   const fetchData = React.useCallback(async () => {
     if (!classId) return;
@@ -54,11 +172,60 @@ export default function ClassPage() {
     fetchData();
   }, [fetchData]);
 
+  // Filter students
+  const filteredStudents = students.filter((enrollment) => {
+    const matchesSearch = enrollment.student.fullName
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter
+      ? enrollment.status === statusFilter
+      : true;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            Đang học
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            Hoàn thành
+          </span>
+        );
+      case "withdrawn":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            Đã nghỉ
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+            {status}
+          </span>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-[#717680] dark:text-gray-400">
+              Đang tải thông tin lớp học...
+            </p>
+          </div>
         </div>
       </LayoutDashboard>
     );
@@ -67,10 +234,21 @@ export default function ClassPage() {
   if (error || !classData) {
     return (
       <LayoutDashboard>
-        <div className="p-6 text-center text-red-500">
-          <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
-          <h2 className="text-xl font-bold">Error</h2>
-          <p>{error || "Class not found"}</p>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-red-500" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-[#181d27] dark:text-white mb-2">
+              Không thể tải dữ liệu
+            </h2>
+            <p className="text-[#717680] dark:text-gray-400">
+              {error || "Không tìm thấy lớp học"}
+            </p>
+          </div>
+          <Button as={Link} href="/dashboard/classes" variant="bordered">
+            Quay lại danh sách lớp
+          </Button>
         </div>
       </LayoutDashboard>
     );
@@ -78,277 +256,375 @@ export default function ClassPage() {
 
   return (
     <LayoutDashboard>
-      <div className="flex flex-col space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-text-main dark:text-white tracking-tight">
-              Tổng quan Lớp {classData.className}
-            </h2>
-            <p className="text-text-muted dark:text-gray-400 text-sm mt-1">
-              Thông tin chi tiết và quản lý học sinh cho Lớp{" "}
-              {classData.className} (Năm học {classData.schoolYear}).
+      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-[#717680] dark:text-gray-400">
+          <Link
+            href="/dashboard/classes"
+            className="hover:text-primary transition-colors"
+          >
+            Lớp học
+          </Link>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-[#181d27] dark:text-white font-medium">
+            {classData.className}
+          </span>
+        </nav>
+
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-[#181d27] dark:text-white">
+                {classData.className}
+              </h1>
+            </div>
+            <p className="text-[#717680] dark:text-gray-400">
+              Năm học {classData.schoolYear} • Khối {classData.gradeLevel}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="bordered"
+              startContent={<TrendingUp className="w-4 h-4" />}
+              as={Link}
               href={`/dashboard/classes/${classId}/progress`}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="border-[#d5d7da]"
             >
-              <TrendingUp className="w-[18px] h-[18px]" />
-              Tiến độ & Can thiệp
-            </Link>
-            <Link
+              Tiến độ
+            </Button>
+            <Button
+              variant="bordered"
+              startContent={<Layout className="w-4 h-4" />}
+              as={Link}
               href={`/dashboard/classes/${classId}/workspace`}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="border-[#d5d7da]"
             >
-              <Layout className="w-[18px] h-[18px]" />
               Không gian làm việc
-            </Link>
-            <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 text-text-main dark:text-white rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-              <FileEdit className="w-[18px] h-[18px]" />
-              Quản lý điểm
-            </button>
-            <button
+            </Button>
+            <Button
+              className="bg-primary text-white"
+              startContent={<UserPlus className="w-4 h-4" />}
               onClick={() => router.push(`/dashboard/users/create`)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 cursor-pointer text-white rounded-lg text-sm font-bold transition-colors shadow-blue-200 dark:shadow-none"
             >
-              <UserPlus className="w-5 h-5" />
-              Thêm Học sinh
-            </button>
+              Thêm học sinh
+            </Button>
           </div>
         </div>
 
-        {/* Metric Cards - Static for now as API doesn't return these stats yet */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Average Score Card */}
-          <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-12 bg-primary/10 text-primary dark:bg-primary/20 rounded-full flex items-center justify-center">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-text-muted dark:text-gray-400">
-                  Điểm trung bình
-                </p>
-                <p className="text-2xl font-bold text-text-main dark:text-white">
-                  --
-                </p>
-              </div>
-            </div>
-            <span className="px-3 py-1 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full text-xs font-medium">
-              N/A
-            </span>
-          </div>
-
-          {/* Attendance Rate Card */}
-          <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-12 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full flex items-center justify-center">
-                <UserCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-text-muted dark:text-gray-400">
-                  Sĩ số
-                </p>
-                <p className="text-2xl font-bold text-text-main dark:text-white">
-                  {students.length}
-                </p>
-              </div>
-            </div>
-            <span className="px-3 py-1 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">
-              Học sinh
-            </span>
-          </div>
-
-          {/* Upcoming Deadlines Card */}
-          <div className="bg-background-light dark:bg-background-dark p-6 rounded-xl border border-card-border dark:border-gray-700 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-12 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-text-muted dark:text-gray-400">
-                  Giáo viên CN
-                </p>
-                <p className="text-lg font-bold text-text-main dark:text-white truncate max-w-[150px]">
-                  {classData.homeroomTeacher?.fullName || "Chưa gán"}
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Tổng sĩ số"
+            value={students.length.toString()}
+            subtitle={`${students.filter((s) => s.status === "active").length} đang học`}
+            icon={Users}
+            color="bg-blue-50 text-blue-600 dark:bg-blue-900/20"
+          />
+          <StatCard
+            title="Điểm trung bình"
+            value="--"
+            subtitle="Chưa có dữ liệu"
+            icon={BarChart3}
+            color="bg-purple-50 text-purple-600 dark:bg-purple-900/20"
+          />
+          <StatCard
+            title="Tỷ lệ điểm danh"
+            value="--"
+            subtitle="Chưa có dữ liệu"
+            icon={UserCheck}
+            color="bg-green-50 text-green-600 dark:bg-green-900/20"
+          />
+          <StatCard
+            title="Giáo viên chủ nhiệm"
+            value={classData.homeroomTeacher?.fullName || "Chưa gán"}
+            icon={GraduationCap}
+            color="bg-orange-50 text-orange-600 dark:bg-orange-900/20"
+          />
         </div>
 
-        {/* Student List Table */}
-        <div className="bg-background-light dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-1">
-          {/* Search and Filter Bar */}
-          <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-1 w-full md:w-auto gap-3 items-center">
-              {/* Search Input */}
-              <div className="relative flex-1 max-w-md w-full">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-gray-500 pointer-events-none">
-                  <Search className="w-5 h-5" />
-                </span>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Student List - Takes 2 columns */}
+          <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden">
+            {/* Toolbar */}
+            <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680]" />
                 <input
-                  className="w-full pl-10 pr-4 py-2.5 bg-background-soft dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-lg text-sm text-text-main dark:text-white placeholder-text-muted focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  placeholder="Tìm kiếm theo tên học sinh..."
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm học sinh..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#f9fafb] dark:bg-gray-800 border border-[#e9eaeb] dark:border-gray-700 rounded-lg text-sm text-[#181d27] dark:text-white placeholder:text-[#a4a7ae] focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-
-              {/* Status Filter */}
               <div className="relative min-w-[160px]">
-                <select className="w-full pl-3 pr-10 py-2.5 bg-background-soft dark:bg-background-dark border border-card-border dark:border-gray-700 rounded-lg text-sm text-text-main dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 bg-[#f9fafb] dark:bg-gray-800 border border-[#e9eaeb] dark:border-gray-700 rounded-lg text-sm text-[#181d27] dark:text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
                   <option value="">Tất cả trạng thái</option>
-                  <option value="active">Active</option>
-                  <option value="withdrawn">Withdrawn</option>
-                  <option value="completed">Completed</option>
+                  <option value="active">Đang học</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="withdrawn">Đã nghỉ</option>
                 </select>
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-                  <ChevronDown className="w-5 h-5" />
-                </span>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680] pointer-events-none" />
               </div>
             </div>
-          </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-card-border dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-background-dark/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                    Học sinh
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                    Trạng thái
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                    Ngày sinh
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted dark:text-gray-400 uppercase tracking-wider">
-                    Giới tính
-                  </th>
-                  <th className="relative px-6 py-3">
-                    <span className="sr-only">Hành động</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-background-light dark:bg-background-dark divide-y divide-card-border dark:divide-gray-700">
-                {students.length === 0 ? (
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#f9fafb] dark:bg-gray-800/50">
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-8 text-center text-text-muted dark:text-gray-400"
-                    >
-                      Chưa có học sinh nào trong lớp này.
-                    </td>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#717680] dark:text-gray-400 uppercase">
+                      Học sinh
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#717680] dark:text-gray-400 uppercase">
+                      Mã học sinh
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#717680] dark:text-gray-400 uppercase">
+                      Trạng thái
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#717680] dark:text-gray-400 uppercase">
+                      Ngày sinh
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#717680] dark:text-gray-400 uppercase">
+                      Giới tính
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-[#717680] dark:text-gray-400 uppercase"></th>
                   </tr>
-                ) : (
-                  students.map((enrollment) => (
-                    <tr key={enrollment.enrollmentId}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {enrollment.student.avatarUrl ? (
-                            <div
-                              className="shrink-0 size-10 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-700"
-                              style={{
-                                backgroundImage: `url('${enrollment.student.avatarUrl}')`,
-                              }}
-                            ></div>
-                          ) : (
-                            <div className="shrink-0 size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20">
-                              {enrollment.student.fullName
-                                .substring(0, 2)
-                                .toUpperCase()}
-                            </div>
-                          )}
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-text-main dark:text-white">
-                              {enrollment.student.fullName}
-                            </div>
-                            <div className="text-xs text-text-muted">
-                              {enrollment.student.studentInfo?.studentCode}
-                            </div>
+                </thead>
+                <tbody className="divide-y divide-[#e9eaeb] dark:divide-gray-800">
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+                            <Users className="w-6 h-6 text-gray-400" />
                           </div>
+                          <p className="text-[#717680] dark:text-gray-400">
+                            Không tìm thấy học sinh
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                        {enrollment.student.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`size-2 rounded-full ${
-                              enrollment.status === "active"
-                                ? "bg-green-500"
-                                : enrollment.status === "completed"
-                                ? "bg-blue-500"
-                                : "bg-red-500"
-                            }`}
-                          ></span>
-                          <span className="text-sm text-text-muted dark:text-gray-300 capitalize">
-                            {enrollment.status}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main dark:text-white font-medium">
-                        {enrollment.student.studentInfo?.dateOfBirth
-                          ? new Date(
-                              enrollment.student.studentInfo.dateOfBirth
-                            ).toLocaleDateString("vi-VN")
-                          : "--"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-muted dark:text-gray-400">
-                        {enrollment.student.studentInfo?.gender === "male"
-                          ? "Nam"
-                          : enrollment.student.studentInfo?.gender === "female"
-                          ? "Nữ"
-                          : "Khác"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/dashboard/users/${enrollment.student.id}`} // Assuming this route exists or similar
-                          className="text-primary hover:text-primary-dark dark:hover:text-blue-400 flex items-center justify-end gap-1"
-                        >
-                          Xem
-                          <ChevronRight className="w-4 h-4" />
-                        </Link>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredStudents.map((enrollment) => (
+                      <tr
+                        key={enrollment.enrollmentId}
+                        className="hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              src={enrollment.student.avatarUrl || undefined}
+                              name={enrollment.student.fullName}
+                              size="sm"
+                              className="shrink-0"
+                            />
+                            <div>
+                              <p className="font-medium text-[#181d27] dark:text-white text-sm">
+                                {enrollment.student.fullName}
+                              </p>
+                              <p className="text-xs text-[#717680] dark:text-gray-400">
+                                {enrollment.student.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-[#535862] dark:text-gray-300 font-mono">
+                            {enrollment.student.studentInfo?.studentCode ||
+                              "--"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {getStatusBadge(enrollment.status)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-[#535862] dark:text-gray-300">
+                            {enrollment.student.studentInfo?.dateOfBirth
+                              ? new Date(
+                                  enrollment.student.studentInfo.dateOfBirth,
+                                ).toLocaleDateString("vi-VN")
+                              : "--"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-[#535862] dark:text-gray-300">
+                            {enrollment.student.studentInfo?.gender === "male"
+                              ? "Nam"
+                              : enrollment.student.studentInfo?.gender ===
+                                  "female"
+                                ? "Nữ"
+                                : "--"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Dropdown>
+                            <DropdownTrigger>
+                              <Button isIconOnly variant="light" size="sm">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu>
+                              <DropdownItem
+                                key="view"
+                                as={Link}
+                                href={`/dashboard/users/${enrollment.student.id}`}
+                                startContent={
+                                  <ArrowUpRight className="w-4 h-4" />
+                                }
+                              >
+                                Xem chi tiết
+                              </DropdownItem>
+                              <DropdownItem
+                                key="progress"
+                                as={Link}
+                                href={`/dashboard/users/${enrollment.student.id}/progress`}
+                                startContent={
+                                  <TrendingUp className="w-4 h-4" />
+                                }
+                              >
+                                Xem tiến độ
+                              </DropdownItem>
+                            </DropdownMenu>
+                          </Dropdown>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {filteredStudents.length > 0 && (
+              <div className="px-4 py-3 border-t border-[#e9eaeb] dark:border-gray-800 flex items-center justify-between bg-[#f9fafb] dark:bg-gray-800/30">
+                <span className="text-sm text-[#717680] dark:text-gray-400">
+                  Hiển thị{" "}
+                  <strong className="text-[#181d27] dark:text-white">
+                    {filteredStudents.length}
+                  </strong>{" "}
+                  học sinh
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button isIconOnly variant="light" size="sm" isDisabled>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-primary text-white min-w-[32px]"
+                  >
+                    1
+                  </Button>
+                  <Button isIconOnly variant="light" size="sm" isDisabled>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {students.length > 0 && (
-            <div className="px-6 py-4 border-t border-card-border dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-xl">
-              <span className="text-sm text-text-muted dark:text-gray-400">
-                Showing{" "}
-                <span className="font-semibold text-text-main dark:text-white">
-                  1-{students.length}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-text-main dark:text-white">
-                  {students.length}
-                </span>{" "}
-                students
-              </span>
-              <div className="flex items-center gap-1 opacity-50 pointer-events-none">
-                <button className="p-2 rounded-lg border border-card-border dark:border-gray-700 text-text-muted dark:text-gray-400">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="min-w-[32px] h-8 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-medium">
-                  1
-                </button>
-                <button className="p-2 rounded-lg border border-card-border dark:border-gray-700 text-text-muted dark:text-gray-400">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+          {/* Sidebar Info */}
+          <div className="space-y-6">
+            {/* Class Info Card */}
+            <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5">
+              <h3 className="font-bold text-[#181d27] dark:text-white mb-4">
+                Thông tin lớp học
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <GraduationCap className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#717680] dark:text-gray-400">
+                      Giáo viên chủ nhiệm
+                    </p>
+                    <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                      {classData.homeroomTeacher?.fullName || "Chưa gán"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#717680] dark:text-gray-400">
+                      Email GVCN
+                    </p>
+                    <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                      {classData.homeroomTeacher?.email || "--"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#717680] dark:text-gray-400">
+                      Năm học
+                    </p>
+                    <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                      {classData.schoolYear}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#717680] dark:text-gray-400">
+                      Khối lớp
+                    </p>
+                    <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                      Khối {classData.gradeLevel}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+
+            {/* Quick Actions */}
+            <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5">
+              <h3 className="font-bold text-[#181d27] dark:text-white mb-4">
+                Thao tác nhanh
+              </h3>
+              <div className="space-y-2">
+                <Button
+                  variant="light"
+                  className="w-full justify-start"
+                  startContent={<FileEdit className="w-4 h-4" />}
+                >
+                  Quản lý điểm
+                </Button>
+                <Button
+                  variant="light"
+                  className="w-full justify-start"
+                  startContent={<Calendar className="w-4 h-4" />}
+                >
+                  Lịch học
+                </Button>
+                <Button
+                  variant="light"
+                  className="w-full justify-start"
+                  startContent={<BarChart3 className="w-4 h-4" />}
+                  as={Link}
+                  href={`/dashboard/classes/${classId}/progress`}
+                >
+                  Báo cáo tiến độ
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </LayoutDashboard>

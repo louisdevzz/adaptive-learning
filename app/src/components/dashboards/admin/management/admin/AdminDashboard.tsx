@@ -15,7 +15,7 @@ import {
   Task01Icon,
   Settings01Icon,
   Calendar01Icon,
-  Book04Icon
+  Book04Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@heroui/button";
 import Link from "next/link";
@@ -25,11 +25,7 @@ import {
   DropdownMenu,
   DropdownItem,
 } from "@heroui/dropdown";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@heroui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
 import { ChevronDown } from "lucide-react";
 import { GRADE_LEVELS } from "@/constants/course";
 
@@ -43,30 +39,43 @@ export function AdminDashboard() {
     avgStudyTimeMinutes: 0,
   });
 
-  const [selectedTimeRange, setSelectedTimeRange] = useState<string>("Tất cả thời gian");
+  const [selectedTimeRange, setSelectedTimeRange] =
+    useState<string>("Tất cả thời gian");
   const [selectedGrade, setSelectedGrade] = useState<string>("Tất cả lớp");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [topCourses, setTopCourses] = useState<Array<{ name: string; progress: number; subject?: string }>>([]);
-  const [difficultKPs, setDifficultKPs] = useState<Array<{ name: string; failRate: number }>>([]);
-  const [gameCompletions, setGameCompletions] = useState<Array<{ name: string; completion: number; rating: number }>>([]);
-  const [classDistribution, setClassDistribution] = useState<Array<{ name: string; value: number }>>([]);
-  const [teacherHighlights, setTeacherHighlights] = useState<Array<{
-    id: string;
-    name: string;
-    initials: string;
-    avatarUrl?: string;
-    className: string;
-    activityLevel: string;
-  }>>([]);
-  const [lowProgressClasses, setLowProgressClasses] = useState<Array<{
-    id: string;
-    className: string;
-    issue: string;
-  }>>([]);
+  const [topCourses, setTopCourses] = useState<
+    Array<{ name: string; progress: number; subject?: string }>
+  >([]);
+  const [difficultKPs, setDifficultKPs] = useState<
+    Array<{ name: string; failRate: number }>
+  >([]);
+  const [gameCompletions, setGameCompletions] = useState<
+    Array<{ name: string; completion: number; rating: number }>
+  >([]);
+  const [classDistribution, setClassDistribution] = useState<
+    Array<{ name: string; value: number }>
+  >([]);
+  const [teacherHighlights, setTeacherHighlights] = useState<
+    Array<{
+      id: string;
+      name: string;
+      initials: string;
+      avatarUrl?: string;
+      className: string;
+      activityLevel: string;
+    }>
+  >([]);
+  const [lowProgressClasses, setLowProgressClasses] = useState<
+    Array<{
+      id: string;
+      className: string;
+      issue: string;
+    }>
+  >([]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -75,9 +84,10 @@ export function AdminDashboard() {
         setLoading(true);
 
         // Parse grade level from selected grade
-        const gradeLevel = selectedGrade === "Tất cả lớp"
-          ? undefined
-          : parseInt(selectedGrade.replace("Khối ", ""));
+        const gradeLevel =
+          selectedGrade === "Tất cả lớp"
+            ? undefined
+            : parseInt(selectedGrade.replace("Khối ", ""));
 
         // Fetch stats
         const statsData = await api.dashboard.getStats({
@@ -110,7 +120,6 @@ export function AdminDashboard() {
         // Fetch low progress classes
         const lowProgressData = await api.dashboard.getLowProgressClasses(1);
         setLowProgressClasses(lowProgressData);
-
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -158,7 +167,9 @@ export function AdminDashboard() {
         start = weekStart.toISOString().split("T")[0];
         break;
       case "month":
-        start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+          .toISOString()
+          .split("T")[0];
         break;
       case "custom":
         // Set custom state, don't close popover yet
@@ -186,7 +197,9 @@ export function AdminDashboard() {
       value: stats.totalStudents.toLocaleString("vi-VN"),
       change: "+12.5%",
       changeType: "up" as const,
-      icon: <HugeiconsIcon icon={UserGroupIcon} size={24} className="w-6 h-6" />,
+      icon: (
+        <HugeiconsIcon icon={UserGroupIcon} size={24} className="w-6 h-6" />
+      ),
       iconBg: "bg-blue-50 dark:bg-blue-900/20",
       iconColor: "text-[#135bec]",
     },
@@ -195,7 +208,13 @@ export function AdminDashboard() {
       value: stats.totalTeachers.toLocaleString("vi-VN"),
       change: "+2.1%",
       changeType: "up" as const,
-      icon: <HugeiconsIcon icon={GraduationScrollIcon} size={24} className="w-6 h-6" />,
+      icon: (
+        <HugeiconsIcon
+          icon={GraduationScrollIcon}
+          size={24}
+          className="w-6 h-6"
+        />
+      ),
       iconBg: "bg-purple-50 dark:bg-purple-900/20",
       iconColor: "text-purple-600",
     },
@@ -204,7 +223,9 @@ export function AdminDashboard() {
       value: stats.activeCourses.toString(),
       change: "0%",
       changeType: "neutral" as const,
-      icon: <HugeiconsIcon icon={BookOpen01Icon} size={24} className="w-6 h-6" />,
+      icon: (
+        <HugeiconsIcon icon={BookOpen01Icon} size={24} className="w-6 h-6" />
+      ),
       iconBg: "bg-orange-50 dark:bg-orange-900/20",
       iconColor: "text-orange-600",
     },
@@ -219,9 +240,10 @@ export function AdminDashboard() {
     },
   ];
 
-  const maxDistribution = classDistribution.length > 0
-    ? Math.max(...classDistribution.map((c) => c.value))
-    : 1;
+  const maxDistribution =
+    classDistribution.length > 0
+      ? Math.max(...classDistribution.map((c) => c.value))
+      : 1;
 
   if (loading) {
     return (
@@ -334,8 +356,14 @@ export function AdminDashboard() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
               <div className="flex items-center gap-2 mb-1">
-                <HugeiconsIcon icon={Alert01Icon} size={16} className="text-red-500" />
-                <span className="text-xs font-bold text-red-500 uppercase">Cảnh báo</span>
+                <HugeiconsIcon
+                  icon={Alert01Icon}
+                  size={16}
+                  className="text-red-500"
+                />
+                <span className="text-xs font-bold text-red-500 uppercase">
+                  Cảnh báo
+                </span>
               </div>
               <p className="text-2xl font-bold text-[#0d121b] dark:text-white">
                 {stats.dropoutRate.toFixed(1)}%
@@ -343,7 +371,9 @@ export function AdminDashboard() {
               <p className="text-xs text-[#4c669a]">Tỷ lệ bỏ học tăng</p>
             </div>
             <div className="bg-white dark:bg-[#1a202c] p-4 rounded-xl border border-[#e7ebf3] dark:border-gray-700">
-              <p className="text-xs text-[#4c669a] mb-1">Thời gian học TB/ngày</p>
+              <p className="text-xs text-[#4c669a] mb-1">
+                Thời gian học TB/ngày
+              </p>
               <p className="text-2xl font-bold text-[#0d121b] dark:text-white">
                 {stats.avgStudyTimeMinutes}m
               </p>
@@ -360,7 +390,11 @@ export function AdminDashboard() {
       <section className="space-y-4 w-full">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-[#0d121b] dark:text-white flex items-center gap-2">
-            <HugeiconsIcon icon={Analytics01Icon} size={20} className="text-[#135bec]" />
+            <HugeiconsIcon
+              icon={Analytics01Icon}
+              size={20}
+              className="text-[#135bec]"
+            />
             Hiệu suất Nội dung & Khóa học
           </h2>
           <div className="flex gap-2">
@@ -391,7 +425,9 @@ export function AdminDashboard() {
                 <div key={index}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-medium truncate">{course.name}</span>
-                    <span className="text-green-600 font-bold">{course.progress}%</span>
+                    <span className="text-green-600 font-bold">
+                      {course.progress}%
+                    </span>
                   </div>
                   <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
                     <div
@@ -429,7 +465,9 @@ export function AdminDashboard() {
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-[#0d121b] dark:text-white">{kp.name}</p>
+                    <p className="text-xs font-medium text-[#0d121b] dark:text-white">
+                      {kp.name}
+                    </p>
                     <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-1">
                       <div
                         className="bg-red-500 h-1.5 rounded-full transition-all"
@@ -437,7 +475,9 @@ export function AdminDashboard() {
                       ></div>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-red-500">{kp.failRate}% fail</span>
+                  <span className="text-xs font-bold text-red-500">
+                    {kp.failRate}% fail
+                  </span>
                 </div>
               ))}
             </div>
@@ -513,22 +553,31 @@ export function AdminDashboard() {
                         key={preset.key}
                         onClick={() => handlePresetSelect(preset.key)}
                         className={`w-full text-left px-3 py-2 text-xs rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                          preset.key === "custom" && (!startDate || !endDate || selectedTimeRange.includes("-"))
+                          preset.key === "custom" &&
+                          (!startDate ||
+                            !endDate ||
+                            selectedTimeRange.includes("-"))
                             ? ""
-                            : preset.key !== "custom" && selectedTimeRange === preset.label
-                            ? "bg-blue-50 dark:bg-blue-900/20 text-[#135bec] font-medium"
-                            : "text-[#0d121b] dark:text-white"
+                            : preset.key !== "custom" &&
+                                selectedTimeRange === preset.label
+                              ? "bg-blue-50 dark:bg-blue-900/20 text-[#135bec] font-medium"
+                              : "text-[#0d121b] dark:text-white"
                         }`}
                       >
                         {preset.label}
                       </button>
                     ))}
                   </div>
-                  {(selectedTimeRange === "Tùy chỉnh" || (startDate && endDate && selectedTimeRange.includes("-"))) && (
+                  {(selectedTimeRange === "Tùy chỉnh" ||
+                    (startDate &&
+                      endDate &&
+                      selectedTimeRange.includes("-"))) && (
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                       <div className="flex flex-col gap-2">
                         <div>
-                          <label className="text-xs text-[#4c669a] mb-1 block">Từ ngày</label>
+                          <label className="text-xs text-[#4c669a] mb-1 block">
+                            Từ ngày
+                          </label>
                           <input
                             type="date"
                             value={startDate}
@@ -537,7 +586,9 @@ export function AdminDashboard() {
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-[#4c669a] mb-1 block">Đến ngày</label>
+                          <label className="text-xs text-[#4c669a] mb-1 block">
+                            Đến ngày
+                          </label>
                           <input
                             type="date"
                             value={endDate}
@@ -626,7 +677,9 @@ export function AdminDashboard() {
           </div>
           {/* Teacher Highlights */}
           <div className="border-l border-gray-100 dark:border-gray-700 pl-0 lg:pl-6">
-            <h3 className="text-sm font-semibold text-[#4c669a] mb-4">Giáo viên tiêu biểu</h3>
+            <h3 className="text-sm font-semibold text-[#4c669a] mb-4">
+              Giáo viên tiêu biểu
+            </h3>
             <div className="space-y-4">
               {teacherHighlights.length > 0 ? (
                 teacherHighlights.map((teacher, index) => (
@@ -638,7 +691,9 @@ export function AdminDashboard() {
                         className="size-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div className={`size-8 rounded-full ${index === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'} flex items-center justify-center font-bold text-xs`}>
+                      <div
+                        className={`size-8 rounded-full ${index === 0 ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"} flex items-center justify-center font-bold text-xs`}
+                      >
                         {teacher.initials}
                       </div>
                     )}
@@ -653,7 +708,9 @@ export function AdminDashboard() {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-[#4c669a]">Không có dữ liệu giáo viên</p>
+                <p className="text-xs text-[#4c669a]">
+                  Không có dữ liệu giáo viên
+                </p>
               )}
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <h3 className="text-sm font-semibold text-red-500 mb-2 flex items-center gap-1">
@@ -662,7 +719,10 @@ export function AdminDashboard() {
                 </h3>
                 {lowProgressClasses.length > 0 ? (
                   lowProgressClasses.map((cls) => (
-                    <div key={cls.id} className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-xs text-red-800 dark:text-red-300 mb-2 last:mb-0">
+                    <div
+                      key={cls.id}
+                      className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-xs text-red-800 dark:text-red-300 mb-2 last:mb-0"
+                    >
                       <strong>{cls.className}</strong> - {cls.issue}
                     </div>
                   ))
@@ -680,52 +740,64 @@ export function AdminDashboard() {
       {/* Admin Command Center */}
       <section className="space-y-4 w-full pb-12">
         <h2 className="text-lg font-bold text-[#0d121b] dark:text-white flex items-center gap-2">
-          <HugeiconsIcon icon={Analytics01Icon} size={20} className="text-[#135bec]" />
+          <HugeiconsIcon
+            icon={Analytics01Icon}
+            size={20}
+            className="text-[#135bec]"
+          />
           Admin Command Center
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link href="/dashboard/users">
             <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-            <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
-              <HugeiconsIcon icon={UserGroupIcon} size={32} />
-            </div>
-            <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
-              Quản lý Học sinh
-            </h3>
-            <p className="text-xs text-[#4c669a] mt-1">Thêm, sửa, xóa học sinh</p>
+              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+                <HugeiconsIcon icon={UserGroupIcon} size={32} />
+              </div>
+              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+                Quản lý Học sinh
+              </h3>
+              <p className="text-xs text-[#4c669a] mt-1">
+                Thêm, sửa, xóa học sinh
+              </p>
             </div>
           </Link>
           <Link href="/dashboard/courses">
             <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-            <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
-              <HugeiconsIcon icon={Book04Icon} size={32} />
-            </div>
-            <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
-              Quản lý Khoá học
-            </h3>
-            <p className="text-xs text-[#4c669a] mt-1">Thêm, sửa, xóa khóa học</p>
+              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+                <HugeiconsIcon icon={Book04Icon} size={32} />
+              </div>
+              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+                Quản lý Khoá học
+              </h3>
+              <p className="text-xs text-[#4c669a] mt-1">
+                Thêm, sửa, xóa khóa học
+              </p>
             </div>
           </Link>
           <Link href="/dashboard/courses/create">
             <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-            <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
-              <HugeiconsIcon icon={AddCircleIcon} size={32} />
-            </div>
-            <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
-              Tạo Khóa học mới
-            </h3>
-            <p className="text-xs text-[#4c669a] mt-1">Thiết lập khóa học và nội dung</p>
+              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+                <HugeiconsIcon icon={AddCircleIcon} size={32} />
+              </div>
+              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+                Tạo Khóa học mới
+              </h3>
+              <p className="text-xs text-[#4c669a] mt-1">
+                Thiết lập khóa học và nội dung
+              </p>
             </div>
           </Link>
           <Link href="/dashboard/reports">
             <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-            <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
-              <HugeiconsIcon icon={Analytics01Icon} size={32} />
-            </div>
-            <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
-              Xem tất cả Báo cáo
-            </h3>
-            <p className="text-xs text-[#4c669a] mt-1">Phân tích dữ liệu chi tiết</p>
+              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+                <HugeiconsIcon icon={Analytics01Icon} size={32} />
+              </div>
+              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+                Xem tất cả Báo cáo
+              </h3>
+              <p className="text-xs text-[#4c669a] mt-1">
+                Phân tích dữ liệu chi tiết
+              </p>
             </div>
           </Link>
         </div>

@@ -67,6 +67,7 @@ const menuItems: Record<string, MenuItem[]> = {
       hasSubmenu: true,
       submenu: courseManagementSubmenu,
     },
+    { icon: Users, label: "Học sinh", href: "/dashboard/students" },
     { icon: School, label: "Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],

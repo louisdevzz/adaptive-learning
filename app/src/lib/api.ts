@@ -213,6 +213,13 @@ export const api = {
       return response.data;
     },
 
+    getCoursesWithProgress: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/students/${studentId}/courses-with-progress`
+      );
+      return response.data;
+    },
+
     create: async (data: {
       email: string;
       password: string;

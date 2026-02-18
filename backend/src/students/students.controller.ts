@@ -43,6 +43,11 @@ export class StudentsController {
     return this.studentsService.getMyCoursesWithProgress(user.userId);
   }
 
+  @Get(':id/courses-with-progress')
+  getStudentCoursesWithProgress(@Param('id') id: string) {
+    return this.studentsService.getMyCoursesWithProgress(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.studentsService.findOne(id);

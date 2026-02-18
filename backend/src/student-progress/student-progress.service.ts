@@ -189,7 +189,14 @@ export class StudentProgressService {
       .limit(1);
 
     if (result.length === 0) {
-      throw new NotFoundException('Student mastery data not found');
+      // Return default mastery data if not found
+      return {
+        studentId,
+        courseId,
+        overallMasteryScore: 0,
+        strengths: [],
+        weaknesses: [],
+      };
     }
 
     return result[0];
@@ -214,7 +221,19 @@ export class StudentProgressService {
       .limit(1);
 
     if (result.length === 0) {
-      throw new NotFoundException('Student insights not found');
+      // Return default insights if not found
+      return {
+        studentId,
+        overallMastery: 0,
+        totalKpsMastered: 0,
+        streakDays: 0,
+        averageTimePerDay: 0,
+        strengths: [],
+        weaknesses: [],
+        riskKps: [],
+        learningPattern: {},
+        engagementScore: 0,
+      };
     }
 
     return result[0];

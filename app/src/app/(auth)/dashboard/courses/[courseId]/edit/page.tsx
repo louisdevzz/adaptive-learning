@@ -14,15 +14,38 @@ import {
   List,
   BarChart,
   Edit,
-  Trash,
+  Trash2,
   Plus,
   ChevronsUpDown,
   GripVertical,
   Loader2,
+  ChevronLeft,
+  Save,
+  MoreVertical,
+  Eye,
+  BookOpen,
+  Layers,
+  Clock,
+  Award,
+  ArrowUpRight,
+  X,
 } from "lucide-react";
+import { Button } from "@heroui/button";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from "@heroui/react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import KnowledgePointModal from "@/components/modals/KnowledgePointModal";
+import Link from "next/link";
 
 // Types
 interface KnowledgePointItem {
@@ -62,6 +85,33 @@ interface CourseData {
   visibility: "public" | "private";
 }
 
+// Stat Card Component
+function StatCard({
+  title,
+  value,
+  icon,
+  color,
+}: {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-xs text-[#717680] dark:text-gray-400">{title}</p>
+          <p className="text-lg font-bold text-[#181d27] dark:text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CourseEditPage() {
   const params = useParams();
   const router = useRouter();
@@ -71,41 +121,27 @@ export default function CourseEditPage() {
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"structure" | "analytics">(
-    "structure"
-  );
+  const [activeTab, setActiveTab] = useState<"structure" | "analytics">("structure");
 
   // Modal states
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [showKpModal, setShowKpModal] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleItem | null>(null);
-  const [editingSection, setEditingSection] = useState<SectionItem | null>(
-    null
-  );
+  const [editingSection, setEditingSection] = useState<SectionItem | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
-    null
-  );
-
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedKp, setSelectedKp] = useState<any | null>(null);
   const [editingKp, setEditingKp] = useState<any | null>(null);
   const [kpDetailLoading, setKpDetailLoading] = useState(false);
 
   // Form states
-  const [moduleForm, setModuleForm] = useState({
-    title: "",
-    description: "",
-  });
-  const [sectionForm, setSectionForm] = useState({
-    title: "",
-  });
+  const [moduleForm, setModuleForm] = useState({ title: "", description: "" });
+  const [sectionForm, setSectionForm] = useState({ title: "" });
 
   // Fetch course data
   useEffect(() => {
-    if (courseId) {
-      fetchCourseData();
-    }
+    if (courseId) fetchCourseData();
   }, [courseId]);
 
   const fetchCourseData = async () => {
@@ -117,8 +153,6 @@ export default function CourseEditPage() {
       ]);
 
       setCourse(courseData);
-
-      // Transform structure data to match our component state
       const transformedModules = structureData.modules.map((mod: any) => ({
         id: mod.id,
         title: mod.title,
@@ -133,24 +167,17 @@ export default function CourseEditPage() {
           knowledgePoints: sec.knowledgePoints || [],
         })),
       }));
-
       setModules(transformedModules);
     } catch (error: any) {
       console.error("Error fetching course data:", error);
-      toast.error(
-        error.response?.data?.message || "Không thể tải dữ liệu khoá học"
-      );
+      toast.error(error.response?.data?.message || "Không thể tải dữ liệu khoá học");
     } finally {
       setLoading(false);
     }
   };
 
   const toggleModule = (moduleId: string) => {
-    setModules(
-      modules.map((m) =>
-        m.id === moduleId ? { ...m, expanded: !m.expanded } : m
-      )
-    );
+    setModules(modules.map((m) => (m.id === moduleId ? { ...m, expanded: !m.expanded } : m)));
   };
 
   const toggleSection = (moduleId: string, sectionId: string) => {
@@ -168,7 +195,7 @@ export default function CourseEditPage() {
     );
   };
 
-  // Module CRUD operations
+  // Module CRUD
   const handleCreateModule = () => {
     setEditingModule(null);
     setModuleForm({ title: "", description: "" });
@@ -177,10 +204,7 @@ export default function CourseEditPage() {
 
   const handleEditModule = (module: ModuleItem) => {
     setEditingModule(module);
-    setModuleForm({
-      title: module.title,
-      description: module.description || "",
-    });
+    setModuleForm({ title: module.title, description: module.description || "" });
     setShowModuleModal(true);
   };
 
@@ -188,12 +212,10 @@ export default function CourseEditPage() {
     try {
       setSaving(true);
       if (editingModule) {
-        // Update existing module
         await api.courses.updateModule(editingModule.id, moduleForm);
         toast.success("Cập nhật chương thành công");
       } else {
-        // Create new module
-        const newModule = await api.courses.createModule({
+        await api.courses.createModule({
           courseId,
           title: moduleForm.title,
           description: moduleForm.description,
@@ -212,14 +234,9 @@ export default function CourseEditPage() {
   };
 
   const handleDeleteModule = async (moduleId: string) => {
-    if (
-      !confirm(
-        "Bạn có chắc chắn muốn xoá chương này? Hành động này không thể hoàn tác."
-      )
-    ) {
+    if (!confirm("Bạn có chắc chắn muốn xoá chương này? Hành động này không thể hoàn tác.")) {
       return;
     }
-
     try {
       await api.courses.deleteModule(moduleId);
       toast.success("Xoá chương thành công");
@@ -230,7 +247,7 @@ export default function CourseEditPage() {
     }
   };
 
-  // Section CRUD operations
+  // Section CRUD
   const handleCreateSection = (moduleId: string) => {
     setSelectedModuleId(moduleId);
     setEditingSection(null);
@@ -247,15 +264,12 @@ export default function CourseEditPage() {
 
   const handleSaveSection = async () => {
     if (!selectedModuleId) return;
-
     try {
       setSaving(true);
       if (editingSection) {
-        // Update existing section
         await api.courses.updateSection(editingSection.id, sectionForm);
         toast.success("Cập nhật bài học thành công");
       } else {
-        // Create new section
         const module = modules.find((m) => m.id === selectedModuleId);
         await api.courses.createSection({
           moduleId: selectedModuleId,
@@ -275,14 +289,9 @@ export default function CourseEditPage() {
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    if (
-      !confirm(
-        "Bạn có chắc chắn muốn xoá bài học này? Hành động này không thể hoàn tác."
-      )
-    ) {
+    if (!confirm("Bạn có chắc chắn muốn xoá bài học này? Hành động này không thể hoàn tác.")) {
       return;
     }
-
     try {
       await api.courses.deleteSection(sectionId);
       toast.success("Xoá bài học thành công");
@@ -293,6 +302,7 @@ export default function CourseEditPage() {
     }
   };
 
+  // Knowledge Point CRUD
   const handleCreateKp = (sectionId: string) => {
     setSelectedSectionId(sectionId);
     setEditingKp(null);
@@ -301,29 +311,29 @@ export default function CourseEditPage() {
 
   const handleSaveKp = async (kpData: any) => {
     if (!selectedSectionId) return;
-
     try {
+      const preparedData = {
+        ...kpData,
+        content: {
+          ...kpData.content,
+          questions: kpData.questions || [],
+        },
+      };
+      delete preparedData.questions;
+
       if (editingKp) {
-        // Update existing KP
-        await api.knowledgePoints.update(editingKp.id, kpData);
+        await api.knowledgePoints.update(editingKp.id, preparedData);
         toast.success("Cập nhật điểm kiến thức thành công");
       } else {
-        // 1. Create Knowledge Point
         const newKp = await api.knowledgePoints.create({
-          ...kpData,
-          difficultyLevel: Number(kpData.difficultyLevel),
+          ...preparedData,
+          difficultyLevel: Number(preparedData.difficultyLevel),
         });
-
-        // 2. Assign to Section
-        // Find current section to determine order index
         let orderIndex = 0;
         modules.forEach((mod) => {
           const section = mod.sections.find((s) => s.id === selectedSectionId);
-          if (section) {
-            orderIndex = section.knowledgePoints.length;
-          }
+          if (section) orderIndex = section.knowledgePoints.length;
         });
-
         await api.knowledgePoints.assignToSection({
           sectionId: selectedSectionId,
           kpId: newKp.id,
@@ -331,21 +341,18 @@ export default function CourseEditPage() {
         });
         toast.success("Tạo điểm kiến thức thành công");
       }
-
       await fetchCourseData();
       setShowKpModal(false);
       setEditingKp(null);
     } catch (error: any) {
       console.error("Save KP error:", error);
-
       toast.error("Không thể lưu điểm kiến thức");
-      throw error; // Let the modal handle the error display
+      throw error;
     }
   };
 
   const handleEditKp = async (kpId: string, sectionId: string) => {
     try {
-      // Fetch full details for editing
       const kpData = await api.knowledgePoints.getById(kpId);
       setEditingKp(kpData);
       setSelectedSectionId(sectionId);
@@ -357,26 +364,17 @@ export default function CourseEditPage() {
   };
 
   const handleDeleteKp = async (kpId: string) => {
-    if (
-      !confirm(
-        "Bạn có chắc chắn muốn xoá điểm kiến thức này? Hành động này không thể hoàn tác."
-      )
-    ) {
+    if (!confirm("Bạn có chắc chắn muốn xoá điểm kiến thức này? Hành động này không thể hoàn tác.")) {
       return;
     }
-
     try {
       await api.knowledgePoints.delete(kpId);
       toast.success("Xoá điểm kiến thức thành công");
       await fetchCourseData();
-      if (selectedKp?.id === kpId) {
-        setSelectedKp(null);
-      }
+      if (selectedKp?.id === kpId) setSelectedKp(null);
     } catch (error: any) {
       console.error("Error deleting KP:", error);
-      toast.error(
-        error.response?.data?.message || "Không thể xoá điểm kiến thức"
-      );
+      toast.error(error.response?.data?.message || "Không thể xoá điểm kiến thức");
     }
   };
 
@@ -385,7 +383,7 @@ export default function CourseEditPage() {
       setKpDetailLoading(true);
       const kpDetail = await api.knowledgePoints.getById(kpId);
       setSelectedKp(kpDetail);
-      setActiveTab("structure"); // Keep on structure tab but show detail
+      setActiveTab("structure");
     } catch (error: any) {
       console.error("Error fetching KP detail:", error);
       toast.error("Không thể tải chi tiết điểm kiến thức");
@@ -394,15 +392,20 @@ export default function CourseEditPage() {
     }
   };
 
+  // Calculate stats
+  const totalSections = modules.reduce((acc, m) => acc + m.sections.length, 0);
+  const totalKps = modules.reduce(
+    (acc, m) => acc + m.sections.reduce((sAcc, s) => sAcc + s.knowledgePoints.length, 0),
+    0
+  );
+
   if (loading) {
     return (
       <LayoutDashboard>
-        <div className="flex items-center justify-center h-[calc(100vh-140px)]">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-text-muted dark:text-gray-400">
-              Đang tải dữ liệu khoá học...
-            </p>
+            <p className="text-[#717680] dark:text-gray-400">Đang tải dữ liệu khoá học...</p>
           </div>
         </div>
       </LayoutDashboard>
@@ -412,16 +415,15 @@ export default function CourseEditPage() {
   if (!course) {
     return (
       <LayoutDashboard>
-        <div className="flex items-center justify-center h-[calc(100vh-140px)]">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">Không tìm thấy khoá học</p>
-            <button
-              onClick={() => router.push("/dashboard/courses")}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-            >
-              Quay lại danh sách khoá học
-            </button>
-          </div>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <p className="text-red-500">Không tìm thấy khoá học</p>
+          <Button
+            as={Link}
+            href="/dashboard/courses"
+            startContent={<ChevronLeft className="w-4 h-4" />}
+          >
+            Quay lại danh sách
+          </Button>
         </div>
       </LayoutDashboard>
     );
@@ -429,701 +431,596 @@ export default function CourseEditPage() {
 
   return (
     <LayoutDashboard>
-      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-white dark:bg-[#1a202c] rounded-xl border border-card-border dark:border-gray-800">
-        {/* Sidebar Tree Navigator */}
-        <aside className="w-[320px] flex-none bg-white dark:bg-[#1a202c] border-r border-card-border dark:border-gray-800 flex flex-col h-full z-10">
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-card-border dark:border-gray-800 bg-[#fbfbfc] dark:bg-[#1e2532]">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-text-muted dark:text-gray-400">
-                Cấu trúc khoá học
-              </h3>
-              <button
-                className="text-primary hover:bg-primary/10 p-1 rounded transition-colors"
-                title="Mở rộng tất cả"
-                onClick={() =>
-                  setModules(modules.map((m) => ({ ...m, expanded: true })))
-                }
-              >
-                <ChevronsUpDown className="w-5 h-5" />
-              </button>
-            </div>
-            <button
-              onClick={handleCreateModule}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer"
+      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="light"
+              isIconOnly
+              as={Link}
+              href="/dashboard/courses"
+              className="text-[#717680]"
             >
-              <Plus className="w-[18px] h-[18px]" />
-              Thêm Chương Mới
-            </button>
-          </div>
-
-          {/* Tree Content */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {/* Root Course Node */}
-            <div className="group flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border border-transparent">
-              <FolderOpen className="text-primary w-5 h-5 fill-current" />
-              <span className="font-bold text-sm truncate flex-1 text-text-main dark:text-white">
-                {course.title}
-              </span>
-            </div>
-
-            {modules.map((module) => (
-              <div key={module.id} className="pl-3 relative">
-                {/* Module Item */}
-                <div
-                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer mb-1 relative z-10 ${
-                    module.expanded
-                      ? "bg-primary/5 border border-primary/20 text-primary"
-                      : "hover:bg-gray-50 dark:hover:bg-gray-800 text-text-muted dark:text-gray-400 border border-transparent"
-                  }`}
-                >
-                  <ChevronRight
-                    className={`w-[18px] h-[18px] transform transition-transform ${
-                      module.expanded ? "rotate-90" : ""
-                    }`}
-                    onClick={() => toggleModule(module.id)}
-                  />
-                  <LayoutGrid className="w-5 h-5" />
-                  <span className="font-medium text-sm truncate flex-1">
-                    {module.title}
-                  </span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditModule(module);
-                      }}
-                      className="p-1 hover:bg-primary/10 rounded cursor-pointer"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteModule(module.id);
-                      }}
-                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded text-red-500 cursor-pointer"
-                    >
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Children of Module */}
-                {module.expanded && (
-                  <div className="pl-6 space-y-1 mt-1">
-                    {module.sections.map((section) => (
-                      <div key={section.id} className="relative">
-                        <div className="group flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
-                          <ChevronRight
-                            className={`w-[18px] h-[18px] transform transition-transform ${
-                              section.expanded ? "rotate-90" : ""
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSection(module.id, section.id);
-                            }}
-                          />
-                          <FileText className="text-text-muted dark:text-gray-500 w-[18px] h-[18px]" />
-                          <span className="text-sm truncate flex-1 text-text-main dark:text-gray-300">
-                            {section.title}
-                          </span>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditSection(section, module.id);
-                              }}
-                              className="p-1 hover:bg-primary/10 rounded cursor-pointer"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSection(section.id);
-                              }}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded text-red-500 cursor-pointer"
-                            >
-                              <Trash className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* KPs under Section */}
-                        {section.expanded && (
-                          <div className="pl-6 space-y-1 mt-1 border-l border-gray-100 dark:border-gray-800 ml-2">
-                            {section.knowledgePoints.map((kp) => (
-                              <div
-                                key={kp.id}
-                                onClick={() => handleKpClick(kp.id)}
-                                className={`group flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer ml-1 ${
-                                  selectedKp?.id === kp.id
-                                    ? "bg-primary/10 border border-primary/30"
-                                    : ""
-                                }`}
-                              >
-                                {kp.completed ? (
-                                  <CheckCircle className="text-green-500 w-4 h-4" />
-                                ) : (
-                                  <Circle className="text-gray-300 dark:text-gray-600 w-4 h-4" />
-                                )}
-                                <span className="text-xs text-text-muted dark:text-gray-400 truncate">
-                                  {kp.title}
-                                </span>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 ml-auto">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditKp(kp.id, section.id);
-                                    }}
-                                    className="p-1 hover:bg-primary/10 rounded text-gray-400 hover:text-primary cursor-pointer"
-                                  >
-                                    <Edit className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteKp(kp.id);
-                                    }}
-                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded text-gray-400 hover:text-red-500 cursor-pointer"
-                                  >
-                                    <Trash className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCreateKp(section.id);
-                              }}
-                              className="w-full flex items-center gap-1 p-1.5 text-xs text-primary hover:bg-primary/5 rounded transition-colors ml-1 cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" />
-                              Thêm điểm kiến thức
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => handleCreateSection(module.id)}
-                      className="w-full flex items-center gap-2 p-2 text-sm text-primary hover:bg-primary/5 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Thêm Bài học
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-background-soft dark:bg-[#0d121b] p-6 lg:p-10 scroll-smooth">
-          <div className=" mx-auto space-y-6">
-            {/* Page Heading & Actions */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-primary uppercase tracking-wide">
-                    Khoá học
-                  </span>
-                  <span
-                    className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border ${
-                      course.active
-                        ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30"
-                        : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 border-gray-100 dark:border-gray-900/30"
-                    }`}
-                  >
-                    <Globe className="w-[14px] h-[14px]" />
-                    {course.active ? "Đã xuất bản" : "Bản nháp"}
-                  </span>
-                </div>
-                <h1 className="text-3xl font-bold text-text-main dark:text-white tracking-tight">
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
                   {course.title}
                 </h1>
-                <p className="text-text-muted dark:text-gray-400 mt-1 max-w-2xl">
-                  {course.description}
-                </p>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    course.active
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
+                  }`}
+                >
+                  <Globe className="w-3 h-3" />
+                  {course.active ? "Đã xuất bản" : "Bản nháp"}
+                </span>
               </div>
+              <p className="text-[#717680] dark:text-gray-400 text-sm mt-1">
+                {course.subject} • Khối {course.gradeLevel}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="bordered"
+              className="border-[#d5d7da]"
+              startContent={<Eye className="w-4 h-4" />}
+              as={Link}
+              href={`/dashboard/courses/${courseId}`}
+            >
+              Xem trước
+            </Button>
+            <Button
+              className="bg-primary text-white"
+              startContent={<Save className="w-4 h-4" />}
+            >
+              Lưu thay đổi
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            title="Chương"
+            value={modules.length.toString()}
+            icon={<Layers className="w-5 h-5 text-blue-600" />}
+            color="bg-blue-50 dark:bg-blue-900/20"
+          />
+          <StatCard
+            title="Bài học"
+            value={totalSections.toString()}
+            icon={<BookOpen className="w-5 h-5 text-purple-600" />}
+            color="bg-purple-50 dark:bg-purple-900/20"
+          />
+          <StatCard
+            title="Điểm kiến thức"
+            value={totalKps.toString()}
+            icon={<Award className="w-5 h-5 text-green-600" />}
+            color="bg-green-50 dark:bg-green-900/20"
+          />
+          <StatCard
+            title="Thời gian ước tính"
+            value={`${totalKps * 15} phút`}
+            icon={<Clock className="w-5 h-5 text-orange-600" />}
+            color="bg-orange-50 dark:bg-orange-900/20"
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex h-[calc(100vh-400px)] min-h-[500px] bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden">
+          {/* Sidebar Tree Navigator */}
+          <aside className="w-[320px] flex-none bg-[#f9fafb] dark:bg-[#1e2532] border-r border-[#e9eaeb] dark:border-gray-800 flex flex-col">
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800 bg-white dark:bg-[#1a202c]">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-[#181d27] dark:text-white">
+                  Cấu trúc khóa học
+                </h3>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onClick={() => setModules(modules.map((m) => ({ ...m, expanded: true })))}
+                >
+                  <ChevronsUpDown className="w-4 h-4" />
+                </Button>
+              </div>
+              <Button
+                onClick={handleCreateModule}
+                className="w-full bg-primary text-white"
+                startContent={<Plus className="w-4 h-4" />}
+                size="sm"
+              >
+                Thêm Chương
+              </Button>
             </div>
 
-            {/* Tabs */}
-            <div className="border-b border-card-border dark:border-gray-700">
-              <nav aria-label="Tabs" className="flex gap-8">
-                <button
-                  onClick={() => setActiveTab("structure")}
-                  className={`py-3 px-1 text-sm font-bold flex items-center gap-2 border-b-[3px] transition-colors cursor-pointer ${
-                    activeTab === "structure"
-                      ? "border-primary text-text-main dark:text-white"
-                      : "border-transparent text-text-muted hover:text-text-main dark:hover:text-gray-300"
-                  }`}
-                >
-                  <List className="w-5 h-5" /> Cấu trúc nội dung
-                </button>
-                <button
-                  onClick={() => setActiveTab("analytics")}
-                  className={`py-3 px-1 text-sm font-medium flex items-center gap-2 border-b-[3px] transition-colors cursor-pointer ${
-                    activeTab === "analytics"
-                      ? "border-primary text-text-main dark:text-white"
-                      : "border-transparent text-text-muted hover:text-text-main dark:hover:text-gray-300"
-                  }`}
-                >
-                  <BarChart className="w-5 h-5" /> Phân tích
-                </button>
-              </nav>
-            </div>
+            {/* Tree Content */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {/* Root Course Node */}
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                <FolderOpen className="text-primary w-5 h-5" />
+                <span className="font-bold text-sm text-[#181d27] dark:text-white truncate">
+                  {course.title}
+                </span>
+              </div>
 
-            {/* Content based on active tab */}
-            {activeTab === "structure" && !selectedKp && (
-              <div className="space-y-6">
-                {modules.map((module) => (
+              {modules.map((module) => (
+                <div key={module.id} className="pl-3 relative">
+                  {/* Module Item */}
                   <div
-                    key={module.id}
-                    className="bg-white dark:bg-[#1a202c] rounded-xl border border-card-border dark:border-gray-800 overflow-hidden"
+                    className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer mb-1 ${
+                      module.expanded
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-white dark:hover:bg-gray-800 text-[#535862] dark:text-gray-400"
+                    }`}
                   >
-                    <div className="p-5 border-b border-card-border dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
-                      <div>
-                        <h3 className="text-base font-bold text-text-main dark:text-white">
-                          {module.title}
-                        </h3>
-                        {module.description && (
-                          <p className="text-sm text-text-muted dark:text-gray-400 mt-1">
-                            {module.description}
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-xs font-medium text-text-muted dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                        {module.sections.length} Bài học
-                      </span>
+                    <ChevronRight
+                      className={`w-4 h-4 transform transition-transform ${
+                        module.expanded ? "rotate-90" : ""
+                      }`}
+                      onClick={() => toggleModule(module.id)}
+                    />
+                    <LayoutGrid className="w-4 h-4" />
+                    <span className="font-medium text-sm truncate flex-1">{module.title}</span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditModule(module);
+                        }}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteModule(module.id);
+                        }}
+                        className="text-red-500"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
+                  </div>
 
-                    <div className="divide-y divide-card-border dark:divide-gray-800">
+                  {/* Children of Module */}
+                  {module.expanded && (
+                    <div className="pl-6 space-y-1 mt-1">
                       {module.sections.map((section) => (
-                        <div
-                          key={section.id}
-                          className="group p-5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="mt-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500">
-                              <GripVertical className="w-5 h-5" />
+                        <div key={section.id}>
+                          <div className="group flex items-center gap-2 p-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 cursor-pointer">
+                            <ChevronRight
+                              className={`w-4 h-4 transform transition-transform ${
+                                section.expanded ? "rotate-90" : ""
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSection(module.id, section.id);
+                              }}
+                            />
+                            <FileText className="w-4 h-4 text-[#717680]" />
+                            <span className="text-sm truncate flex-1 text-[#535862] dark:text-gray-300">
+                              {section.title}
+                            </span>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditSection(section, module.id);
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSection(section.id);
+                                }}
+                                className="text-red-500"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="text-lg font-semibold text-text-main dark:text-white">
-                                  {section.title}
-                                </h4>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                  <button
-                                    onClick={() =>
-                                      handleEditSection(section, module.id)
-                                    }
-                                    className="p-2 text-gray-400 hover:text-primary hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg"
-                                  >
-                                    <Edit className="w-5 h-5" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteSection(section.id)
-                                    }
-                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg"
-                                  >
-                                    <Trash className="w-5 h-5" />
-                                  </button>
-                                </div>
-                              </div>
+                          </div>
 
-                              {/* Knowledge Points */}
-                              <div className="flex flex-wrap gap-2 items-center">
-                                <span className="text-xs font-bold text-gray-400 uppercase mr-1">
-                                  Điểm kiến thức:
-                                </span>
-                                {section.knowledgePoints.map((kp) => (
-                                  <span
-                                    key={kp.id}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-100 dark:border-blue-900/30"
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                          {/* KPs under Section */}
+                          {section.expanded && (
+                            <div className="pl-6 space-y-1 mt-1 border-l border-[#e9eaeb] dark:border-gray-700 ml-2">
+                              {section.knowledgePoints.map((kp) => (
+                                <div
+                                  key={kp.id}
+                                  onClick={() => handleKpClick(kp.id)}
+                                  className={`group flex items-center gap-2 p-1.5 rounded cursor-pointer ${
+                                    selectedKp?.id === kp.id
+                                      ? "bg-primary/10 border border-primary/30"
+                                      : "hover:bg-white dark:hover:bg-gray-800"
+                                  }`}
+                                >
+                                  {kp.completed ? (
+                                    <CheckCircle className="text-green-500 w-4 h-4" />
+                                  ) : (
+                                    <Circle className="text-gray-300 w-4 h-4" />
+                                  )}
+                                  <span className="text-xs text-[#717680] dark:text-gray-400 truncate">
                                     {kp.title}
                                   </span>
-                                ))}
-                                <button
-                                  onClick={() => handleCreateKp(section.id)}
-                                  className="text-xs text-text-muted hover:text-primary font-medium flex items-center gap-0.5 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                  <Plus className="w-[14px] h-[14px]" /> Thêm
-                                </button>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 ml-auto">
+                                    <Button
+                                      isIconOnly
+                                      size="sm"
+                                      variant="light"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditKp(kp.id, section.id);
+                                      }}
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      isIconOnly
+                                      size="sm"
+                                      variant="light"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteKp(kp.id);
+                                      }}
+                                      className="text-red-500"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCreateKp(section.id);
+                                }}
+                                className="w-full flex items-center gap-1 p-1.5 text-xs text-primary hover:bg-primary/5 rounded transition-colors"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Thêm điểm kiến thức
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => handleCreateSection(module.id)}
+                        className="w-full flex items-center gap-2 p-2 text-sm text-primary hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Thêm Bài học
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto bg-white dark:bg-[#0d121b] p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* Tabs */}
+              <div className="border-b border-[#e9eaeb] dark:border-gray-800">
+                <nav className="flex gap-6">
+                  <button
+                    onClick={() => setActiveTab("structure")}
+                    className={`py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
+                      activeTab === "structure"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-[#717680] hover:text-[#181d27]"
+                    }`}
+                  >
+                    <List className="w-4 h-4" /> Cấu trúc
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("analytics")}
+                    className={`py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
+                      activeTab === "analytics"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-[#717680] hover:text-[#181d27]"
+                    }`}
+                  >
+                    <BarChart className="w-4 h-4" /> Phân tích
+                  </button>
+                </nav>
+              </div>
+
+              {/* Content based on active tab */}
+              {activeTab === "structure" && !selectedKp && (
+                <div className="space-y-6">
+                  {modules.map((module) => (
+                    <div
+                      key={module.id}
+                      className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden"
+                    >
+                      <div className="p-5 border-b border-[#e9eaeb] dark:border-gray-800 flex justify-between items-center bg-[#f9fafb] dark:bg-gray-800/30">
+                        <div>
+                          <h3 className="text-base font-bold text-[#181d27] dark:text-white">
+                            {module.title}
+                          </h3>
+                          {module.description && (
+                            <p className="text-sm text-[#717680] dark:text-gray-400 mt-1">
+                              {module.description}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium text-[#717680] bg-white dark:bg-gray-700 px-2 py-1 rounded">
+                          {module.sections.length} Bài học
+                        </span>
+                      </div>
+
+                      <div className="divide-y divide-[#e9eaeb] dark:divide-gray-800">
+                        {module.sections.map((section) => (
+                          <div
+                            key={section.id}
+                            className="group p-5 hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="mt-1 text-[#717680]">
+                                <GripVertical className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="text-lg font-semibold text-[#181d27] dark:text-white">
+                                    {section.title}
+                                  </h4>
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                    <Button
+                                      isIconOnly
+                                      size="sm"
+                                      variant="light"
+                                      onClick={() => handleEditSection(section, module.id)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      isIconOnly
+                                      size="sm"
+                                      variant="light"
+                                      onClick={() => handleDeleteSection(section.id)}
+                                      className="text-red-500"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 items-center">
+                                  <span className="text-xs font-medium text-[#717680] uppercase">
+                                    Điểm kiến thức:
+                                  </span>
+                                  {section.knowledgePoints.map((kp) => (
+                                    <span
+                                      key={kp.id}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                      {kp.title}
+                                    </span>
+                                  ))}
+                                  <button
+                                    onClick={() => handleCreateKp(section.id)}
+                                    className="text-xs text-primary hover:bg-primary/10 px-2 py-1 rounded transition-colors"
+                                  >
+                                    + Thêm
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
 
-                    {/* Add New Section Trigger */}
-                    <div className="p-5">
-                      <button
-                        onClick={() => handleCreateSection(module.id)}
-                        className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-card-border dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-primary/50 group transition-all"
-                      >
-                        <div className="size-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                          <Plus className="text-gray-400 group-hover:text-primary w-6 h-6" />
-                        </div>
-                        <div className="text-center">
-                          <span className="block text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-primary">
+                      <div className="p-5">
+                        <button
+                          onClick={() => handleCreateSection(module.id)}
+                          className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#e9eaeb] dark:border-gray-700 rounded-xl hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 hover:border-primary/50 transition-all"
+                        >
+                          <div className="w-10 h-10 bg-[#f9fafb] dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <Plus className="text-[#717680] w-5 h-5" />
+                          </div>
+                          <span className="text-sm font-medium text-[#717680]">
                             Tạo Bài học Mới
                           </span>
-                        </div>
-                      </button>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* KP Detail View */}
-            {activeTab === "structure" && selectedKp && (
-              <div className="space-y-6 w-full">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <button
-                      onClick={() => setSelectedKp(null)}
-                      className="text-sm text-primary hover:underline mb-3 flex items-center gap-1"
-                    >
-                      <ChevronRight className="w-4 h-4 rotate-180" />
-                      Quay lại cấu trúc
-                    </button>
-                    <h2 className="text-2xl font-bold text-text-main dark:text-white">
-                      {selectedKp.title}
-                    </h2>
-                    {selectedKp.description && (
-                      <p className="text-text-muted dark:text-gray-400 mt-2">
-                        {selectedKp.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">
-                        Mức độ: {selectedKp.difficultyLevel}/5
-                      </span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+              )}
 
-                {/* Content Tabs */}
-                <div className="bg-white dark:bg-[#1a202c] rounded-xl w-full border border-card-border dark:border-gray-800 overflow-hidden">
-                  {/* Theory Section */}
-                  {selectedKp.content?.theory && (
-                    <div className="p-6 border-b border-card-border dark:border-gray-800">
-                      <h3 className="text-lg font-bold text-text-main dark:text-white mb-4 flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-primary" />
-                        Lý thuyết
-                      </h3>
-                      <div
-                        className="w-full p-0"
-                        dangerouslySetInnerHTML={{
-                          __html: selectedKp.content.theory,
-                        }}
-                      />
+              {/* KP Detail View */}
+              {activeTab === "structure" && selectedKp && (
+                <div className="space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <button
+                        onClick={() => setSelectedKp(null)}
+                        className="text-sm text-primary hover:underline mb-3 flex items-center gap-1"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Quay lại cấu trúc
+                      </button>
+                      <h2 className="text-2xl font-bold text-[#181d27] dark:text-white">
+                        {selectedKp.title}
+                      </h2>
+                      {selectedKp.description && (
+                        <p className="text-[#717680] dark:text-gray-400 mt-2">
+                          {selectedKp.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-3">
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                          Mức độ: {selectedKp.difficultyLevel}/5
+                        </span>
+                      </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Visualization Section */}
-                  {selectedKp.content?.visualization && (
-                    <div className="p-6 border-b border-card-border dark:border-gray-800">
-                      <h3 className="text-lg font-bold text-text-main dark:text-white mb-4 flex items-center gap-2">
-                        <LayoutGrid className="w-5 h-5 text-primary" />
-                        Trực quan hoá
-                      </h3>
-                      <div className="w-full relative">
+                  {/* Content Sections */}
+                  <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden">
+                    {selectedKp.content?.theory && (
+                      <div className="p-6 border-b border-[#e9eaeb] dark:border-gray-800">
+                        <h3 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
+                          <BookOpen className="w-5 h-5 text-primary" />
+                          Lý thuyết
+                        </h3>
                         <div
-                          className="w-full"
-                          dangerouslySetInnerHTML={{
-                            __html: selectedKp.content.visualization,
-                          }}
+                          className="prose dark:prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{ __html: selectedKp.content.theory }}
                         />
                       </div>
-                    </div>
-                  )}
-
-                  {/* Questions Section */}
-                  {selectedKp.content?.questions &&
-                    selectedKp.content.questions.length > 0 && (
-                      <div className="p-6 border-b border-card-border dark:border-gray-800">
-                        <h3 className="text-lg font-bold text-text-main dark:text-white mb-4 flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5 text-primary" />
-                          Câu hỏi luyện tập (
-                          {selectedKp.content.questions.length})
-                        </h3>
-                        <div className="space-y-4">
-                          {selectedKp.content.questions.map(
-                            (question: any, index: number) => (
-                              <div
-                                key={index}
-                                className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span className="flex-shrink-0 w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold">
-                                    {index + 1}
-                                  </span>
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
-                                        {question.type === "multiple_choice"
-                                          ? "Trắc nghiệm"
-                                          : question.type === "true_false"
-                                          ? "Đúng/Sai"
-                                          : question.type === "fill_blank"
-                                          ? "Điền vào chỗ trống"
-                                          : "Game"}
-                                      </span>
-                                      {question.type === "game" && (
-                                        <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded">
-                                          {question.gameType === "flashcard"
-                                            ? "Flashcard"
-                                            : question.gameType === "matching"
-                                            ? "Nối từ"
-                                            : "Sắp xếp"}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-text-main dark:text-white font-medium mb-3">
-                                      {question.questionText}
-                                    </p>
-                                    {question.type === "multiple_choice" &&
-                                      question.options && (
-                                        <div className="space-y-2">
-                                          {question.options
-                                            .filter(
-                                              (opt: string) => opt.trim() !== ""
-                                            )
-                                            .map(
-                                              (
-                                                option: string,
-                                                optIndex: number
-                                              ) => (
-                                                <div
-                                                  key={optIndex}
-                                                  className={`flex items-center gap-2 p-2 rounded ${
-                                                    option ===
-                                                    question.correctAnswer
-                                                      ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30"
-                                                      : "bg-gray-50 dark:bg-gray-800"
-                                                  }`}
-                                                >
-                                                  {option ===
-                                                    question.correctAnswer && (
-                                                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                                  )}
-                                                  <span
-                                                    className={`text-sm ${
-                                                      option ===
-                                                      question.correctAnswer
-                                                        ? "text-green-700 dark:text-green-300 font-medium"
-                                                        : "text-gray-600 dark:text-gray-400"
-                                                    }`}
-                                                  >
-                                                    {String.fromCharCode(
-                                                      65 + optIndex
-                                                    )}
-                                                    . {option}
-                                                  </span>
-                                                </div>
-                                              )
-                                            )}
-                                        </div>
-                                      )}
-                                    {question.explanation && (
-                                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                                          <span className="font-medium">
-                                            💡 Giải thích:
-                                          </span>{" "}
-                                          {question.explanation}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
                     )}
 
-                  {/* Resources Section */}
-                  {selectedKp.resources && selectedKp.resources.length > 0 && (
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold text-text-main dark:text-white mb-4 flex items-center gap-2">
-                        <Globe className="w-5 h-5 text-primary" />
-                        Tài liệu tham khảo ({selectedKp.resources.length})
-                      </h3>
-                      <div className="grid gap-3">
-                        {selectedKp.resources.map(
-                          (resource: any, index: number) => (
-                            <a
-                              key={index}
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary/50 hover:shadow-sm transition-all group"
-                            >
-                              <div className="flex-shrink-0 w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                {resource.resourceType === "video" && (
-                                  <span className="text-xl">🎥</span>
-                                )}
-                                {resource.resourceType === "article" && (
-                                  <span className="text-xl">📄</span>
-                                )}
-                                {resource.resourceType === "interactive" && (
-                                  <span className="text-xl">🎮</span>
-                                )}
-                                {resource.resourceType === "quiz" && (
-                                  <span className="text-xl">📝</span>
-                                )}
-                                {resource.resourceType === "other" && (
-                                  <span className="text-xl">📎</span>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-text-main dark:text-white group-hover:text-primary transition-colors">
-                                  {resource.title}
-                                </h4>
-                                <p className="text-xs text-text-muted dark:text-gray-500 truncate">
-                                  {resource.url}
-                                </p>
-                              </div>
-                              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
-                            </a>
-                          )
-                        )}
+                    {selectedKp.content?.visualization && (
+                      <div className="p-6 border-b border-[#e9eaeb] dark:border-gray-800">
+                        <h3 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
+                          <LayoutGrid className="w-5 h-5 text-primary" />
+                          Trực quan hoá
+                        </h3>
+                        <div
+                          dangerouslySetInnerHTML={{ __html: selectedKp.content.visualization }}
+                        />
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "analytics" && (
+                <div className="text-center py-12">
+                  <BarChart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-[#717680] dark:text-gray-400">Tính năng phân tích đang được phát triển</p>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+
+        {/* Module Modal */}
+        <Modal isOpen={showModuleModal} onOpenChange={setShowModuleModal} size="md">
+          <ModalContent>
+            <ModalHeader>
+              <h3 className="text-lg font-bold text-[#181d27] dark:text-white">
+                {editingModule ? "Chỉnh sửa Chương" : "Tạo Chương mới"}
+              </h3>
+            </ModalHeader>
+            <ModalBody>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                    Tên chương <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={moduleForm.title}
+                    onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
+                    placeholder="Nhập tên chương"
+                    className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                    Mô tả
+                  </label>
+                  <textarea
+                    value={moduleForm.description}
+                    onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
+                    placeholder="Mô tả ngắn về chương này"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        </main>
-      </div>
-
-      {/* Module Modal */}
-      {showModuleModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-text-main dark:text-white mb-4">
-              {editingModule ? "Chỉnh sửa Chương" : "Tạo Chương Mới"}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-text-main dark:text-gray-300 mb-2">
-                  Tiêu đề
-                </label>
-                <input
-                  type="text"
-                  value={moduleForm.title}
-                  onChange={(e) =>
-                    setModuleForm({ ...moduleForm, title: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-card-border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-text-main dark:text-white"
-                  placeholder="Tiêu đề chương"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-main dark:text-gray-300 mb-2">
-                  Mô tả
-                </label>
-                <textarea
-                  value={moduleForm.description}
-                  onChange={(e) =>
-                    setModuleForm({
-                      ...moduleForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-card-border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-text-main dark:text-white"
-                  placeholder="Mô tả chương"
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowModuleModal(false)}
-                className="flex-1 px-4 py-2 border border-card-border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="light" onPress={() => setShowModuleModal(false)}>
+                Hủy
+              </Button>
+              <Button
+                color="primary"
+                onPress={handleSaveModule}
+                isLoading={saving}
+                isDisabled={!moduleForm.title}
               >
-                Huỷ
-              </button>
-              <button
-                onClick={handleSaveModule}
-                disabled={!moduleForm.title || saving}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                {editingModule ? "Cập nhật" : "Tạo"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                {editingModule ? "Cập nhật" : "Tạo chương"}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
 
-      {/* Section Modal */}
-      {showSectionModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-text-main dark:text-white mb-4">
-              {editingSection ? "Chỉnh sửa Bài học" : "Tạo Bài học Mới"}
-            </h2>
-            <div className="space-y-4">
+        {/* Section Modal */}
+        <Modal isOpen={showSectionModal} onOpenChange={setShowSectionModal} size="md">
+          <ModalContent>
+            <ModalHeader>
+              <h3 className="text-lg font-bold text-[#181d27] dark:text-white">
+                {editingSection ? "Chỉnh sửa Bài học" : "Tạo Bài học mới"}
+              </h3>
+            </ModalHeader>
+            <ModalBody>
               <div>
-                <label className="block text-sm font-medium text-text-main dark:text-gray-300 mb-2">
-                  Tiêu đề
+                <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                  Tên bài học <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={sectionForm.title}
-                  onChange={(e) =>
-                    setSectionForm({ ...sectionForm, title: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-card-border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-text-main dark:text-white"
-                  placeholder="Tiêu đề bài học"
+                  onChange={(e) => setSectionForm({ title: e.target.value })}
+                  placeholder="Nhập tên bài học"
+                  className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
                 />
               </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowSectionModal(false)}
-                className="flex-1 px-4 py-2 border border-card-border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="light" onPress={() => setShowSectionModal(false)}>
+                Hủy
+              </Button>
+              <Button
+                color="primary"
+                onPress={handleSaveSection}
+                isLoading={saving}
+                isDisabled={!sectionForm.title}
               >
-                Huỷ
-              </button>
-              <button
-                onClick={handleSaveSection}
-                disabled={!sectionForm.title || saving}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                {editingSection ? "Cập nhật" : "Tạo"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <KnowledgePointModal
-        isOpen={showKpModal}
-        initialData={editingKp}
-        onClose={() => setShowKpModal(false)}
-        onSave={handleSaveKp}
-        sectionTitle={
-          modules
-            .flatMap((m) => m.sections)
-            .find((s) => s.id === selectedSectionId)?.title
-        }
-      />
+                {editingSection ? "Cập nhật" : "Tạo bài học"}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+
+        {/* Knowledge Point Modal */}
+        <KnowledgePointModal
+          isOpen={showKpModal}
+          onClose={() => {
+            setShowKpModal(false);
+            setEditingKp(null);
+          }}
+          onSave={handleSaveKp}
+          initialData={editingKp}
+        />
+      </div>
     </LayoutDashboard>
   );
 }

@@ -5,22 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Checkbox } from "@heroui/checkbox";
-import Image from "next/image";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { mutate } from "swr";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 
-// Image assets from Figma
-const imgScreenMockupReplaceFill = "/meta_bg.png";
-
 // Google icon SVG
 const GoogleIcon = () => (
   <svg
-    width="24"
-    height="24"
+    width="20"
+    height="20"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -64,30 +61,21 @@ function LoginForm() {
     try {
       const response = await api.auth.login(email, password);
 
-      // Fetch full user profile after login to get complete data
-      // This ensures we have all user information including info field
       try {
         const fullProfile = await api.auth.getProfile();
-        // Update SWR cache with the full profile data
         await mutate("/auth/me", fullProfile, { revalidate: false });
       } catch (profileError) {
-        // If getProfile fails, use the user data from login response
         if (response?.user) {
           await mutate("/auth/me", response.user, { revalidate: false });
         } else {
-          // Fallback: revalidate the cache
           await mutate("/auth/me", undefined, { revalidate: true });
         }
       }
 
-      // Wait a bit for cookie to be set by the backend
       await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Force a hard navigation to ensure cookies are recognized by middleware
       window.location.href = redirectTo;
     } catch (err: any) {
       console.error("Login error:", err);
-      console.error("Error response:", err.response);
       const errorMessage =
         err.response?.data?.message ||
         err.message ||
@@ -103,17 +91,12 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Sign in with Google popup
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-
-      // Get Firebase ID token
       const idToken = await user.getIdToken();
 
-      // Send token to backend
       await api.auth.loginWithGoogle(idToken);
 
-      // Fetch full user profile
       try {
         const fullProfile = await api.auth.getProfile();
         await mutate("/auth/me", fullProfile, { revalidate: false });
@@ -121,10 +104,7 @@ function LoginForm() {
         await mutate("/auth/me", undefined, { revalidate: true });
       }
 
-      // Wait a bit for cookie to be set by the backend
       await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Force a hard navigation to ensure cookies are recognized by middleware
       window.location.href = redirectTo;
     } catch (err: any) {
       console.error("Google login error:", err);
@@ -137,334 +117,314 @@ function LoginForm() {
   };
 
   return (
-    <div className="bg-white flex flex-col items-center relative min-h-screen w-full">
-      {/* Desktop Layout */}
-      <div className="hidden md:flex h-[960px] items-center relative w-full">
-        {/* Left Section - Form */}
-        <div className="flex flex-[1_0_0] flex-col h-full items-center justify-between min-h-px min-w-px relative">
-          {/* Header */}
-          <div className="flex p-4 items-start relative w-full">
-            <Link href={"/"} className="flex flex-row items-center gap-2">
-              <img
-                src="/logo-text.png"
-                alt="Adapt"
-                className="w-36 object-cover"
-              />
-            </Link>
-          </div>
-
-          {/* Form Content */}
-          <div className="flex flex-col items-center px-8 relative w-full">
-            <div className="flex flex-col gap-8 items-center relative w-[360px]">
-              {/* Heading */}
-              <div className="flex flex-col gap-3 items-start relative w-full">
-                <h1 className="font-semibold leading-[44px] text-[#181d27] text-[36px] tracking-[-0.72px] w-full">
-                  Đăng nhập
-                </h1>
-                <p className="font-normal leading-6 text-[#535862] text-base w-full">
-                  Chào mừng trở lại! Vui lòng nhập thông tin của bạn.
-                </p>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="w-full p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-
-              {/* Form */}
-              <form
-                onSubmit={handleLogin}
-                className="flex flex-col gap-6 items-center relative rounded-[12px] w-full"
+    <div className="min-h-screen flex items-center justify-center overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full overflow-hidden flex flex-col lg:flex-row min-h-[700px]"
+      >
+        {/* Left Side - Gradient Background with Quote */}
+        <div className="lg:w-1/2 relative overflow-hidden">
+          {/* Animated Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-800 to-slate-900">
+            {/* Animated waves */}
+            <div className="absolute inset-0 opacity-60">
+              <svg
+                className="absolute w-full h-full"
+                viewBox="0 0 800 800"
+                preserveAspectRatio="none"
               >
-                <div className="flex flex-col gap-5 items-start relative w-full">
-                  {/* Email Input */}
-                  <div className="flex flex-col items-start relative w-full">
-                    <div className="flex flex-col gap-1.5 items-start relative w-full">
-                      <label className="font-medium leading-5 text-[#414651] text-sm">
-                        Email
-                      </label>
-                      <Input
-                        type="email"
-                        placeholder="Nhập email của bạn"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full"
-                        classNames={{
-                          input: "text-base text-[#717680]",
-                          inputWrapper:
-                            "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password Input */}
-                  <div className="flex flex-col items-start relative w-full">
-                    <div className="flex flex-col gap-1.5 items-start relative w-full">
-                      <label className="font-medium leading-5 text-[#414651] text-sm">
-                        Mật khẩu
-                      </label>
-                      <Input
-                        type={isPasswordVisible ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full"
-                        endContent={
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setIsPasswordVisible(!isPasswordVisible)
-                            }
-                            className="focus:outline-none cursor-pointer"
-                            aria-label={
-                              isPasswordVisible
-                                ? "Ẩn mật khẩu"
-                                : "Hiện mật khẩu"
-                            }
-                          >
-                            {isPasswordVisible ? (
-                              <EyeOff className="size-5 text-[#717680]" />
-                            ) : (
-                              <Eye className="size-5 text-[#717680]" />
-                            )}
-                          </button>
-                        }
-                        classNames={{
-                          input: "text-base text-[#717680]",
-                          inputWrapper:
-                            "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Remember & Forgot */}
-                <div className="flex items-center justify-between relative w-full">
-                  <Checkbox
-                    isSelected={rememberMe}
-                    onValueChange={setRememberMe}
-                    classNames={{
-                      label: "font-medium leading-5 text-[#414651] text-sm",
-                    }}
+                <defs>
+                  <linearGradient
+                    id="wave1"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
                   >
-                    Ghi nhớ đăng nhập 30 ngày
-                  </Checkbox>
-                  <Button
-                    variant="light"
-                    className="text-[#6941c6] font-semibold text-sm p-0 min-w-0 h-auto"
-                  >
-                    Quên mật khẩu
-                  </Button>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-4 items-start relative w-full">
-                  <Button
-                    type="submit"
-                    className="bg-[#7f56d9] border border-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
-                    size="md"
-                    isLoading={loading}
-                    disabled={loading}
-                  >
-                    {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-                  </Button>
-                  <div className="flex flex-col gap-3 items-center justify-center relative w-full">
-                    <Button
-                      variant="bordered"
-                      className="bg-white border border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
-                      startContent={<GoogleIcon />}
-                      size="md"
-                      onClick={handleGoogleLogin}
-                      isDisabled={loading}
-                    >
-                      Đăng nhập bằng Google
-                    </Button>
-                  </div>
-                </div>
-              </form>
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+                    <stop offset="50%" stopColor="#1d4ed8" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.3" />
+                  </linearGradient>
+                </defs>
+                <motion.path
+                  d="M0,400 Q200,200 400,400 T800,400 L800,800 L0,800 Z"
+                  fill="url(#wave1)"
+                  animate={{
+                    d: [
+                      "M0,400 Q200,200 400,400 T800,400 L800,800 L0,800 Z",
+                      "M0,300 Q200,500 400,300 T800,300 L800,800 L0,800 Z",
+                      "M0,400 Q200,200 400,400 T800,400 L800,800 L0,800 Z",
+                    ],
+                  }}
+                  transition={{
+                    duration: 10,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              </svg>
             </div>
+            {/* Second wave layer */}
+            <div className="absolute inset-0 opacity-40">
+              <svg
+                className="absolute w-full h-full"
+                viewBox="0 0 800 800"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient
+                    id="wave2"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#1e40af" stopOpacity="0.2" />
+                  </linearGradient>
+                </defs>
+                <motion.path
+                  d="M0,500 Q300,300 600,500 T800,500 L800,800 L0,800 Z"
+                  fill="url(#wave2)"
+                  animate={{
+                    d: [
+                      "M0,500 Q300,300 600,500 T800,500 L800,800 L0,800 Z",
+                      "M0,400 Q300,600 600,400 T800,400 L800,800 L0,800 Z",
+                      "M0,500 Q300,300 600,500 T800,500 L800,800 L0,800 Z",
+                    ],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1,
+                  }}
+                />
+              </svg>
+            </div>
+            {/* Accent glow */}
+            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400/30 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-cyan-400/20 rounded-full blur-3xl" />
           </div>
 
-          {/* Footer */}
-          <div className="flex h-24 items-end p-8 relative w-full">
-            <p className="font-normal leading-5 text-[#535862] text-sm">
-              © Adaptive Learning 2025
-            </p>
+          {/* Content */}
+          <div className="relative z-10 h-full flex flex-col justify-between p-10 md:p-14">
+            {/* Top Label */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <span className="text-white/60 text-xs tracking-[0.3em] uppercase font-medium">
+                Câu nói truyền cảm hứng
+              </span>
+              <div className="w-16 h-px bg-white/30 mt-3" />
+            </motion.div>
+
+            {/* Main Quote */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="flex-1 flex flex-col justify-center"
+            >
+              <h2 className="text-5xl md:text-6xl lg:text-7xl font-serif text-white leading-[1.1] mb-6">
+                Học Mỗi Ngày
+                <br />
+                <span className="text-blue-200">Thành Công</span>
+                <br />
+                Mỗi Ngày
+              </h2>
+              <p className="text-white/70 text-base md:text-lg max-w-sm leading-relaxed">
+                Bạn có thể đạt được mọi thứ nếu kiên trì học tập, tin tưởng vào
+                quá trình và tuân thủ kế hoạch.
+              </p>
+            </motion.div>
+
+            {/* Bottom decorative element */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="flex items-center gap-3"
+            >
+              <div className="flex -space-x-2">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded-full border-2 border-white/20 bg-white/10"
+                  />
+                ))}
+              </div>
+              <span className="text-white/60 text-sm">
+                10,000+ học sinh đang học
+              </span>
+            </motion.div>
           </div>
         </div>
 
-        {/* Right Section - Decorative Pattern & Mockup */}
-        <div className="bg-neutral-50 flex-[1_0_0] h-full min-h-px min-w-px overflow-clip relative">
-          {/* Decorative pattern background - simplified version */}
-          <div className="absolute inset-0 opacity-30">
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                backgroundSize: "20px 20px",
-              }}
-            />
-          </div>
-
-          {/* Screen Mockup */}
-          <div className="absolute border-6 border-[#181d27] border-solid h-[682px] left-20 rounded-xl top-1/2 -translate-y-1/2 w-[1024px]">
-            <div className="absolute bg-[#181d27] bottom-0 left-2 right-2 rounded-xl shadow-[0px_32px_64px_-12px_rgba(10,13,18,0.14)] top-0" />
-            <div className="absolute border border-neutral-100 border-solid inset-0 rounded-xl">
-              <Image
-                src={imgScreenMockupReplaceFill}
-                alt="Screen mockup"
-                fill
-                className="object-cover rounded-xl"
-              />
+        {/* Right Side - Login Form */}
+        <div className="lg:w-1/2 bg-white flex flex-col justify-center px-8 md:px-16 lg:px-20 py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="w-full max-w-md mx-auto"
+          >
+            {/* Logo */}
+            <div className="flex justify-center mb-10">
+              <Link href="/" className="flex items-center">
+                <img
+                  src="/logo-text.png"
+                  alt="Adapt"
+                  className="h-8 object-contain"
+                />
+              </Link>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Mobile Layout */}
-      <div className="flex md:hidden flex-col h-[812px] items-center px-4 py-12 relative w-full">
-        <div className="flex flex-col gap-8 items-start relative w-full">
-          {/* Header */}
-          <div className="flex flex-col gap-6 items-start relative w-full">
-            <Link href={"/"} className="flex flex-row items-center gap-2">
-              <img
-                src="/logo-text.png"
-                alt="Adapt"
-                className="w-36 object-cover"
-              />
-            </Link>
-            <div className="flex flex-col gap-2 items-start relative w-full">
-              <h1 className="font-semibold leading-8 text-[#181d27] text-2xl w-full">
-                Đăng nhập
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl md:text-5xl font-serif text-black mb-3">
+                Chào mừng trở lại
               </h1>
-              <p className="font-normal leading-6 text-[#535862] text-base w-full">
-                Chào mừng trở lại! Vui lòng nhập thông tin của bạn.
+              <p className="text-gray-500 text-sm">
+                Nhập email và mật khẩu để truy cập tài khoản của bạn
               </p>
             </div>
-          </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="w-full p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
+            {/* Error Message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-600">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Form */}
-          <form
-            onSubmit={handleLogin}
-            className="flex flex-col gap-6 items-center relative rounded-[12px] w-full"
-          >
-            <div className="flex flex-col gap-5 items-start relative w-full">
-              {/* Email Input */}
-              <div className="flex flex-col items-start relative w-full">
-                <div className="flex flex-col gap-1.5 items-start relative w-full">
-                  <label className="font-medium leading-5 text-[#414651] text-sm">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="Nhập email của bạn"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full"
-                    classNames={{
-                      input: "text-base text-[#717680]",
-                      inputWrapper:
-                        "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
-                    }}
-                  />
-                </div>
+            {/* Form */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-black mb-2">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  placeholder="Nhập email của bạn"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full"
+                  classNames={{
+                    input: "text-base text-black placeholder:text-gray-400",
+                    inputWrapper:
+                      "bg-gray-50 border-0 rounded-xl h-12 hover:bg-gray-100 focus-within:bg-gray-100",
+                  }}
+                  required
+                />
               </div>
 
-              {/* Password Input */}
-              <div className="flex flex-col items-start relative w-full">
-                <div className="flex flex-col gap-1.5 items-start relative w-full">
-                  <label className="font-medium leading-5 text-[#414651] text-sm">
-                    Mật khẩu
-                  </label>
-                  <Input
-                    type={isPasswordVisible ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full"
-                    endContent={
-                      <button
-                        type="button"
-                        onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                        className="focus:outline-none"
-                        aria-label={
-                          isPasswordVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"
-                        }
-                      >
-                        {isPasswordVisible ? (
-                          <EyeOff className="size-5 text-[#717680]" />
-                        ) : (
-                          <Eye className="size-5 text-[#717680]" />
-                        )}
-                      </button>
-                    }
-                    classNames={{
-                      input: "text-base text-[#717680]",
-                      inputWrapper:
-                        "border border-[#d5d7da] rounded-[8px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] px-[14px] py-[10px]",
-                    }}
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-2">
+                  Mật khẩu
+                </label>
+                <Input
+                  type={isPasswordVisible ? "text" : "password"}
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full"
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                      className="focus:outline-none text-gray-400 hover:text-gray-600"
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  }
+                  classNames={{
+                    input: "text-base text-black placeholder:text-gray-400",
+                    inputWrapper:
+                      "bg-gray-50 border-0 rounded-xl h-12 hover:bg-gray-100 focus-within:bg-gray-100",
+                  }}
+                  required
+                />
               </div>
-            </div>
 
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between relative w-full">
-              <Checkbox
-                isSelected={rememberMe}
-                onValueChange={setRememberMe}
-                classNames={{
-                  label: "font-medium leading-5 text-[#414651] text-sm",
-                }}
-              >
-                Ghi nhớ đăng nhập 30 ngày
-              </Checkbox>
-              <Button
-                variant="light"
-                className="text-[#6941c6] font-semibold text-sm p-0 min-w-0 h-auto"
-              >
-                Quên mật khẩu
-              </Button>
-            </div>
+              <div className="flex items-center justify-between">
+                <Checkbox
+                  isSelected={rememberMe}
+                  onValueChange={setRememberMe}
+                  classNames={{
+                    label: "text-sm text-gray-600",
+                  }}
+                >
+                  Ghi nhớ đăng nhập
+                </Checkbox>
+                <Link
+                  href="#"
+                  className="text-sm font-medium text-black hover:text-blue-600 transition-colors"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-4 items-start relative w-full">
               <Button
                 type="submit"
-                className="bg-[#7f56d9] border border-[#7f56d9] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
-                size="md"
+                className="w-full bg-black text-white h-12 text-base font-medium rounded-xl hover:bg-gray-800"
                 isLoading={loading}
                 disabled={loading}
               >
                 {loading ? "Đang đăng nhập..." : "Đăng nhập"}
               </Button>
-              <div className="flex flex-col gap-3 items-center justify-center relative w-full">
-                <Button
-                  variant="bordered"
-                  className="bg-white border border-[#d5d7da] text-[#414651] font-semibold shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] w-full rounded-[8px]"
-                  startContent={<GoogleIcon />}
-                  size="md"
-                  onClick={handleGoogleLogin}
-                  isDisabled={loading}
-                >
-                  Đăng nhập bằng Google
-                </Button>
+
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-4 bg-white text-gray-400 text-sm">
+                    hoặc
+                  </span>
+                </div>
               </div>
-            </div>
-          </form>
+
+              <Button
+                type="button"
+                variant="bordered"
+                className="w-full h-12 text-base font-medium border-gray-200 rounded-xl hover:bg-gray-50"
+                startContent={<GoogleIcon />}
+                onClick={handleGoogleLogin}
+                isDisabled={loading}
+              >
+                Đăng nhập với Google
+              </Button>
+            </form>
+
+            {/* Sign up link */}
+            <p className="mt-8 text-center text-sm text-gray-500">
+              Chưa có tài khoản?{" "}
+              <Link
+                href="#"
+                className="font-semibold text-black hover:text-blue-600 transition-colors"
+              >
+                Đăng ký ngay
+              </Link>
+            </p>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -473,8 +433,12 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          Loading...
+        <div className="flex items-center justify-center min-h-screen bg-black">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-8 h-8 border-2 border-white border-t-transparent rounded-full"
+          />
         </div>
       }
     >

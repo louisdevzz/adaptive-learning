@@ -88,16 +88,18 @@ const KnowledgePointModal = ({
 
   useEffect(() => {
     if (initialData) {
+      // Load questions from content.questions (where they are stored)
+      const contentQuestions = initialData.content?.questions || [];
+      
       setFormData({
         title: initialData.title || "",
         description: initialData.description || "",
         difficultyLevel: initialData.difficultyLevel || 1,
-
-        content: initialData.content || {
-          theory: "",
-          visualization: "",
+        content: {
+          theory: initialData.content?.theory || "",
+          visualization: initialData.content?.visualization || "",
         },
-        questions: initialData.questions || [],
+        questions: contentQuestions,
         resources: initialData.resources || [],
       });
     } else {
@@ -106,7 +108,6 @@ const KnowledgePointModal = ({
         title: "",
         description: "",
         difficultyLevel: 1,
-
         content: {
           theory: "",
           visualization: "",

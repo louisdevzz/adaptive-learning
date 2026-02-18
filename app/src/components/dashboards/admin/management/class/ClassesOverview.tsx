@@ -68,7 +68,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
         } catch (error) {
           console.error(
             `Error fetching students for class ${classItem.id}:`,
-            error
+            error,
           );
           return { ...classItem, students: [] };
         }
@@ -103,7 +103,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
   const totalPages = Math.ceil(filteredClasses.length / itemsPerPage);
   const paginatedClasses = filteredClasses.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   return (
@@ -228,7 +228,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                             startContent={<TrendingUp className="size-4" />}
                             onPress={() =>
                               router.push(
-                                `/dashboard/classes/${classItem.id}?tab=progress`
+                                `/dashboard/students/${student.id}/progress`,
                               )
                             }
                           >
@@ -239,6 +239,9 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                             size="sm"
                             className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#4c669a] dark:text-gray-400"
                             startContent={<MessageSquare className="size-4" />}
+                            onPress={() =>
+                              router.push(`/dashboard/students/${student.id}`)
+                            }
                           >
                             Liên hệ
                           </Button>

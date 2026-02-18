@@ -5,6 +5,7 @@ export interface Student {
   email: string;
   fullName: string;
   avatarUrl?: string;
+  status?: boolean;
   studentInfo?: {
     studentCode: string;
     gradeLevel: number;

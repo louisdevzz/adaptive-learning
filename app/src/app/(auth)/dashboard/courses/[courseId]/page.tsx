@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { addToast } from "@heroui/react";
+import { toast } from "sonner";
 import { useUser } from "@/hooks/useUser";
 import {
   ChevronLeft,
@@ -24,8 +24,23 @@ import {
   XCircle,
   HelpCircle,
   Lock,
+  GraduationCap,
+  Clock,
+  Target,
+  MoreVertical,
+  Bookmark,
+  Share2,
 } from "lucide-react";
 import { Button } from "@heroui/button";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Avatar,
+  Progress,
+} from "@heroui/react";
+import Link from "next/link";
 
 interface KnowledgePoint {
   id: string;
@@ -77,6 +92,54 @@ interface Course {
   modules: Module[];
 }
 
+// Progress Ring Component
+function ProgressRing({
+  progress,
+  size = 40,
+  strokeWidth = 4,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          className="text-gray-200 dark:text-gray-700"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-primary transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-bold text-[#181d27] dark:text-white">
+          {progress}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function CoursePage() {
   const { courseId } = useParams();
   const router = useRouter();
@@ -84,38 +147,22 @@ export default function CoursePage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedKpId, setSelectedKpId] = useState<string | null>(null);
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set()
-  );
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [bookmarkedKps, setBookmarkedKps] = useState<Set<string>>(new Set());
   const [questions, setQuestions] = useState<any[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<string, string>
-  >({});
-  const [submittedQuestions, setSubmittedQuestions] = useState<Set<string>>(
-    new Set()
-  );
-  const [retryingQuestions, setRetryingQuestions] = useState<Set<string>>(
-    new Set()
-  ); // Questions being retried
-  const [questionAttempts, setQuestionAttempts] = useState<
-    Record<string, { isCorrect: boolean; selectedAnswer: string }>
-  >({});
-  const [kpProgress, setKpProgress] = useState<
-    Record<string, { masteryScore: number; confidence: number }>
-  >({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [submittedQuestions, setSubmittedQuestions] = useState<Set<string>>(new Set());
+  const [retryingQuestions, setRetryingQuestions] = useState<Set<string>>(new Set());
+  const [questionAttempts, setQuestionAttempts] = useState<Record<string, { isCorrect: boolean; selectedAnswer: string }>>({});
+  const [kpProgress, setKpProgress] = useState<Record<string, { masteryScore: number; confidence: number }>>({});
   const questionStartTimeRefs = useRef<Record<string, number>>({});
 
-  // Get all knowledge points in order
   const allKnowledgePoints = useMemo(() => {
     if (!course) return [];
-    const kps: { kp: KnowledgePoint; moduleId: string; sectionId: string }[] =
-      [];
+    const kps: { kp: KnowledgePoint; moduleId: string; sectionId: string }[] = [];
     course.modules.forEach((module) => {
       module.sections.forEach((section) => {
         section.knowledgePoints.forEach((kp) => {
@@ -126,20 +173,25 @@ export default function CoursePage() {
     return kps;
   }, [course]);
 
-  // Get current knowledge point
   const currentKp = useMemo(() => {
     if (!selectedKpId) return null;
-    const found = allKnowledgePoints.find(
-      (item) => item.kp.id === selectedKpId
-    );
+    const found = allKnowledgePoints.find((item) => item.kp.id === selectedKpId);
     return found?.kp || null;
   }, [selectedKpId, allKnowledgePoints]);
 
-  // Get current index
   const currentIndex = useMemo(() => {
     if (!selectedKpId) return -1;
     return allKnowledgePoints.findIndex((item) => item.kp.id === selectedKpId);
   }, [selectedKpId, allKnowledgePoints]);
+
+  // Calculate overall progress
+  const overallProgress = useMemo(() => {
+    if (allKnowledgePoints.length === 0) return 0;
+    const completedCount = Object.values(kpProgress).filter(
+      (p) => p.masteryScore >= 80
+    ).length;
+    return Math.round((completedCount / allKnowledgePoints.length) * 100);
+  }, [kpProgress, allKnowledgePoints.length]);
 
   useEffect(() => {
     if (courseId) {
@@ -147,7 +199,6 @@ export default function CoursePage() {
     }
   }, [courseId]);
 
-  // Load progress for all KPs when course is loaded
   useEffect(() => {
     const loadAllKpProgress = async () => {
       if (course && user?.id && allKnowledgePoints.length > 0) {
@@ -158,7 +209,6 @@ export default function CoursePage() {
                 user.id,
                 item.kp.id
               );
-              // If progress is null, student hasn't started this KP yet
               if (progress) {
                 return {
                   kpId: item.kp.id,
@@ -170,50 +220,33 @@ export default function CoursePage() {
               }
               return null;
             } catch (error: any) {
-              // Handle 404 or other errors gracefully
-              if (error.response?.status === 404) {
-                return null; // KP not started yet
-              }
-              console.error(
-                `Failed to load progress for KP ${item.kp.id}:`,
-                error
-              );
+              if (error.response?.status === 404) return null;
+              console.error(`Failed to load progress for KP ${item.kp.id}:`, error);
               return null;
             }
           });
 
           const results = await Promise.all(progressPromises);
-          const progressMap: Record<
-            string,
-            { masteryScore: number; confidence: number }
-          > = {};
-
+          const progressMap: Record<string, { masteryScore: number; confidence: number }> = {};
           results.forEach((result) => {
-            if (result) {
-              progressMap[result.kpId] = result.progress;
-            }
+            if (result) progressMap[result.kpId] = result.progress;
           });
-
           setKpProgress(progressMap);
         } catch (error) {
           console.error("Failed to load KP progress:", error);
         }
       }
     };
-
     loadAllKpProgress();
   }, [course, user?.id, allKnowledgePoints.length]);
 
   useEffect(() => {
-    // Auto-expand first module and section, select first KP
     if (course && course.modules.length > 0 && !selectedKpId) {
       const firstModule = course.modules[0];
       setExpandedModules(new Set([firstModule.id]));
-
       if (firstModule.sections.length > 0) {
         const firstSection = firstModule.sections[0];
         setExpandedSections(new Set([firstSection.id]));
-
         if (firstSection.knowledgePoints.length > 0) {
           setSelectedKpId(firstSection.knowledgePoints[0].id);
         }
@@ -228,10 +261,7 @@ export default function CoursePage() {
       setCourse(data);
     } catch (error: any) {
       console.error("Failed to fetch course:", error);
-      addToast({
-        description: "Không thể tải thông tin khóa học",
-        color: "danger",
-      });
+      toast.error("Không thể tải thông tin khóa học");
     } finally {
       setLoading(false);
     }
@@ -239,59 +269,42 @@ export default function CoursePage() {
 
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
-    if (newExpanded.has(moduleId)) {
-      newExpanded.delete(moduleId);
-    } else {
-      newExpanded.add(moduleId);
-    }
+    if (newExpanded.has(moduleId)) newExpanded.delete(moduleId);
+    else newExpanded.add(moduleId);
     setExpandedModules(newExpanded);
   };
 
   const toggleSection = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
-    }
+    if (newExpanded.has(sectionId)) newExpanded.delete(sectionId);
+    else newExpanded.add(sectionId);
     setExpandedSections(newExpanded);
   };
 
   const handleSelectKp = async (kpId: string) => {
-    // Check if KP is locked
     const kpIndex = allKnowledgePoints.findIndex((item) => item.kp.id === kpId);
     if (kpIndex === -1) return;
-
     if (isKpLocked(kpIndex)) {
       const previousKp = allKnowledgePoints[kpIndex - 1];
-      addToast({
-        description: `Vui lòng hoàn thành "${previousKp.kp.title}" trước khi học bài này`,
-        color: "warning",
-      });
+      toast.warning(`Vui lòng hoàn thành "${previousKp.kp.title}" trước khi học bài này`);
       return;
     }
-
     setSelectedKpId(kpId);
-    // Auto-expand parent module and section
     const found = allKnowledgePoints.find((item) => item.kp.id === kpId);
     if (found) {
       setExpandedModules((prev) => new Set(prev).add(found.moduleId));
       setExpandedSections((prev) => new Set(prev).add(found.sectionId));
     }
-    // fetchQuestions will be called automatically by useEffect when selectedKpId changes
   };
 
   const fetchQuestions = useCallback(
     async (kpId: string) => {
       try {
         setLoadingQuestions(true);
-
-        // Get questions from KP content first
         const kp = allKnowledgePoints.find((item) => item.kp.id === kpId);
         let questionsData: any[] = [];
 
         if (kp?.kp.content?.questions && kp.kp.content.questions.length > 0) {
-          // Use questions from content, add IDs if needed
           questionsData = kp.kp.content.questions.map((q, index) => ({
             ...q,
             id: q.id || `content-q-${index}`,
@@ -301,7 +314,6 @@ export default function CoursePage() {
             options: q.options || [],
           }));
         } else {
-          // Fallback to question bank if no content questions
           try {
             const data = await api.questionBank.getQuestionsByKp(kpId);
             questionsData = Array.isArray(data) ? data : [];
@@ -311,14 +323,10 @@ export default function CoursePage() {
         }
 
         setQuestions(questionsData);
-
-        // Reset answers for new KP
         setSelectedAnswers({});
         setSubmittedQuestions(new Set());
         setRetryingQuestions(new Set());
         setQuestionAttempts({});
-
-        // Reset question start times
         questionStartTimeRefs.current = {};
       } catch (error: any) {
         console.error("Failed to fetch questions:", error);
@@ -330,11 +338,8 @@ export default function CoursePage() {
     [allKnowledgePoints]
   );
 
-  // Fetch questions when selectedKpId changes
   useEffect(() => {
-    if (selectedKpId && course) {
-      fetchQuestions(selectedKpId);
-    }
+    if (selectedKpId && course) fetchQuestions(selectedKpId);
   }, [selectedKpId, course, fetchQuestions]);
 
   const handlePrevious = () => {
@@ -348,17 +353,11 @@ export default function CoursePage() {
     if (currentIndex < allKnowledgePoints.length - 1) {
       const nextIndex = currentIndex + 1;
       const nextKp = allKnowledgePoints[nextIndex];
-
-      // Check if next KP is locked
       if (isKpLocked(nextIndex)) {
         const currentKp = allKnowledgePoints[currentIndex];
-        addToast({
-          description: `Vui lòng hoàn thành "${currentKp.kp.title}" (đạt 80% điểm nắm vững) để tiếp tục`,
-          color: "warning",
-        });
+        toast.warning(`Vui lòng hoàn thành "${currentKp.kp.title}" (đạt 80% điểm nắm vững) để tiếp tục`);
         return;
       }
-
       handleSelectKp(nextKp.kp.id);
     }
   };
@@ -367,105 +366,57 @@ export default function CoursePage() {
     const newBookmarked = new Set(bookmarkedKps);
     if (newBookmarked.has(kpId)) {
       newBookmarked.delete(kpId);
-      addToast({ description: "Đã bỏ đánh dấu", color: "success" });
+      toast.success("Đã bỏ đánh dấu");
     } else {
       newBookmarked.add(kpId);
-      addToast({ description: "Đã đánh dấu trang", color: "success" });
+      toast.success("Đã đánh dấu trang");
     }
     setBookmarkedKps(newBookmarked);
   };
 
-  const getKpStatus = (
-    kpId: string
-  ): "not_started" | "in_progress" | "completed" => {
+  const getKpStatus = (kpId: string): "not_started" | "in_progress" | "completed" => {
     if (kpId === selectedKpId) return "in_progress";
-
-    // Check progress from state
     const progress = kpProgress[kpId];
     if (progress) {
       if (progress.masteryScore >= 80) return "completed";
       if (progress.masteryScore > 0) return "in_progress";
     }
-
     return "not_started";
   };
 
-  // Check if KP is locked (previous KP not completed)
   const isKpLocked = (kpIndex: number): boolean => {
-    if (kpIndex === 0) return false; // First KP is always unlocked
-
-    // Check if previous KP is completed
+    if (kpIndex === 0) return false;
     const previousKp = allKnowledgePoints[kpIndex - 1];
     if (!previousKp) return false;
-
     const previousProgress = kpProgress[previousKp.kp.id];
-    if (!previousProgress) return true; // Previous KP not started = locked
-
-    // Previous KP must have masteryScore >= 80 to unlock next KP
+    if (!previousProgress) return true;
     return previousProgress.masteryScore < 80;
   };
 
-  // Check if KP has been studied (has any progress)
   const hasKpBeenStudied = (kpId: string): boolean => {
     const progress = kpProgress[kpId];
     return progress !== undefined && progress.masteryScore > 0;
   };
 
-  // Load progress when KP is selected
-  useEffect(() => {
-    const loadKpProgress = async () => {
-      if (selectedKpId && user?.id) {
-        try {
-          const progress = await api.studentProgress.getStudentKpProgress(
-            user.id,
-            selectedKpId
-          );
-          setKpProgress((prev) => ({
-            ...prev,
-            [selectedKpId]: {
-              masteryScore: progress.masteryScore,
-              confidence: progress.confidence,
-            },
-          }));
-        } catch (error: any) {
-          // Progress not found is OK - student hasn't started this KP yet
-          if (error.response?.status !== 404) {
-            console.error("Failed to load KP progress:", error);
-          }
-        }
-      }
-    };
-
-    loadKpProgress();
-  }, [selectedKpId, user?.id]);
-
-  const getStatusIcon = (
-    status: "not_started" | "in_progress" | "completed"
-  ) => {
+  const getStatusIcon = (status: "not_started" | "in_progress" | "completed") => {
     switch (status) {
       case "completed":
         return <CheckCircle2 className="w-5 h-5 text-green-500" />;
       case "in_progress":
-        return <CheckCircle2 className="w-5 h-5 text-[#7f56d9]" />;
+        return <CheckCircle2 className="w-5 h-5 text-primary" />;
       default:
         return <Circle className="w-5 h-5 text-gray-400" />;
     }
   };
 
   const handleAnswerSelect = (questionId: string, answer: string) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questionId]: answer,
-    }));
-
-    // Track start time if this is the first interaction with this question
+    setSelectedAnswers((prev) => ({ ...prev, [questionId]: answer }));
     if (!questionStartTimeRefs.current[questionId]) {
       questionStartTimeRefs.current[questionId] = Date.now();
     }
   };
 
   const handleRetryQuestion = (questionId: string) => {
-    // Reset question state for retry
     setSelectedAnswers((prev) => {
       const newAnswers = { ...prev };
       delete newAnswers[questionId];
@@ -477,66 +428,46 @@ export default function CoursePage() {
       return newSubmitted;
     });
     setRetryingQuestions((prev) => new Set(prev).add(questionId));
-    // Reset start time for this question
     questionStartTimeRefs.current[questionId] = Date.now();
   };
 
   const handleSubmitAnswer = async (questionId: string) => {
     if (!user?.id || !selectedKpId) {
-      addToast({
-        description: "Không thể lưu kết quả. Vui lòng thử lại.",
-        color: "danger",
-      });
+      toast.error("Không thể lưu kết quả. Vui lòng thử lại.");
       return;
     }
 
     const selectedAnswer = selectedAnswers[questionId];
     if (!selectedAnswer) {
-      addToast({
-        description: "Vui lòng chọn đáp án trước khi nộp bài",
-        color: "danger",
-      });
+      toast.error("Vui lòng chọn đáp án trước khi nộp bài");
       return;
     }
 
-    // Calculate time spent
     const startTime = questionStartTimeRefs.current[questionId] || Date.now();
-    const timeSpent = Math.round((Date.now() - startTime) / 1000); // Convert to seconds
-
-    // Find the question to get correct answer
+    const timeSpent = Math.round((Date.now() - startTime) / 1000);
     const question = questions.find((q) => q.id === questionId);
     if (!question) {
-      addToast({ description: "Không tìm thấy câu hỏi", color: "danger" });
+      toast.error("Không tìm thấy câu hỏi");
       return;
     }
 
     const correctAnswerText = getCorrectAnswerText(question);
     const isCorrect = selectedAnswer === correctAnswerText;
 
-    // Mark question as submitted immediately
     setSubmittedQuestions((prev) => new Set(prev).add(questionId));
-
-    // Remove from retrying set
     setRetryingQuestions((prev) => {
       const newRetrying = new Set(prev);
       newRetrying.delete(questionId);
       return newRetrying;
     });
-
-    // Save attempt result locally
     setQuestionAttempts((prev) => ({
       ...prev,
-      [questionId]: {
-        isCorrect: isCorrect,
-        selectedAnswer: selectedAnswer,
-      },
+      [questionId]: { isCorrect, selectedAnswer },
     }));
 
-    // Check if this is a content question (not from question bank)
     const isContentQuestion = questionId.startsWith("content-q-");
 
     if (!isContentQuestion) {
-      // Only submit to server for question bank questions
       try {
         const result = await api.studentProgress.submitQuestionAttempt({
           studentId: user.id,
@@ -546,7 +477,6 @@ export default function CoursePage() {
           timeSpent: timeSpent,
         });
 
-        // Update KP progress state
         setKpProgress((prev) => ({
           ...prev,
           [selectedKpId]: {
@@ -555,61 +485,39 @@ export default function CoursePage() {
           },
         }));
 
-        // Show success message
         if (result.isCorrect) {
-          addToast({
-            description: `Chính xác! Điểm nắm vững: ${result.masteryScore}%`,
-            color: "success",
-          });
+          toast.success(`Chính xác! Điểm nắm vững: ${result.masteryScore}%`);
         } else {
-          addToast({
-            description: `Câu trả lời chưa đúng. Điểm nắm vững: ${result.masteryScore}%`,
-            color: "primary",
-          });
+          toast.info(`Câu trả lời chưa đúng. Điểm nắm vững: ${result.masteryScore}%`);
         }
       } catch (error: any) {
         console.error("Failed to submit answer:", error);
-        addToast({
-          description: "Không thể lưu kết quả. Vui lòng thử lại.",
-          color: "danger",
-        });
+        toast.error("Không thể lưu kết quả. Vui lòng thử lại.");
       }
     } else {
-      // For content questions, just show immediate feedback
-      if (isCorrect) {
-        addToast({ description: "Chính xác!", color: "success" });
-      } else {
-        addToast({
-          description: "Câu trả lời chưa đúng. Hãy thử lại!",
-          color: "primary",
-        });
-      }
+      if (isCorrect) toast.success("Chính xác!");
+      else toast.info("Câu trả lời chưa đúng. Hãy thử lại!");
     }
   };
 
-  // Get the actual correct answer text (handles both index and text format)
   const getCorrectAnswerText = (question: any): string => {
     if (
       question.questionType === "multiple_choice" &&
       question.options &&
       Array.isArray(question.options)
     ) {
-      // Check if correctAnswer is an index (1-based)
       const answerIndex = parseInt(question.correctAnswer);
       if (
         !isNaN(answerIndex) &&
         answerIndex >= 1 &&
         answerIndex <= question.options.length
       ) {
-        // Return the option text at that index (1-based to 0-based conversion)
         return question.options[answerIndex - 1];
       }
     }
-    // Return as-is for other question types or if it's already text
     return question.correctAnswer;
   };
 
-  // Check if answer is correct (handles both index and text format)
   const isAnswerCorrect = (question: any) => {
     const correctAnswerText = getCorrectAnswerText(question);
     return selectedAnswers[question.id] === correctAnswerText;
@@ -633,8 +541,8 @@ export default function CoursePage() {
   if (loading) {
     return (
       <LayoutDashboard>
-        <div className="flex items-center justify-center w-full h-screen">
-          <p className="text-[#535862]">Đang tải...</p>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </LayoutDashboard>
     );
@@ -643,8 +551,11 @@ export default function CoursePage() {
   if (!course) {
     return (
       <LayoutDashboard>
-        <div className="flex items-center justify-center w-full h-screen">
-          <p className="text-[#535862]">Không tìm thấy khóa học</p>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <p className="text-[#717680] dark:text-gray-400">Không tìm thấy khóa học</p>
+          <Button as={Link} href="/dashboard/courses" startContent={<ChevronLeft className="w-4 h-4" />}>
+            Quay lại
+          </Button>
         </div>
       </LayoutDashboard>
     );
@@ -652,83 +563,96 @@ export default function CoursePage() {
 
   return (
     <LayoutDashboard>
-      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-white">
+      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-[#f9fafb] dark:bg-[#0d121b]">
         {/* Sidebar Navigation */}
         <div
-          className={`bg-white border-r border-[#e9eaeb] transition-all duration-300 ${
+          className={`bg-white dark:bg-[#1a202c] border-r border-[#e9eaeb] dark:border-gray-800 transition-all duration-300 ${
             isSidebarOpen ? "w-80" : "w-0"
           } overflow-hidden flex flex-col`}
         >
           {isSidebarOpen && (
             <>
               {/* Sidebar Header */}
-              <div className="p-2 py-4 border-b border-[#e9eaeb] flex items-center justify-between rounded-br-3xl">
-                <div className="flex items-center">
+              <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800">
+                <div className="flex items-center justify-between mb-4">
                   <Button
                     isIconOnly
                     variant="light"
                     size="sm"
                     onClick={() => router.back()}
-                    className="rounded-full"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="font-semibold text-[#181d27] text-xs truncate">
+                  <div className="flex-1 min-w-0 mx-2">
+                    <h2 className="font-semibold text-[#181d27] dark:text-white text-sm truncate">
                       {course.title}
                     </h2>
+                    <p className="text-xs text-[#717680] dark:text-gray-400">
+                      {course.subject} • Khối {course.gradeLevel}
+                    </p>
+                  </div>
+                  <Button isIconOnly variant="light" size="sm" onClick={() => setIsSidebarOpen(false)}>
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                {/* Progress */}
+                <div className="flex items-center gap-3 p-3 bg-[#f9fafb] dark:bg-gray-800 rounded-xl">
+                  <ProgressRing progress={overallProgress} size={44} strokeWidth={3} />
+                  <div>
+                    <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                      Tiến độ học tập
+                    </p>
+                    <p className="text-xs text-[#717680] dark:text-gray-400">
+                      {Object.values(kpProgress).filter((p) => p.masteryScore >= 80).length} /{" "}
+                      {allKnowledgePoints.length} bài học
+                    </p>
                   </div>
                 </div>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="rounded-full"
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
               </div>
 
               {/* Navigation List */}
-              <div className="flex-1 overflow-y-auto py-4">
-                {course.modules.map((module) => (
-                  <div key={module.id} className="px-4 mb-2">
+              <div className="flex-1 overflow-y-auto p-3">
+                {course.modules.map((module, modIndex) => (
+                  <div key={module.id} className="mb-2">
                     <button
                       onClick={() => toggleModule(module.id)}
-                      className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center gap-2 p-3 rounded-xl hover:bg-[#f9fafb] dark:hover:bg-gray-800 transition-colors"
                     >
-                      <BookOpen className="w-4 h-4 text-[#7f56d9]" />
-                      <span className="flex-1 text-left text-sm font-medium text-[#181d27]">
+                      <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                        {modIndex + 1}
+                      </div>
+                      <span className="flex-1 text-left text-sm font-medium text-[#181d27] dark:text-white truncate">
                         {module.title}
                       </span>
                       {expandedModules.has(module.id) ? (
-                        <ChevronUp className="w-4 h-4 text-gray-400" />
+                        <ChevronUp className="w-4 h-4 text-[#717680]" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                        <ChevronDown className="w-4 h-4 text-[#717680]" />
                       )}
                     </button>
 
                     {expandedModules.has(module.id) && (
-                      <div className="mt-2 ml-6 space-y-1">
+                      <div className="mt-1 ml-4 space-y-1">
                         {module.sections.map((section) => (
                           <div key={section.id}>
                             <button
                               onClick={() => toggleSection(section.id)}
-                              className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 transition-colors"
+                              className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-[#f9fafb] dark:hover:bg-gray-800 transition-colors"
                             >
-                              <span className="flex-1 text-left text-sm text-[#535862]">
+                              <BookOpen className="w-4 h-4 text-[#717680]" />
+                              <span className="flex-1 text-left text-sm text-[#535862] dark:text-gray-300 truncate">
                                 {section.title}
                               </span>
                               {expandedSections.has(section.id) ? (
-                                <ChevronUp className="w-3 h-3 text-gray-400" />
+                                <ChevronUp className="w-3 h-3 text-[#717680]" />
                               ) : (
-                                <ChevronDown className="w-3 h-3 text-gray-400" />
+                                <ChevronDown className="w-3 h-3 text-[#717680]" />
                               )}
                             </button>
 
                             {expandedSections.has(section.id) && (
-                              <div className="mt-1 ml-4 space-y-1">
+                              <div className="mt-1 ml-4 space-y-0.5">
                                 {section.knowledgePoints.map((kp) => {
                                   const status = getKpStatus(kp.id);
                                   const isSelected = kp.id === selectedKpId;
@@ -741,37 +665,30 @@ export default function CoursePage() {
                                   return (
                                     <button
                                       key={kp.id}
-                                      onClick={() =>
-                                        !isLocked && handleSelectKp(kp.id)
-                                      }
+                                      onClick={() => !isLocked && handleSelectKp(kp.id)}
                                       disabled={isLocked}
-                                      className={`w-full flex items-center gap-2 p-2 rounded-xl transition-all ${
+                                      className={`w-full flex items-center gap-2 p-2 rounded-lg transition-all ${
                                         isLocked
-                                          ? "opacity-50 cursor-not-allowed bg-gray-100"
+                                          ? "opacity-50 cursor-not-allowed"
                                           : isSelected
-                                          ? "bg-[#7f56d9]/10 border border-[#7f56d9]"
-                                          : "hover:bg-gray-50"
+                                          ? "bg-primary/10 border border-primary/30"
+                                          : "hover:bg-[#f9fafb] dark:hover:bg-gray-800"
                                       }`}
-                                      title={
-                                        isLocked
-                                          ? "Vui lòng hoàn thành bài học trước đó"
-                                          : undefined
-                                      }
                                     >
                                       {isLocked ? (
-                                        <Lock className="w-5 h-5 text-gray-400" />
+                                        <Lock className="w-4 h-4 text-gray-400" />
                                       ) : (
                                         getStatusIcon(status)
                                       )}
                                       <span
-                                        className={`flex-1 text-left text-xs ${
+                                        className={`flex-1 text-left text-xs truncate ${
                                           isLocked
                                             ? "text-gray-400"
                                             : isSelected
-                                            ? "font-semibold text-[#7f56d9]"
+                                            ? "font-medium text-primary"
                                             : hasStudied
                                             ? "text-[#535862] font-medium"
-                                            : "text-[#535862]"
+                                            : "text-[#717680]"
                                         }`}
                                       >
                                         {kp.title}
@@ -779,15 +696,11 @@ export default function CoursePage() {
                                       {status === "completed" && !isLocked && (
                                         <Trophy className="w-3 h-3 text-yellow-500" />
                                       )}
-                                      {hasStudied &&
-                                        !isLocked &&
-                                        status !== "completed" && (
-                                          <span className="text-xs text-blue-500 font-medium">
-                                            {kpProgress[kp.id]?.masteryScore ||
-                                              0}
-                                            %
-                                          </span>
-                                        )}
+                                      {hasStudied && !isLocked && status !== "completed" && (
+                                        <span className="text-xs text-primary font-medium">
+                                          {kpProgress[kp.id]?.masteryScore || 0}%
+                                        </span>
+                                      )}
                                     </button>
                                   );
                                 })}
@@ -811,7 +724,7 @@ export default function CoursePage() {
             variant="light"
             size="sm"
             onClick={() => setIsSidebarOpen(true)}
-            className="absolute left-4 top-[160px] z-10 bg-white border border-[#e9eaeb] rounded-full shadow-md"
+            className="absolute left-4 top-[100px] z-10 bg-white dark:bg-[#1a202c] border border-[#e9eaeb] dark:border-gray-700 rounded-full shadow-md"
           >
             <Menu className="w-5 h-5" />
           </Button>
@@ -821,8 +734,8 @@ export default function CoursePage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {currentKp ? (
             <>
-              {/* Top Navigation */}
-              <div className="bg-white border-b border-[#e9eaeb] p-4 flex items-center justify-between rounded-bl-3xl">
+              {/* Top Navigation Bar */}
+              <div className="bg-white dark:bg-[#1a202c] border-b border-[#e9eaeb] dark:border-gray-800 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Button
                     isIconOnly
@@ -830,465 +743,377 @@ export default function CoursePage() {
                     size="sm"
                     onClick={handlePrevious}
                     disabled={currentIndex === 0}
-                    className="rounded-xl border border-[#e9eaeb]"
+                    className="border border-[#e9eaeb] dark:border-gray-700"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
+                  <div className="text-sm text-[#717680] dark:text-gray-400">
+                    <span className="font-medium text-[#181d27] dark:text-white">
+                      {currentIndex + 1}
+                    </span>{" "}
+                    / {allKnowledgePoints.length}
+                  </div>
                   <Button
                     isIconOnly
                     variant="light"
                     size="sm"
                     onClick={handleNext}
-                    disabled={
-                      currentIndex === allKnowledgePoints.length - 1 ||
-                      (currentIndex >= 0 && isKpLocked(currentIndex + 1))
-                    }
-                    className="rounded-xl border border-[#e9eaeb]"
-                    title={
-                      currentIndex >= 0 && isKpLocked(currentIndex + 1)
-                        ? "Vui lòng hoàn thành bài học hiện tại (đạt 80% điểm nắm vững) để tiếp tục"
-                        : undefined
-                    }
+                    disabled={currentIndex === allKnowledgePoints.length - 1 || isKpLocked(currentIndex + 1)}
+                    className="border border-[#e9eaeb] dark:border-gray-700"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={() => toggleBookmark(currentKp.id)}
+                    startContent={
+                      <Bookmark
+                        className={`w-4 h-4 ${
+                          bookmarkedKps.has(currentKp.id)
+                            ? "text-red-500 fill-red-500"
+                            : "text-[#717680]"
+                        }`}
+                      />
+                    }
+                  >
+                    {bookmarkedKps.has(currentKp.id) ? "Đã đánh dấu" : "Đánh dấu"}
+                  </Button>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button isIconOnly variant="light" size="sm">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu>
+                      <DropdownItem key="share" startContent={<Share2 className="w-4 h-4" />}>
+                        Chia sẻ
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-8">
-                <div className="max-w-4xl mx-auto">
-                  {/* Title and Bookmark */}
-                  <div className="mb-6">
-                    <div className="flex items-start justify-between gap-4 mb-4">
-                      <h1 className="text-3xl font-bold text-[#181d27] flex-1">
-                        {currentKp.title}
-                      </h1>
-                      <Button
-                        variant="light"
-                        size="sm"
-                        onClick={() => toggleBookmark(currentKp.id)}
-                        startContent={
-                          <Flag
-                            className={`w-4 h-4 ${
-                              bookmarkedKps.has(currentKp.id)
-                                ? "text-red-500 fill-red-500"
-                                : "text-gray-400"
-                            }`}
-                          />
-                        }
-                        className={`rounded-2xl ${
-                          bookmarkedKps.has(currentKp.id)
-                            ? "bg-red-50 border border-red-200"
-                            : "border border-[#e9eaeb]"
-                        }`}
-                      >
-                        <span className="text-sm">
-                          {bookmarkedKps.has(currentKp.id)
-                            ? "Đã đánh dấu"
-                            : "Đánh dấu trang này"}
-                        </span>
-                      </Button>
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Title */}
+                  <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <GraduationCap className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h1 className="text-2xl font-bold text-[#181d27] dark:text-white">
+                          {currentKp.title}
+                        </h1>
+                        {currentKp.description && (
+                          <p className="text-[#717680] dark:text-gray-400 mt-2">
+                            {currentKp.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 mt-4">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            <Target className="w-3 h-3" />
+                            Mức độ: {currentKp.difficultyLevel}/5
+                          </span>
+                          {kpProgress[currentKp.id] && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                              <Trophy className="w-3 h-3" />
+                              Điểm nắm vững: {kpProgress[currentKp.id].masteryScore}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  </div>
 
-                    {/* Description */}
-                    {currentKp.description && (
-                      <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mb-6">
-                        <p className="text-[#535862] leading-relaxed whitespace-pre-line">
-                          {currentKp.description}
-                        </p>
-                      </div>
-                    )}
+                  {/* Theory Content */}
+                  {currentKp.content?.theory && (
+                    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+                      <h2 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
+                        <BookOpen className="w-5 h-5 text-primary" />
+                        Lý thuyết
+                      </h2>
+                      <div
+                        className="prose dark:prose-invert max-w-none text-[#535862] dark:text-gray-300"
+                        dangerouslySetInnerHTML={{ __html: currentKp.content.theory }}
+                      />
+                    </div>
+                  )}
 
-                    {/* Theory Content */}
-                    {currentKp.content?.theory && (
-                      <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mb-6">
-                        <h3 className="text-xl font-semibold text-[#181d27] mb-4 flex items-center gap-3">
-                          <BookOpen className="w-6 h-6 text-[#7f56d9]" />
-                          Lý thuyết
-                        </h3>
-                        <div
-                          className="prose dark:prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{
-                            __html: currentKp.content.theory,
-                          }}
-                        />
-                      </div>
-                    )}
+                  {/* Visualization Content */}
+                  {currentKp.content?.visualization && (
+                    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+                      <h2 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
+                        <Play className="w-5 h-5 text-primary" />
+                        Trực quan hóa
+                      </h2>
+                      <div
+                        className="bg-[#f9fafb] dark:bg-gray-800 rounded-xl p-4 min-h-[300px]"
+                        dangerouslySetInnerHTML={{ __html: currentKp.content.visualization }}
+                      />
+                    </div>
+                  )}
 
-                    {/* Visualization Content */}
-                    {currentKp.content?.visualization && (
-                      <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mb-6">
-                        <h3 className="text-xl font-semibold text-[#181d27] mb-4 flex items-center gap-3">
-                          <Play className="w-6 h-6 text-[#7f56d9]" />
-                          Trực quan hoá
-                        </h3>
-                        <div
-                          className="bg-gray-50 rounded-2xl p-4 min-h-[300px]"
-                          dangerouslySetInnerHTML={{
-                            __html: currentKp.content.visualization,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Resources */}
-                    {currentKp.resources && currentKp.resources.length > 0 && (
-                      <div className="space-y-6">
+                  {/* Resources */}
+                  {currentKp.resources && currentKp.resources.length > 0 && (
+                    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+                      <h2 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-primary" />
+                        Tài liệu tham khảo
+                      </h2>
+                      <div className="grid gap-3">
                         {currentKp.resources.map((resource) => (
-                          <div
+                          <a
                             key={resource.id}
-                            className="bg-white rounded-lg p-6 border border-[#e9eaeb]"
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-4 p-4 bg-[#f9fafb] dark:bg-gray-800 rounded-xl hover:bg-primary/5 transition-colors group"
                           >
-                            <div className="flex items-center gap-3 mb-4">
-                              {resource.resourceType === "video" ? (
-                                <Video className="w-6 h-6 text-[#7f56d9]" />
-                              ) : (
-                                <FileText className="w-6 h-6 text-[#7f56d9]" />
-                              )}
-                              <h3 className="text-xl font-semibold text-[#181d27]">
+                            <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-center text-2xl shadow-sm">
+                              {resource.resourceType === "video" && "🎥"}
+                              {resource.resourceType === "article" && "📄"}
+                              {resource.resourceType === "interactive" && "🎮"}
+                              {resource.resourceType === "quiz" && "📝"}
+                              {resource.resourceType === "other" && "📎"}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-[#181d27] dark:text-white group-hover:text-primary transition-colors">
                                 {resource.title}
                               </h3>
+                              {resource.description && (
+                                <p className="text-sm text-[#717680] dark:text-gray-400">
+                                  {resource.description}
+                                </p>
+                              )}
                             </div>
-
-                            {resource.description && (
-                              <p className="text-[#535862] mb-4">
-                                {resource.description}
-                              </p>
-                            )}
-
-                            {resource.resourceType === "video" ? (
-                              <div className="rounded-2xl overflow-hidden bg-gray-900 aspect-video">
-                                <iframe
-                                  src={resource.url}
-                                  className="w-full h-full"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                />
-                              </div>
-                            ) : (
-                              <div className="rounded-2xl border border-[#e9eaeb] p-4 bg-gray-50">
-                                <a
-                                  href={resource.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-[#7f56d9] hover:underline"
-                                >
-                                  <FileText className="w-5 h-5" />
-                                  <span>Xem tài liệu</span>
-                                  <Play className="w-4 h-4" />
-                                </a>
-                              </div>
-                            )}
-                          </div>
+                            <ChevronRight className="w-5 h-5 text-[#717680] group-hover:text-primary" />
+                          </a>
                         ))}
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {/* Questions Section */}
-                    <div className="bg-white rounded-lg p-6 border border-[#e9eaeb] mt-6">
-                      <div className="flex items-center gap-3 mb-6">
-                        <HelpCircle className="w-6 h-6 text-[#7f56d9]" />
-                        <h3 className="text-xl font-semibold text-[#181d27]">
-                          Câu hỏi luyện tập
-                        </h3>
-                        {questions.length > 0 && (
-                          <span className="text-sm text-[#535862] bg-gray-100 px-3 py-1 rounded-full">
-                            {questions.length} câu hỏi
-                          </span>
-                        )}
+                  {/* Questions Section */}
+                  <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <HelpCircle className="w-5 h-5 text-primary" />
+                      <h2 className="text-lg font-bold text-[#181d27] dark:text-white">
+                        Câu hỏi luyện tập
+                      </h2>
+                      {questions.length > 0 && (
+                        <span className="text-sm text-[#717680] dark:text-gray-400 bg-[#f9fafb] dark:bg-gray-800 px-3 py-1 rounded-full">
+                          {questions.length} câu
+                        </span>
+                      )}
+                    </div>
+
+                    {loadingQuestions ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
+                    ) : questions.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <HelpCircle className="w-12 h-12 text-gray-300 mb-3" />
+                        <p className="text-[#717680] dark:text-gray-400">
+                          Chưa có câu hỏi luyện tập cho bài học này
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {questions.map((question, index) => {
+                          const isSubmitted = submittedQuestions.has(question.id);
+                          const isRetrying = retryingQuestions.has(question.id);
+                          const isCorrect = isSubmitted && !isRetrying && isAnswerCorrect(question);
+                          const selectedAnswer = selectedAnswers[question.id];
+                          const canInteract = !isSubmitted || isRetrying;
 
-                      {loadingQuestions ? (
-                        <div className="flex items-center justify-center py-8">
-                          <p className="text-[#535862]">Đang tải câu hỏi...</p>
-                        </div>
-                      ) : questions.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-8 text-center">
-                          <HelpCircle className="w-12 h-12 text-gray-300 mb-3" />
-                          <p className="text-[#535862]">
-                            Chưa có câu hỏi luyện tập cho bài học này
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {questions.map((question, index) => {
-                            const isSubmitted = submittedQuestions.has(
-                              question.id
-                            );
-                            const isRetrying = retryingQuestions.has(
-                              question.id
-                            );
-                            const isCorrect =
-                              isSubmitted &&
-                              !isRetrying &&
-                              isAnswerCorrect(question);
-                            const selectedAnswer = selectedAnswers[question.id];
-                            const canInteract = !isSubmitted || isRetrying;
-
-                            return (
-                              <div
-                                key={question.id}
-                                className="border border-[#e9eaeb] rounded-lg p-6 bg-gray-50"
-                              >
-                                {/* Question Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                  <div className="flex items-center gap-3">
-                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#7f56d9] text-white font-semibold text-sm">
-                                      {index + 1}
-                                    </span>
-                                    <div>
-                                      <span className="text-xs text-[#7f56d9] bg-purple-100 px-2 py-1 rounded-full font-medium">
-                                        {getQuestionTypeLabel(
-                                          question.questionType
-                                        )}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  {isSubmitted && (
-                                    <div className="flex items-center gap-2">
-                                      {isCorrect ? (
-                                        <CheckCircle className="w-6 h-6 text-green-500" />
-                                      ) : (
-                                        <XCircle className="w-6 h-6 text-red-500" />
-                                      )}
-                                    </div>
-                                  )}
+                          return (
+                            <div
+                              key={question.id}
+                              className="bg-[#f9fafb] dark:bg-gray-800 rounded-xl p-5"
+                            >
+                              {/* Question Header */}
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-semibold text-sm">
+                                    {index + 1}
+                                  </span>
+                                  <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded-full font-medium">
+                                    {getQuestionTypeLabel(question.questionType)}
+                                  </span>
                                 </div>
-
-                                {/* Question Text */}
-                                <p className="text-base font-medium text-[#181d27] mb-4">
-                                  {question.questionText}
-                                </p>
-
-                                {/* Answer Options */}
-                                {question.questionType === "multiple_choice" &&
-                                  question.options &&
-                                  Array.isArray(question.options) &&
-                                  question.options.length > 0 && (
-                                    <div className="space-y-2 mb-4">
-                                      {question.options.map(
-                                        (option: string, optIndex: number) => {
-                                          const optionLetter =
-                                            String.fromCharCode(65 + optIndex); // A, B, C, D
-                                          const isSelected =
-                                            selectedAnswer === option;
-                                          const correctAnswerText =
-                                            getCorrectAnswerText(question);
-                                          const isCorrectOption =
-                                            option === correctAnswerText;
-
-                                          let optionClass =
-                                            "w-full text-left p-4 rounded-xl border-2 transition-all ";
-                                          if (isSubmitted && !isRetrying) {
-                                            if (isCorrectOption) {
-                                              optionClass +=
-                                                "bg-green-50 border-green-500 text-green-700";
-                                            } else if (
-                                              isSelected &&
-                                              !isCorrect
-                                            ) {
-                                              optionClass +=
-                                                "bg-red-50 border-red-500 text-red-700";
-                                            } else {
-                                              optionClass +=
-                                                "bg-gray-50 border-gray-200 text-gray-600";
-                                            }
-                                          } else {
-                                            optionClass += isSelected
-                                              ? "bg-[#7f56d9]/10 border-[#7f56d9] text-[#7f56d9]"
-                                              : "bg-white border-gray-200 hover:border-[#7f56d9]/50 hover:bg-gray-50";
-                                          }
-
-                                          return (
-                                            <button
-                                              key={optIndex}
-                                              onClick={() =>
-                                                canInteract &&
-                                                handleAnswerSelect(
-                                                  question.id,
-                                                  option
-                                                )
-                                              }
-                                              disabled={!canInteract}
-                                              className={optionClass}
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <span className="font-semibold">
-                                                  {optionLetter}.
-                                                </span>
-                                                <span>{option}</span>
-                                                {isSubmitted &&
-                                                  !isRetrying &&
-                                                  isCorrectOption && (
-                                                    <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
-                                                  )}
-                                                {isSubmitted &&
-                                                  !isRetrying &&
-                                                  isSelected &&
-                                                  !isCorrect && (
-                                                    <XCircle className="w-5 h-5 text-red-500 ml-auto" />
-                                                  )}
-                                              </div>
-                                            </button>
-                                          );
-                                        }
-                                      )}
-                                    </div>
-                                  )}
-
-                                {/* True/False Options */}
-                                {question.questionType === "true_false" && (
-                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                    {["Đúng", "Sai"].map((option) => {
-                                      const isSelected =
-                                        selectedAnswer === option;
-                                      const correctAnswerText =
-                                        getCorrectAnswerText(question);
-                                      const isCorrectOption =
-                                        option === correctAnswerText;
-
-                                      let optionClass =
-                                        "p-4 rounded-xl border-2 transition-all text-center font-medium ";
-                                      if (isSubmitted && !isRetrying) {
-                                        if (isCorrectOption) {
-                                          optionClass +=
-                                            "bg-green-50 border-green-500 text-green-700";
-                                        } else if (isSelected && !isCorrect) {
-                                          optionClass +=
-                                            "bg-red-50 border-red-500 text-red-700";
-                                        } else {
-                                          optionClass +=
-                                            "bg-gray-50 border-gray-200 text-gray-600";
-                                        }
-                                      } else {
-                                        optionClass += isSelected
-                                          ? "bg-[#7f56d9]/10 border-[#7f56d9] text-[#7f56d9]"
-                                          : "bg-white border-gray-200 hover:border-[#7f56d9]/50 hover:bg-gray-50";
-                                      }
-
-                                      return (
-                                        <button
-                                          key={option}
-                                          onClick={() =>
-                                            canInteract &&
-                                            handleAnswerSelect(
-                                              question.id,
-                                              option
-                                            )
-                                          }
-                                          disabled={!canInteract}
-                                          className={optionClass}
-                                        >
-                                          {option}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-
-                                {/* Fill in blank or Short answer */}
-                                {(question.questionType === "fill_in_blank" ||
-                                  question.questionType === "short_answer") && (
-                                  <div className="mb-4">
-                                    <textarea
-                                      value={selectedAnswer || ""}
-                                      onChange={(e) =>
-                                        canInteract &&
-                                        handleAnswerSelect(
-                                          question.id,
-                                          e.target.value
-                                        )
-                                      }
-                                      disabled={!canInteract}
-                                      placeholder="Nhập câu trả lời của bạn..."
-                                      className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-[#7f56d9] focus:outline-none resize-none min-h-[100px]"
-                                    />
-                                    {isSubmitted && !isRetrying && (
-                                      <div className="mt-3 p-4 rounded-xl bg-blue-50 border border-blue-200">
-                                        <p className="text-sm font-medium text-blue-900 mb-1">
-                                          Đáp án đúng:
-                                        </p>
-                                        <p className="text-blue-700">
-                                          {getCorrectAnswerText(question)}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Submit Button */}
-                                {canInteract && selectedAnswer && (
-                                  <Button
-                                    onClick={() =>
-                                      handleSubmitAnswer(question.id)
-                                    }
-                                    className="bg-[#7f56d9] text-white rounded-xl"
-                                  >
-                                    {isRetrying ? "Nộp lại" : "Nộp bài"}
-                                  </Button>
-                                )}
-
-                                {/* Retry Button - Show for incorrect answers */}
-                                {isSubmitted && !isCorrect && !isRetrying && (
-                                  <Button
-                                    onClick={() =>
-                                      handleRetryQuestion(question.id)
-                                    }
-                                    variant="light"
-                                    className="mt-2 border border-[#7f56d9] text-[#7f56d9] rounded-xl"
-                                  >
-                                    Làm lại
-                                  </Button>
-                                )}
-
-                                {/* Feedback */}
-                                {isSubmitted && !isRetrying && (
-                                  <div
-                                    className={`mt-4 p-4 rounded-xl ${
-                                      isCorrect
-                                        ? "bg-green-50 border border-green-200"
-                                        : "bg-red-50 border border-red-200"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2 mb-2">
-                                      {isCorrect ? (
-                                        <>
-                                          <CheckCircle className="w-5 h-5 text-green-600" />
-                                          <p className="font-semibold text-green-700">
-                                            Chúc mừng! Bạn trả lời đúng
-                                          </p>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <XCircle className="w-5 h-5 text-red-600" />
-                                          <p className="font-semibold text-red-700">
-                                            Câu trả lời chưa chính xác
-                                          </p>
-                                        </>
-                                      )}
-                                    </div>
-                                    {!isCorrect && (
-                                      <p className="text-sm text-red-600">
-                                        Đáp án đúng:{" "}
-                                        {getCorrectAnswerText(question)}
-                                      </p>
+                                {isSubmitted && (
+                                  <div>
+                                    {isCorrect ? (
+                                      <CheckCircle className="w-6 h-6 text-green-500" />
+                                    ) : (
+                                      <XCircle className="w-6 h-6 text-red-500" />
                                     )}
                                   </div>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+
+                              {/* Question Text */}
+                              <p className="text-base font-medium text-[#181d27] dark:text-white mb-4">
+                                {question.questionText}
+                              </p>
+
+                              {/* Multiple Choice Options */}
+                              {question.questionType === "multiple_choice" && question.options && (
+                                <div className="space-y-2 mb-4">
+                                  {question.options.map((option: string, optIndex: number) => {
+                                    const optionLetter = String.fromCharCode(65 + optIndex);
+                                    const isSelected = selectedAnswer === option;
+                                    const correctAnswerText = getCorrectAnswerText(question);
+                                    const isCorrectOption = option === correctAnswerText;
+
+                                    let optionClass = "w-full text-left p-4 rounded-xl border-2 transition-all ";
+                                    if (isSubmitted && !isRetrying) {
+                                      if (isCorrectOption) {
+                                        optionClass += "bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-500 dark:text-green-400";
+                                      } else if (isSelected && !isCorrect) {
+                                        optionClass += "bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400";
+                                      } else {
+                                        optionClass += "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-[#535862] dark:text-gray-300";
+                                      }
+                                    } else {
+                                      optionClass += isSelected
+                                        ? "bg-primary/10 border-primary text-primary"
+                                        : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-primary/50";
+                                    }
+
+                                    return (
+                                      <button
+                                        key={optIndex}
+                                        onClick={() => canInteract && handleAnswerSelect(question.id, option)}
+                                        disabled={!canInteract}
+                                        className={optionClass}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <span className="font-semibold">{optionLetter}.</span>
+                                          <span>{option}</span>
+                                          {isSubmitted && !isRetrying && isCorrectOption && (
+                                            <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
+                                          )}
+                                          {isSubmitted && !isRetrying && isSelected && !isCorrect && (
+                                            <XCircle className="w-5 h-5 text-red-500 ml-auto" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* True/False Options */}
+                              {question.questionType === "true_false" && (
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                  {["Đúng", "Sai"].map((option) => {
+                                    const isSelected = selectedAnswer === option;
+                                    const correctAnswerText = getCorrectAnswerText(question);
+                                    const isCorrectOption = option === correctAnswerText;
+
+                                    let optionClass = "p-4 rounded-xl border-2 transition-all text-center font-medium ";
+                                    if (isSubmitted && !isRetrying) {
+                                      if (isCorrectOption) {
+                                        optionClass += "bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+                                      } else if (isSelected && !isCorrect) {
+                                        optionClass += "bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:text-red-400";
+                                      } else {
+                                        optionClass += "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600";
+                                      }
+                                    } else {
+                                      optionClass += isSelected
+                                        ? "bg-primary/10 border-primary text-primary"
+                                        : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-primary/50";
+                                    }
+
+                                    return (
+                                      <button
+                                        key={option}
+                                        onClick={() => canInteract && handleAnswerSelect(question.id, option)}
+                                        disabled={!canInteract}
+                                        className={optionClass}
+                                      >
+                                        {option}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Submit/Retry Buttons */}
+                              {canInteract && selectedAnswer && (
+                                <Button
+                                  onClick={() => handleSubmitAnswer(question.id)}
+                                  className="bg-primary text-white rounded-xl"
+                                >
+                                  {isRetrying ? "Nộp lại" : "Nộp bài"}
+                                </Button>
+                              )}
+
+                              {isSubmitted && !isCorrect && !isRetrying && (
+                                <Button
+                                  onClick={() => handleRetryQuestion(question.id)}
+                                  variant="bordered"
+                                  className="mt-2 border-primary text-primary rounded-xl"
+                                >
+                                  Làm lại
+                                </Button>
+                              )}
+
+                              {/* Feedback */}
+                              {isSubmitted && !isRetrying && (
+                                <div
+                                  className={`mt-4 p-4 rounded-xl ${
+                                    isCorrect
+                                      ? "bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800"
+                                      : "bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {isCorrect ? (
+                                      <>
+                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                        <p className="font-semibold text-green-700 dark:text-green-400">
+                                          Chúc mừng! Bạn trả lời đúng
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="w-5 h-5 text-red-600" />
+                                        <p className="font-semibold text-red-700 dark:text-red-400">
+                                          Câu trả lời chưa chính xác
+                                        </p>
+                                      </>
+                                    )}
+                                  </div>
+                                  {!isCorrect && (
+                                    <p className="text-sm text-red-600 dark:text-red-400">
+                                      Đáp án đúng: {getCorrectAnswerText(question)}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-[#535862]">Chọn một bài học để bắt đầu</p>
+            <div className="flex flex-col items-center justify-center h-full">
+              <BookOpen className="w-16 h-16 text-gray-300 mb-4" />
+              <p className="text-[#717680] dark:text-gray-400">Chọn một bài học để bắt đầu</p>
             </div>
           )}
         </div>
