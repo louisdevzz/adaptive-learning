@@ -1,19 +1,19 @@
-# 📊 Adaptive Learning Platform - Tổng Quan Dự Án
+# 📊 Adaptive Learning Platform - Project Overview
 
-> **Ngày cập nhật:** 19/02/2026
-
----
-
-## 🎯 Tổng Quan Hệ Thống
-
-**Adaptive Learning Platform v3.0** là nền tảng học tập thông minh cá nhân hóa dựa trên:
-- Phân rã kiến thức thành các đơn vị nhỏ (Knowledge Points)
-- Theo dõi mức độ nắm vững (Mastery Tracking) theo thờigian thực
-- Tự động đề xuất nội dung phù hợp với năng lực học sinh
+> **Last Updated:** 03/03/2026
 
 ---
 
-## 🏗️ Kiến Trúc Hệ Thống
+## 🎯 System Overview
+
+**Adaptive Learning Platform v3.0** is an intelligent personalized learning platform based on:
+- Breaking down knowledge into small units (Knowledge Points)
+- Real-time Mastery Tracking
+- Automatic content recommendations based on student ability
+
+---
+
+## 🏗️ System Architecture
 
 ### Tech Stack
 
@@ -26,8 +26,9 @@
 | **Authentication** | JWT + Firebase Admin |
 | **AI Integration** | LangChain + OpenAI GPT-4o-mini + Google Gemini 1.5-flash |
 | **File Storage** | Cloudflare R2 (S3-compatible) |
+| **Cloud Services** | Firebase (Auth, Analytics, Realtime features) |
 
-### Cấu Trúc Dự Án
+### Project Structure
 
 ```
 adaptive-learning/
@@ -52,7 +53,7 @@ adaptive-learning/
 │   │   ├── upload/            # File upload service
 │   │   └── firebase/          # Firebase integration
 │   └── db/
-│       └── schema.ts          # Database schema (956 dòng, 24 tables)
+│       └── schema.ts          # Database schema (956 lines, 24 tables)
 │
 └── app/                        # Next.js Frontend
     ├── src/
@@ -75,88 +76,92 @@ adaptive-learning/
 
 ---
 
-## ✅ Các Tính Năng Đã Hoàn Thành
+## ✅ Completed Features
 
-### 1. 🔐 Hệ Thống Xác Thực (Authentication)
+### 1. 🔐 Authentication System
 
-| Tính năng | Trạng thái | Chi tiết |
-|-----------|------------|----------|
-| JWT Authentication | ✅ Hoàn thành | Cookie-based, HTTP-only |
-| Role-based Access | ✅ Hoàn thành | Admin, Teacher, Student, Parent |
-| Google Sign-in | ✅ Hoàn thành | Firebase Admin SDK |
-| API Key Protection | ✅ Hoàn thành | Global API key guard |
+| Feature | Status | Details |
+|---------|--------|---------|
+| JWT Authentication | ✅ Complete | Cookie-based, HTTP-only |
+| Role-based Access | ✅ Complete | Admin, Teacher, Student, Parent |
+| Google Sign-in | ✅ Complete | Firebase Admin SDK |
+| API Key Protection | ✅ Complete | Global API key guard |
 
-**File chính:**
+**Key Files:**
 - `backend/src/auth/auth.service.ts`
 - `backend/src/auth/guards/jwt-auth.guard.ts`
 - `backend/src/common/guards/api-key.guard.ts`
 
-### 2. 👥 Quản Lý Ngườii Dùng
+### 2. 👥 User Management
 
-| Entity | CRUD | Chi tiết bổ sung |
-|--------|------|------------------|
-| Users | ✅ Full CRUD | Base user với email, password, role |
+| Entity | CRUD | Additional Details |
+|--------|------|-------------------|
+| Users | ✅ Full CRUD | Base user with email, password, role |
 | Students | ✅ Full CRUD | Student code, grade level, school |
 | Teachers | ✅ Full CRUD | Specialization, certifications |
 | Parents | ✅ Full CRUD | Phone, address, relationship |
 | Admins | ✅ Full CRUD | Admin level, permissions |
 
-**Đặc điểm:**
-- Unified registration API cho tất cả roles
+**Features:**
+- Unified registration API for all roles
 - Role-specific validation
 - Soft delete (deactivate)
 
-### 3. 🏫 Quản Lý Lớp Học (Classes)
+### 3. 🏫 Class Management
 
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Class CRUD | ✅ Hoàn thành |
-| Student Enrollment | ✅ Hoàn thành |
-| Teacher Assignment | ✅ Hoàn thành |
-| Class-Course Assignment | ✅ Hoàn thành |
+| Feature | Status |
+|---------|--------|
+| Class CRUD | ✅ Complete |
+| Student Enrollment | ✅ Complete |
+| Teacher Assignment | ✅ Complete |
+| Class-Course Assignment | ✅ Complete |
+| Class Progress Tracking | ✅ Complete |
+| Teacher Class Filtering | ✅ Complete |
 
 **API Endpoints:**
-- `POST /api/classes` - Tạo lớp
-- `POST /api/classes/:id/students` - Enroll học sinh
-- `POST /api/classes/:id/teachers` - Assign giáo viên
-- `POST /api/classes/:id/courses` - Gán khóa học
+- `POST /api/classes` - Create class
+- `POST /api/classes/:id/students` - Enroll student
+- `DELETE /api/classes/:id/students/:studentId` - Remove student
+- `POST /api/classes/:id/teachers` - Assign teacher
+- `POST /api/classes/:id/courses` - Assign course
+- `GET /api/classes/:id/progress` - Get class progress
 
-### 4. 📚 Hệ Thống Khóa Học (Course System)
+### 4. 📚 Course System
 
-**Cấu trúc phân cấp:** `Course → Module → Section → Knowledge Point`
+**Hierarchy:** `Course → Module → Section → Knowledge Point`
 
 #### 4.1 Course Management
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Course CRUD | ✅ Hoàn thành |
-| Role-based Access Control | ✅ Hoàn thành |
-| Course Structure API | ✅ Hoàn thành |
-| Teacher-Course Assignment | ✅ Hoàn thành |
+| Feature | Status |
+|---------|--------|
+| Course CRUD | ✅ Complete |
+| Role-based Access Control | ✅ Complete |
+| Course Structure API | ✅ Complete |
+| Teacher-Course Assignment | ✅ Complete |
 
 #### 4.2 Module Management
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Module CRUD | ✅ Hoàn thành |
-| Order Index Management | ✅ Hoàn thành |
-| Course-based Filtering | ✅ Hoàn thành |
+| Feature | Status |
+|---------|--------|
+| Module CRUD | ✅ Complete |
+| Order Index Management | ✅ Complete |
+| Course-based Filtering | ✅ Complete |
 
 #### 4.3 Section Management
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Section CRUD | ✅ Hoàn thành |
-| Auto-create with KPs | ✅ Hoàn thành |
-| Bulk KP Creation | ✅ Hoàn thành |
+| Feature | Status |
+|---------|--------|
+| Section CRUD | ✅ Complete |
+| Auto-create with KPs | ✅ Complete |
+| Bulk KP Creation | ✅ Complete |
 
-### 5. 🧠 Knowledge Point System (Trọng tâm)
+### 5. 🧠 Knowledge Point System
 
 #### Core Features
-| Tính năng | Trạng thái | Chi tiết |
-|-----------|------------|----------|
-| KP CRUD | ✅ Hoàn thành | Full lifecycle management |
-| Prerequisites | ✅ Hoàn thành | Dependency graph |
-| Section-KP Mapping | ✅ Hoàn thành | Many-to-many relationship |
-| Difficulty Levels | ✅ Hoàn thành | 1-5 scale |
-| Content Storage | ✅ Hoàn thành | Structured JSON |
+| Feature | Status | Details |
+|---------|--------|---------|
+| KP CRUD | ✅ Complete | Full lifecycle management |
+| Prerequisites | ✅ Complete | Dependency graph |
+| Section-KP Mapping | ✅ Complete | Many-to-many relationship |
+| Difficulty Levels | ✅ Complete | 1-5 scale |
+| Content Storage | ✅ Complete | Structured JSON |
 
 #### Content Structure (JSON)
 ```typescript
@@ -178,26 +183,26 @@ adaptive-learning/
 ```
 
 #### AI Content Generation ✅
-| Tính năng | Trạng thái | AI Model |
-|-----------|------------|----------|
-| Theory-based Visualization | ✅ Hoàn thành | GPT-4o-mini / Gemini 1.5-flash |
-| Interactive HTML Generation | ✅ Hoàn thành | Self-contained IIFE pattern |
-| Question Generation | ✅ Hoàn thành | Multiple choice, True/False, Fill blank |
-| Scoped CSS Output | ✅ Hoàn thành | Unique class prefix |
+| Feature | Status | AI Model |
+|---------|--------|----------|
+| Theory-based Visualization | ✅ Complete | GPT-4o-mini / Gemini 1.5-flash |
+| Interactive HTML Generation | ✅ Complete | Self-contained IIFE pattern |
+| Question Generation | ✅ Complete | Multiple choice, True/False, Fill blank |
+| Scoped CSS Output | ✅ Complete | Unique class prefix |
 
-**File chính:**
-- `backend/src/knowledge-points/knowledge-points.service.ts` (614 dòng)
+**Key Files:**
+- `backend/src/knowledge-points/knowledge-points.service.ts` (614 lines)
 - `backend/src/knowledge-points/dto/generate-content.dto.ts`
 
 ### 6. 📝 Question Bank System
 
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Question CRUD | ✅ Hoàn thành |
-| Multiple Question Types | ✅ Hoàn thành | multiple_choice, true_false, fill_blank, short_answer |
-| IRT Metadata | ✅ Hoàn thành | Difficulty (1-10), Discrimination (0-1) |
-| KP Assignment | ✅ Hoàn thành | kp_exercises table |
-| AI Question Generation | ✅ Hoàn thành | Full prompt engineering |
+| Feature | Status |
+|---------|--------|
+| Question CRUD | ✅ Complete |
+| Multiple Question Types | ✅ Complete | multiple_choice, true_false, fill_blank, short_answer |
+| IRT Metadata | ✅ Complete | Difficulty (1-10), Discrimination (0-1) |
+| KP Assignment | ✅ Complete | kp_exercises table |
+| AI Question Generation | ✅ Complete | Full prompt engineering |
 
 **Database Schema:**
 - `question_bank` - Core question data
@@ -206,14 +211,14 @@ adaptive-learning/
 
 ### 7. 📊 Student Progress Tracking
 
-| Tính năng | Trạng thái | Mô tả |
-|-----------|------------|-------|
-| Mastery Score | ✅ Hoàn thành | 0-100 scale per KP |
-| Confidence Tracking | ✅ Hoàn thành | Confidence in mastery |
-| Question Attempts | ✅ Hoàn thành | Full attempt history |
-| Time on Task | ✅ Hoàn thành | Per KP and Section |
-| Activity Log | ✅ Hoàn thành | All learning activities |
-| Student Insights | ✅ Hoàn thành | Strengths, weaknesses, risk KPs |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Mastery Score | ✅ Complete | 0-100 scale per KP |
+| Confidence Tracking | ✅ Complete | Confidence in mastery |
+| Question Attempts | ✅ Complete | Full attempt history |
+| Time on Task | ✅ Complete | Per KP and Section |
+| Activity Log | ✅ Complete | All learning activities |
+| Student Insights | ✅ Complete | Strengths, weaknesses, risk KPs |
 
 **Tables:**
 - `student_kp_progress` - Current mastery scores
@@ -226,23 +231,23 @@ adaptive-learning/
 
 ### 8. 🎯 Assignment System
 
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Assignment CRUD | ✅ Hoàn thành |
-| Multiple Assignment Types | ✅ Hoàn thành | practice, quiz, exam, homework, test, adaptive |
-| Question Items | ✅ Hoàn thành |
-| Student Assignments | ✅ Hoàn thành |
-| Assignment Attempts | ✅ Hoàn thành |
-| Auto-assignment | ✅ Hoàn thành | By section or student |
+| Feature | Status |
+|---------|--------|
+| Assignment CRUD | ✅ Complete |
+| Multiple Assignment Types | ✅ Complete | practice, quiz, exam, homework, test, adaptive |
+| Question Items | ✅ Complete |
+| Student Assignments | ✅ Complete |
+| Assignment Attempts | ✅ Complete |
+| Auto-assignment | ✅ Complete | By section or student |
 
 ### 9. 🗂️ Learning Paths
 
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Learning Path CRUD | ✅ Hoàn thành |
-| Path Items | ✅ Hoàn thành |
-| Status Tracking | ✅ Hoàn thành | not_started, in_progress, completed |
-| Recommendation Events | ✅ Hoàn thành | Track recommendations |
+| Feature | Status |
+|---------|--------|
+| Learning Path CRUD | ✅ Complete |
+| Path Items | ✅ Complete |
+| Status Tracking | ✅ Complete | not_started, in_progress, completed |
+| Recommendation Events | ✅ Complete | Track recommendations |
 
 ### 10. 🤖 AI Integration
 
@@ -261,45 +266,54 @@ adaptive-learning/
 
 ### 11. 📤 File Upload System
 
-| Tính năng | Trạng thái |
-|-----------|------------|
-| R2/S3 Integration | ✅ Hoàn thành |
-| Signed URL Generation | ✅ Hoàn thành |
-| Direct Upload Support | ✅ Hoàn thành |
+| Feature | Status |
+|---------|--------|
+| R2/S3 Integration | ✅ Complete |
+| Signed URL Generation | ✅ Complete |
+| Direct Upload Support | ✅ Complete |
 
 ### 12. 🎨 Frontend UI
 
-#### Landing Page
-| Section | Trạng thái |
-|---------|------------|
-| Hero Section | ✅ Hoàn thành |
-| Trusted By | ✅ Hoàn thành |
-| Features | ✅ Hoàn thành |
-| Solutions | ✅ Hoàn thành |
-| Video Demo | ✅ Hoàn thành |
-| Testimonials | ✅ Hoàn thành |
-| FAQ | ✅ Hoàn thành |
-| CTA | ✅ Hoàn thành |
-| Footer | ✅ Hoàn thành |
+#### Landing Page (v3.0 Redesign)
+| Section | Status |
+|---------|--------|
+| Hero Section | ✅ Complete (Redesigned) |
+| Trusted By | ✅ Complete |
+| Features | ✅ Complete |
+| Solutions | ✅ Complete |
+| Video Demo | ✅ Complete |
+| Testimonials | ✅ Complete |
+| FAQ | ✅ Complete |
+| CTA | ✅ Complete |
+| Footer | ✅ Complete |
 
 #### Dashboard (Role-based)
-| Role | Trạng thái |
-|------|------------|
-| Admin Dashboard | ✅ Hoàn thành |
-| Teacher Dashboard | ✅ Hoàn thành |
-| Student Dashboard | ✅ Hoàn thành |
-| Parent Dashboard | ✅ Hoàn thành |
+| Role | Status |
+|------|--------|
+| Admin Dashboard | ✅ Complete |
+| Teacher Dashboard | ✅ Complete |
+| Student Dashboard | ✅ Complete |
+| Parent Dashboard | ✅ Complete |
 
 #### Course Management UI
-| Tính năng | Trạng thái |
-|-----------|------------|
-| Course Explorer | ✅ Hoàn thành |
-| Course Creation | ✅ Hoàn thành |
-| Course Edit | ✅ Hoàn thành |
-| Structure Tree | ✅ Hoàn thành |
-| Knowledge Point Modal | ✅ Hoàn thành |
-| Rich Text Editor | ✅ Hoàn thành |
-| Thumbnail Upload | ✅ Hoàn thành |
+| Feature | Status |
+|---------|--------|
+| Course Explorer | ✅ Complete |
+| Course Creation | ✅ Complete |
+| Course Edit | ✅ Complete |
+| Structure Tree | ✅ Complete |
+| Knowledge Point Modal | ✅ Complete |
+| Rich Text Editor | ✅ Complete |
+| Thumbnail Upload | ✅ Complete |
+
+### 13. 🔥 Firebase Integration
+
+| Feature | Status |
+|---------|--------|
+| Firebase Auth | ✅ Complete |
+| Firebase Analytics | ✅ Complete |
+| Enhanced Dashboard | ✅ Complete |
+| Realtime Features | 🚧 Basic |
 
 ---
 
@@ -387,6 +401,7 @@ adaptive-learning/
 - `GET/POST /api/parents` - Parent CRUD
 - `GET/POST /api/admins` - Admin CRUD
 - `GET/PATCH /api/users/:id` - General user operations
+- `POST /api/users/:id/reset-password` - Admin password reset (admin only)
 
 ### Class Management APIs
 - `GET/POST /api/classes` - Class CRUD
@@ -394,6 +409,7 @@ adaptive-learning/
 - `DELETE /api/classes/:id/students/:studentId` - Remove student
 - `POST /api/classes/:id/teachers` - Assign teacher
 - `POST /api/classes/:id/courses` - Assign course
+- `GET /api/classes/:id/progress` - Get class progress
 
 ### Course APIs
 - `GET/POST /api/courses` - Course CRUD
@@ -439,6 +455,12 @@ adaptive-learning/
 - `POST /api/assignments/attempts` - Create attempt
 - `POST /api/assignments/submit` - Submit assignment
 
+### Dashboard APIs
+- `GET /api/dashboard/teacher-stats` - Teacher statistics (teacher only)
+- `GET /api/dashboard/stats` - Admin statistics (admin only)
+- `GET /api/dashboard/top-courses` - Top courses
+- `GET /api/dashboard/difficult-kps` - Difficult KPs
+
 ### Progress APIs
 - `GET /api/student-progress/stats` - Get stats
 - `GET /api/student-progress/mastery` - Get mastery
@@ -447,7 +469,7 @@ adaptive-learning/
 
 ---
 
-## 📈 Số Liệu Thống Kê
+## 📈 Statistics
 
 ### Code Metrics
 | Metric | Value |
@@ -459,15 +481,15 @@ adaptive-learning/
 | API Endpoints | 100+ |
 
 ### Test Coverage
-- Backend: Jest configured (chưa có test files)
+- Backend: Jest configured (no test files yet)
 - Frontend: ESLint configured
 
 ---
 
 ## 🔄 CI/CD & DevOps
 
-| Feature | Trạng thái |
-|---------|------------|
+| Feature | Status |
+|---------|--------|
 | Environment Config | ✅ .env.example |
 | Database Migrations | ✅ Drizzle Kit |
 | Build Scripts | ✅ package.json |
@@ -476,9 +498,33 @@ adaptive-learning/
 
 ---
 
-## 📝 Các Thay Đổi Gần Đây (Từ CHANGELOGS.md)
+## 📝 Recent Changes
 
-### [Unreleased] - 2026-01-04
+### [Unreleased] - 2026-03-03
+- ✅ **Admin Password Reset**: Password reset feature from admin panel
+  - Backend: `POST /api/users/:id/reset-password` endpoint with role guard
+  - Frontend: Password reset modal with validation and password generation
+  - API Integration: Connected to `api.users.resetPassword()` method
+  
+- ✅ **Teacher Dashboard Stats**: New endpoint for teacher-specific statistics
+  - Backend: `GET /api/dashboard/teacher-stats` endpoint
+  - Frontend: Integration with teacher dashboard
+  
+- ✅ **Class Progress Tracking**: Class-level progress monitoring
+  - Backend: `GET /api/classes/:id/progress` endpoint
+  - Frontend: Class progress display
+  
+- ✅ **Teacher Class Filtering**: Classes filtered by assigned teacher
+  - Teachers only see their assigned classes
+  - Admins continue to see all classes
+
+### [Unreleased] - 2026-02-20
+- ✅ **UI/UX Redesign v3.0**: Complete interface redesign
+- ✅ **Firebase Integration**: Firebase Auth, Analytics, Enhanced Dashboard
+- ✅ **Adaptive Learning Features**: Updated and improved adaptive learning
+- ✅ **Bug Fixes**: Login, Middleware, CORS, Deployment
+
+### [2026-01-04]
 - ✅ Knowledge Point Detail View
 - ✅ Questions & Games System (4 types)
 - ✅ Localized Resource Management
@@ -486,8 +532,8 @@ adaptive-learning/
 - ✅ Toast Migration (sonner → HeroUI)
 
 ### Previous
-- ✅ AI Content Generation cho Knowledge Points
-- ✅ Content Field cho Knowledge Points
+- ✅ AI Content Generation for Knowledge Points
+- ✅ Content Field for Knowledge Points
 - ✅ Removed Tags Field
 - ✅ Removed Section Summary Field
 - ✅ Course Management System
@@ -495,12 +541,12 @@ adaptive-learning/
 
 ---
 
-## 🎯 Các Tính Năng Chưa Hoàn Thành / Tương Lai
+## 🎯 Upcoming Features / Future
 
-Dựa trên code review, các tính năng sau có thể cần phát triển thêm:
+Based on code review, the following features may need further development:
 
 ### Recommendation Engine
-- [ ] Algorithm implementation (đã có bảng nhưng chưa có logic)
+- [ ] Algorithm implementation (tables exist but no logic)
 - [ ] Real-time recommendations
 - [ ] Adaptive learning algorithm (IRT, Bayesian Knowledge Tracing)
 
@@ -510,12 +556,12 @@ Dựa trên code review, các tính năng sau có thể cần phát triển thê
 - [ ] Error pattern analysis
 
 ### Analytics Dashboard
-- [ ] Charts và visualizations
+- [ ] Charts and visualizations
 - [ ] Export reports
 - [ ] Real-time analytics
 
 ### Real-time Features
-- [ ] WebSocket cho notifications
+- [ ] WebSocket for notifications
 - [ ] Live collaboration
 - [ ] Real-time progress updates
 
@@ -526,7 +572,7 @@ Dựa trên code review, các tính năng sau có thể cần phát triển thê
 
 ---
 
-## 🔧 Hướng Dẫn Chạy Dự Án
+## 🔧 Running the Project
 
 ### Backend
 ```bash
@@ -549,19 +595,19 @@ npm run dev
 
 ---
 
-## 📚 Tài Liệu Liên Quan
+## 📚 Related Documentation
 
-- `README.md` - Tổng quan dự án
-- `CHANGELOGS.md` - Lịch sử thay đổi chi tiết
+- `README.md` - Project overview
+- `CHANGELOGS.md` - Detailed change history
 - `backend/API_DOCUMENTATION.md` - API documentation
 - `backend/db/schema.ts` - Database schema
 
 ---
 
-## 👥 Đóng Góp
+## 👥 Contributors
 
-Dự án được phát triển bởi Adaptive Learning Team.
+Project developed by Adaptive Learning Team.
 
 ---
 
-*Cập nhật lần cuối: 19/02/2026*
+*Last Updated: 03/03/2026*
