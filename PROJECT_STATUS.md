@@ -1,6 +1,6 @@
 # 📊 Adaptive Learning Platform - Project Overview
 
-> **Last Updated:** 03/03/2026
+> **Last Updated:** 04/03/2026
 
 ---
 
@@ -73,6 +73,51 @@ adaptive-learning/
     │   └── contexts/          # React contexts
     └── fonts/                 # Custom fonts (DIN Pro)
 ```
+
+---
+
+## 🆕 Recent Updates (2026-03-04)
+
+### Role-Based Access Control (RBAC)
+- **Route-level RBAC**: Implemented for all dashboard routes
+  - `/dashboard/courses` - All authenticated users
+  - `/dashboard/users` - Admin only
+  - Automatic redirects for unauthorized access
+  - Middleware-based protection
+
+### Student Dashboard Enhancement
+- **Complete Redesign**: All student pages redesigned with consistent UI
+  - My Courses page with real data
+  - Learning Path page (view-only for students)
+  - Progress tracking page with visualizations
+- **Real Data Integration**: Connected to live APIs
+  - Dynamic progress metrics
+  - Course enrollment status
+  - Assignment tracking
+
+### Class Management Improvements
+- **Course Assignment UI**: New interface in class detail page
+  - Assign/unassign courses to classes
+  - View course status per class
+  - Teacher-friendly workflow
+
+### Course Settings Enhancement
+- **Quick Edit Modal**: Edit course settings without leaving the page
+  - Inline editing capability
+  - Modal-based settings form
+  - Improved user experience
+
+### Reports & Analytics
+- **Reports Page Redesign**: Complete overhaul with real data
+  - Export functionality (PDF/Excel)
+  - Interactive charts and visualizations
+  - Filterable report types
+
+### Documentation
+- **AGENTS.md**: Comprehensive guide for AI agents
+  - Project conventions
+  - Development guidelines
+  - API patterns
 
 ---
 

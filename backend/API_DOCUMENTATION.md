@@ -2462,6 +2462,128 @@ Returns students who are NOT currently enrolled in the specified class.
 
 ---
 
+## Dashboard Stats API
+
+### Teacher Dashboard Stats
+**GET** `/api/dashboard/teacher-stats`
+
+**Roles:** `teacher`
+
+Returns statistics specific to the authenticated teacher.
+
+**Response:**
+```json
+{
+  "totalStudents": 45,
+  "totalClasses": 3,
+  "totalCourses": 5,
+  "activeAssignments": 12,
+  "recentSubmissions": 8,
+  "averageClassMastery": 72.5
+}
+```
+
+### Student Dashboard Stats
+**GET** `/api/dashboard/student-stats`
+
+**Roles:** `student`
+
+Returns statistics for the authenticated student.
+
+**Response:**
+```json
+{
+  "totalCourses": 4,
+  "completedKps": 23,
+  "totalKps": 45,
+  "averageMastery": 78,
+  "activeAssignments": 3,
+  "overdueAssignments": 1,
+  "learningStreak": 5
+}
+```
+
+---
+
+## Reports API
+
+### Export Reports
+**POST** `/api/reports/export`
+
+**Roles:** `admin`, `teacher`
+
+Export reports in various formats.
+
+**Request Body:**
+```json
+{
+  "reportType": "class_progress" | "student_progress" | "course_analytics",
+  "format": "pdf" | "excel" | "csv",
+  "filters": {
+    "classId": "class-uuid",
+    "startDate": "2026-01-01",
+    "endDate": "2026-03-04"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "downloadUrl": "https://r2.dev/reports/report-uuid.pdf",
+  "expiresAt": "2026-03-04T12:00:00Z"
+}
+```
+
+### Get Report Data
+**GET** `/api/reports/data`
+
+**Roles:** `admin`, `teacher`
+
+Get raw report data for visualization.
+
+**Query Parameters:**
+- `type` - Report type
+- `classId` (optional)
+- `studentId` (optional)
+- `courseId` (optional)
+
+---
+
+## Learning Paths API (Updated)
+
+### Get My Learning Paths
+**GET** `/api/learning-paths/me`
+
+**Roles:** `student`
+
+Get learning paths for the authenticated student.
+
+### Get Learning Path Details
+**GET** `/api/learning-paths/:id`
+
+**Roles:** `student`, `teacher`, `admin`
+
+### Get Learning Path Items
+**GET** `/api/learning-paths/:id/items`
+
+**Roles:** `student`, `teacher`, `admin`
+
+### Update Learning Path Item Status
+**PATCH** `/api/learning-paths/items/:itemId`
+
+**Roles:** `student`
+
+**Request Body:**
+```json
+{
+  "status": "not_started" | "in_progress" | "completed",
+  "progress": 75
+}
+```
+
+---
+
 ## Student Course API
 
 #### Get My Courses
@@ -2476,6 +2598,51 @@ Returns students who are NOT currently enrolled in the specified class.
 
 #### Get Student Courses with Progress
 **GET** `/api/students/:id/courses-with-progress`
+
+---
+
+## Frontend Route Access Control
+
+### Route RBAC Implementation
+
+The frontend implements role-based access control at the route level using Next.js middleware.
+
+#### Protected Routes
+
+| Route | Allowed Roles | Redirect If Unauthorized |
+|-------|---------------|--------------------------|
+| `/dashboard` | All authenticated users | `/login` |
+| `/dashboard/courses` | All authenticated users | `/login` |
+| `/dashboard/courses/create` | `admin`, `teacher` | `/dashboard/courses` |
+| `/dashboard/courses/[id]/edit` | `admin`, `teacher` | `/dashboard/courses` |
+| `/dashboard/classes` | All authenticated users | `/login` |
+| `/dashboard/users` | `admin` only | `/dashboard` |
+| `/dashboard/users/create` | `admin` only | `/dashboard` |
+| `/dashboard/my-courses` | `student` | `/dashboard` |
+| `/dashboard/learning-path` | `student` | `/dashboard` |
+| `/dashboard/progress` | `student` | `/dashboard` |
+| `/dashboard/reports` | `admin`, `teacher` | `/dashboard` |
+
+#### Middleware Behavior
+- Validates JWT token from cookies
+- Checks user role against route requirements
+- Redirects unauthorized users to appropriate pages
+- API routes protected separately via JWT guard
+
+#### Implementation Details
+```typescript
+// middleware.ts
+export const config = {
+  matcher: ['/dashboard/:path*', '/api/:path*']
+}
+
+// Route-specific role checks
+const routeRoles: Record<string, string[]> = {
+  '/dashboard/users': ['admin'],
+  '/dashboard/courses/create': ['admin', 'teacher'],
+  // ... etc
+}
+```
 
 ---
 
@@ -2515,4 +2682,4 @@ Returns students who are NOT currently enrolled in the specified class.
 
 ---
 
-*Documentation Last Updated: 2026-03-03*
+*Documentation Last Updated: 2026-03-04*
