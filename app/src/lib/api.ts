@@ -1002,6 +1002,84 @@ export const api = {
     },
   },
 
+  // Learning Paths endpoints
+  learningPaths: {
+    getAll: async (params?: { studentId?: string; status?: string }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.studentId) queryParams.append("studentId", params.studentId);
+      if (params?.status) queryParams.append("status", params.status);
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/learning-paths?${queryString}`
+        : "/learning-paths";
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getById: async (id: string) => {
+      const response = await apiClient.get(`/learning-paths/${id}`);
+      return response.data;
+    },
+
+    getByIdWithItems: async (id: string) => {
+      const response = await apiClient.get(`/learning-paths/${id}/with-items`);
+      return response.data;
+    },
+
+    create: async (data: {
+      title: string;
+      description?: string;
+      studentId: string;
+      targetDate?: string;
+      status?: "active" | "completed" | "paused";
+      items?: {
+        courseId?: string;
+        kpId?: string;
+        orderIndex: number;
+        itemType: "course" | "kp" | "quiz" | "assignment";
+      }[];
+    }) => {
+      const response = await apiClient.post("/learning-paths", data);
+      return response.data;
+    },
+
+    update: async (
+      id: string,
+      data: {
+        title?: string;
+        description?: string;
+        targetDate?: string;
+        status?: "active" | "completed" | "paused";
+      }
+    ) => {
+      const response = await apiClient.patch(`/learning-paths/${id}`, data);
+      return response.data;
+    },
+
+    delete: async (id: string) => {
+      const response = await apiClient.delete(`/learning-paths/${id}`);
+      return response.data;
+    },
+
+    updateItemStatus: async (
+      pathId: string,
+      itemId: string,
+      status: "not_started" | "in_progress" | "completed"
+    ) => {
+      const response = await apiClient.patch(
+        `/learning-paths/${pathId}/items/${itemId}/status`,
+        { status }
+      );
+      return response.data;
+    },
+
+    getPathItems: async (pathId: string) => {
+      const response = await apiClient.get(`/learning-paths/${pathId}/items`);
+      return response.data;
+    },
+  },
+
   // Student Progress endpoints
   studentProgress: {
     submitQuestionAttempt: async (data: {

@@ -10,128 +10,56 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-} from "@heroui/modal";
+  Card,
+  CardBody,
+  CardHeader,
+  Chip,
+  Progress,
+  Tabs,
+  Tab,
+} from "@heroui/react";
 import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
 import { Course } from "@/types/course";
 import { toast } from "sonner";
 import {
   BookOpen,
-  FileText,
-  Route,
-  CheckSquare,
   Search,
   Filter,
-  ArrowUpDown,
   ArrowRight,
-  MoreVertical,
-  BarChart3,
-  TrendingDown,
   Clock,
-  AlertCircle,
+  Award,
+  TrendingUp,
+  CheckCircle2,
+  Play,
+  MoreHorizontal,
+  Loader2,
+  GraduationCap,
+  Target,
+  Flame,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-
-type MaterialType = "course" | "quiz" | "page" | "learning-path";
-type MaterialStatus = "not_started" | "in_progress" | "completed";
-
-interface Material {
-  id: string;
-  type: MaterialType;
-  title: string;
-  description?: string;
-  thumbnailUrl?: string;
-  progress?: number;
-  status: MaterialStatus;
-  tags?: string[];
-  badge?: string;
-  points?: number;
-  passingPoints?: number;
-  chapters?: number;
-  materials?: number;
-  paths?: number;
-  questions?: number;
-  urgent?: boolean;
-  certified?: boolean;
-}
+import Link from "next/link";
+import { useUser } from "@/hooks/useUser";
 
 interface CourseWithProgress extends Course {
-  progress?: number;
-  status?: "not_started" | "in_progress" | "completed";
-  masteredKps?: number;
-  totalKps?: number;
+  progress: number;
+  status: "not_started" | "in_progress" | "completed";
+  masteredKps: number;
+  totalKps: number;
+  lastAccessed?: string;
 }
 
 export default function MyCoursesPage() {
+  const { user } = useUser();
   const [courses, setCourses] = useState<CourseWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MaterialStatus | "all">(
-    "all"
-  );
-  const [selectedCourse, setSelectedCourse] =
-    useState<CourseWithProgress | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedCourse, setSelectedCourse] = useState<CourseWithProgress | null>(null);
   const [courseStructure, setCourseStructure] = useState<any>(null);
-  const [courseAnalytics, setCourseAnalytics] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
-  const router = useRouter();
-  const {
-    isOpen: isDetailOpen,
-    onOpen: onDetailOpen,
-    onOpenChange: onDetailOpenChange,
-  } = useDisclosure();
-
-  // Convert courses to materials format
-  const materials = useMemo<Material[]>(() => {
-    return courses.map((course) => {
-      const progress = course.progress ?? 0;
-      const status = (course.status ?? "not_started") as MaterialStatus;
-
-      return {
-        id: course.id,
-        type: "course" as MaterialType,
-        title: course.title,
-        description: course.description,
-        thumbnailUrl: course.thumbnailUrl,
-        progress,
-        status,
-        tags: [course.subject, "Không khẩn cấp"],
-        badge: course.totalKps
-          ? `${course.totalKps} Điểm kiến thức`
-          : undefined,
-        materials: course.totalKps,
-      };
-    });
-  }, [courses]);
-
-  const continueLearningMaterials = useMemo(() => {
-    return materials.filter((m) => m.status === "in_progress").slice(0, 2);
-  }, [materials]);
-
-  // Filter materials based on search and status
-  const filteredMaterials = useMemo(() => {
-    let filtered = materials;
-
-    // Filter by status
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((m) => m.status === statusFilter);
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (m) =>
-          m.title.toLowerCase().includes(query) ||
-          m.description?.toLowerCase().includes(query) ||
-          m.tags?.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
-
-    return filtered;
-  }, [materials, statusFilter, searchQuery]);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     fetchCourses();
@@ -142,7 +70,7 @@ export default function MyCoursesPage() {
       setLoading(true);
       const data = await api.students.getMyCoursesWithProgress();
       setCourses(data);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to fetch courses:", error);
       toast.error("Không thể tải danh sách khóa học");
     } finally {
@@ -150,386 +78,456 @@ export default function MyCoursesPage() {
     }
   };
 
-  const handleViewDetails = async (course: Course) => {
+  // Stats
+  const stats = useMemo(() => {
+    const total = courses.length;
+    const inProgress = courses.filter((c) => c.status === "in_progress").length;
+    const completed = courses.filter((c) => c.status === "completed").length;
+    const notStarted = courses.filter((c) => c.status === "not_started").length;
+    const avgProgress = total > 0
+      ? Math.round(courses.reduce((acc, c) => acc + c.progress, 0) / total)
+      : 0;
+
+    return { total, inProgress, completed, notStarted, avgProgress };
+  }, [courses]);
+
+  // Filtered courses
+  const filteredCourses = useMemo(() => {
+    let filtered = courses;
+
+    // Filter by tab/status
+    if (activeTab !== "all") {
+      filtered = filtered.filter((c) => c.status === activeTab);
+    }
+
+    // Filter by search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.title.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query) ||
+          c.subject?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [courses, activeTab, searchQuery]);
+
+  // Continue learning courses
+  const continueLearning = useMemo(() => {
+    return courses
+      .filter((c) => c.status === "in_progress")
+      .sort((a, b) => b.progress - a.progress)
+      .slice(0, 2);
+  }, [courses]);
+
+  const handleViewDetails = async (course: CourseWithProgress) => {
     setSelectedCourse(course);
     setLoadingDetail(true);
-    setLoadingAnalytics(true);
-    onDetailOpen();
+    onOpen();
 
     try {
-      const [structure, analytics] = await Promise.all([
-        api.courses.getStructure(course.id),
-        api.courseAnalytics.getCourseAnalytics(course.id).catch(() => null), // Analytics may not be available for all courses
-      ]);
+      const structure = await api.courses.getStructure(course.id);
       setCourseStructure(structure);
-      setCourseAnalytics(analytics);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to fetch course details:", error);
       toast.error("Không thể tải chi tiết khóa học");
     } finally {
       setLoadingDetail(false);
-      setLoadingAnalytics(false);
     }
   };
 
-  const handleStartCourse = (courseId: string) => {
-    router.push(`/dashboard/courses/${courseId}`);
-  };
-
-  const getMaterialIcon = (type: MaterialType) => {
-    switch (type) {
-      case "course":
-        return BookOpen;
-      case "quiz":
-        return CheckSquare;
-      case "page":
-        return FileText;
-      case "learning-path":
-        return Route;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "primary";
       default:
-        return BookOpen;
+        return "default";
     }
   };
 
-  const getMaterialTypeLabel = (type: MaterialType) => {
-    switch (type) {
-      case "course":
-        return "Khóa học";
-      case "quiz":
-        return "Bài kiểm tra";
-      case "page":
-        return "Trang";
-      case "learning-path":
-        return "Lộ trình học";
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "Hoàn thành";
+      case "in_progress":
+        return "Đang học";
       default:
-        return "Tài liệu";
+        return "Chưa bắt đầu";
     }
   };
 
-  const renderMaterialCard = (
-    material: Material,
-    isContinueLearning = false
-  ) => {
-    const Icon = getMaterialIcon(material.type);
-    const isHorizontal = isContinueLearning;
-
+  if (loading) {
     return (
-      <div
-        key={material.id}
-        className={`bg-white border border-[#e9eaeb] rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group ${
-          isHorizontal ? "flex flex-row" : "flex flex-col"
-        }`}
-        onClick={() => {
-          if (material.type === "course") {
-            const course = courses.find((c) => c.id === material.id);
-            if (course) handleViewDetails(course as CourseWithProgress);
-          }
-        }}
-      >
-        {/* Thumbnail/Illustration */}
-        <div
-          className={`relative ${
-            isHorizontal ? "w-48 h-full min-h-[200px]" : "w-full h-48"
-          } bg-gradient-to-br from-purple-50 to-blue-50 overflow-hidden`}
-        >
-          {material.thumbnailUrl ? (
-            <Image
-              src={material.thumbnailUrl}
-              alt={material.title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Icon className="w-16 h-16 text-[#7f56d9] opacity-30" />
-            </div>
-          )}
-          {material.badge && (
-            <div className="absolute top-3 left-3">
-              <span className="bg-white/90 backdrop-blur-sm text-[#181d27] text-xs px-2 py-1 rounded-md font-medium shadow-sm">
-                {material.badge}
-              </span>
-            </div>
-          )}
-          {material.status === "in_progress" &&
-            material.progress !== undefined && (
-              <div className="absolute top-3 right-3">
-                <span className="bg-[#7f56d9]/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium shadow-sm">
-                  {material.progress}%
-                </span>
-              </div>
-            )}
-        </div>
-
-        {/* Content */}
-        <div
-          className={`flex flex-col ${
-            isHorizontal ? "flex-1 p-6" : "p-4"
-          } gap-3`}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Icon className="w-4 h-4 text-[#7f56d9]" />
-              <span className="text-xs font-medium text-[#7f56d9]">
-                {getMaterialTypeLabel(material.type)}
-              </span>
-            </div>
-            {!isHorizontal && (
-              <MoreVertical className="w-4 h-4 text-[#535862] opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </div>
-
-          <div className="flex-1">
-            <h3
-              className={`font-semibold text-[#181d27] mb-1 ${
-                isHorizontal ? "text-lg" : "text-base"
-              } line-clamp-2`}
-            >
-              {material.title}
-            </h3>
-            {material.description && !isHorizontal && (
-              <p className="text-sm text-[#535862] line-clamp-2">
-                {material.description}
-              </p>
-            )}
-          </div>
-
-          {/* Tags */}
-          {material.tags && material.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {material.tags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    tag === "Urgent" || tag === "Khẩn cấp"
-                      ? "bg-red-100 text-red-700"
-                      : tag === "Certified" || tag === "Đã chứng nhận"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-[#535862]"
-                  }`}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Progress or Points */}
-          {material.progress !== undefined && (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-xs text-[#535862]">
-                <span>{material.progress}% Hoàn thành</span>
-                {material.passingPoints && (
-                  <span>Điểm đạt {material.passingPoints} điểm</span>
-                )}
-              </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#10b981] transition-all duration-300"
-                  style={{ width: `${material.progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {material.points !== undefined && (
-            <div className="flex flex-col gap-1">
-              <div className="text-sm font-medium text-[#181d27]">
-                {material.points}pts
-              </div>
-              {material.passingPoints && (
-                <div className="text-xs text-[#535862]">
-                  Điểm đạt {material.passingPoints} điểm
-                </div>
-              )}
-            </div>
-          )}
-
-          {material.status === "not_started" && !material.points && (
-            <div className="text-sm text-[#535862]">Chưa bắt đầu</div>
-          )}
-
-          {/* Action Button */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Button
-              size="sm"
-              className={`${
-                material.status === "not_started"
-                  ? "bg-[#7f56d9] text-white"
-                  : "bg-[#7f56d9] text-white"
-              } w-full`}
-              onPress={() => {
-                if (material.type === "course") {
-                  const course = courses.find((c) => c.id === material.id);
-                  if (course) {
-                    // Always navigate to course detail page when clicking button
-                    handleStartCourse(course.id);
-                  }
-                }
-              }}
-            >
-              {material.status === "not_started"
-                ? "Bắt đầu"
-                : material.status === "in_progress"
-                ? "Tiếp tục"
-                : "Tiếp tục"}
-            </Button>
+      <LayoutDashboard>
+        <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-center h-96">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         </div>
-      </div>
+      </LayoutDashboard>
     );
-  };
+  }
 
   return (
     <LayoutDashboard>
-      <div className="bg-white flex flex-1 flex-col gap-8 items-start overflow-y-auto pb-8 pt-6 px-12 w-full relative shrink-0 mt-[140px]">
+      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Header */}
-        <div className="flex flex-col gap-2 w-full">
-          <h1 className="text-2xl font-bold text-[#181d27]">
-            Khóa học của tôi
-          </h1>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#181d27] dark:text-white">
+              Khóa học của tôi
+            </h1>
+            <p className="text-[#717680] dark:text-gray-400 mt-1">
+              Quản lý và theo dõi tiến độ các khóa học của bạn
+            </p>
+          </div>
+          <Link href="/dashboard/courses/explorer">
+            <Button color="primary" startContent={<BookOpen className="w-4 h-4" />}>
+              Khám phá khóa học
+            </Button>
+          </Link>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center w-full py-12">
-            <p className="text-[#535862]">Đang tải...</p>
-          </div>
-        ) : (
-          <>
-            {/* Continue Learning Section */}
-            {continueLearningMaterials.length > 0 && (
-              <div className="flex flex-col gap-4 w-full">
-                <h2 className="text-xl font-semibold text-[#181d27]">
-                  Tiếp tục học
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {continueLearningMaterials.map((material) => (
-                    <div key={material.id}>
-                      {renderMaterialCard(material, true)}
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardBody className="flex flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-sm text-gray-500">Tổng khóa học</p>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody className="flex flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.inProgress}</p>
+                <p className="text-sm text-gray-500">Đang học</p>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody className="flex flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.completed}</p>
+                <p className="text-sm text-gray-500">Hoàn thành</p>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody className="flex flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.avgProgress}%</p>
+                <p className="text-sm text-gray-500">Tiến độ TB</p>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Continue Learning Section */}
+        {continueLearning.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-[#181d27] dark:text-white flex items-center gap-2">
+              <Flame className="w-5 h-5 text-orange-500" />
+              Tiếp tục học
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {continueLearning.map((course) => (
+                <Card key={course.id} className="hover:shadow-lg transition-shadow">
+                  <CardBody className="flex flex-row gap-4 p-4">
+                    <div className="relative w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+                      {course.thumbnailUrl ? (
+                        <Image
+                          src={course.thumbnailUrl}
+                          alt={course.title}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen className="w-8 h-8 text-primary/30" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          {course.progress}%
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* All Materials Section */}
-            <div className="flex flex-col gap-4 w-full">
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold text-[#181d27]">
-                    Tất cả tài liệu
-                  </h2>
-                  <span className="text-sm text-[#535862]">
-                    {filteredMaterials.length}
-                  </span>
-                </div>
-              </div>
-
-              {/* Filters and Search */}
-              <div className="flex flex-wrap items-center gap-3 w-full">
-                {/* Status Filters */}
-                <div className="flex items-center gap-2">
-                  {(
-                    ["all", "not_started", "in_progress", "completed"] as const
-                  ).map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => setStatusFilter(status)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        statusFilter === status
-                          ? "bg-[#7f56d9] text-white"
-                          : "bg-gray-100 text-[#535862] hover:bg-gray-200"
-                      }`}
-                    >
-                      {status === "all"
-                        ? "Tất cả"
-                        : status === "not_started"
-                        ? "Chưa bắt đầu"
-                        : status === "in_progress"
-                        ? "Đang học"
-                        : "Hoàn thành"}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Search */}
-                <div className="flex-1 min-w-[200px] max-w-md">
-                  <Input
-                    placeholder="Tìm kiếm..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    startContent={<Search className="w-4 h-4 text-[#535862]" />}
-                    classNames={{
-                      input: "text-sm",
-                      inputWrapper: "bg-white border border-[#e9eaeb]",
-                    }}
-                  />
-                </div>
-
-                {/* Filter Button */}
-                <Button
-                  variant="bordered"
-                  startContent={<Filter className="w-4 h-4" />}
-                  className="border-[#e9eaeb]"
-                >
-                  Thêm bộ lọc
-                </Button>
-
-                {/* Sort Button */}
-                <Button
-                  variant="bordered"
-                  startContent={<ArrowUpDown className="w-4 h-4" />}
-                  className="border-[#e9eaeb]"
-                >
-                  Sắp xếp
-                </Button>
-              </div>
-
-              {/* Materials Grid */}
-              {filteredMaterials.length === 0 ? (
-                <div className="flex flex-col items-center justify-center w-full py-12 gap-4">
-                  <BookOpen className="w-16 h-16 text-[#bcbcbd]" />
-                  <p className="text-[#535862] text-lg">
-                    {searchQuery || statusFilter !== "all"
-                      ? "Không tìm thấy tài liệu"
-                      : "Bạn chưa có khóa học nào"}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
-                  {filteredMaterials.map((material) =>
-                    renderMaterialCard(material, false)
-                  )}
-                </div>
-              )}
+                    <div className="flex-1 flex flex-col">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <Chip size="sm" color="primary" variant="flat" className="mb-2">
+                            {course.subject}
+                          </Chip>
+                          <h3 className="font-semibold text-lg text-[#181d27] dark:text-white line-clamp-1">
+                            {course.title}
+                          </h3>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-500 line-clamp-2 mt-1 flex-1">
+                        {course.description}
+                      </p>
+                      <div className="mt-3">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-500">Tiến độ</span>
+                          <span className="font-medium">{course.masteredKps}/{course.totalKps} KP</span>
+                        </div>
+                        <Progress value={course.progress} size="sm" color="primary" />
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Link href={`/dashboard/courses/${course.id}`} className="flex-1">
+                          <Button size="sm" color="primary" className="w-full" startContent={<Play className="w-4 h-4" />}>
+                            Tiếp tục
+                          </Button>
+                        </Link>
+                        <Button
+                          size="sm"
+                          variant="light"
+                          onPress={() => handleViewDetails(course)}
+                        >
+                          Chi tiết
+                        </Button>
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              ))}
             </div>
-          </>
+          </div>
         )}
 
-        {/* Detail Modal */}
-        <Modal
-          isOpen={isDetailOpen}
-          onOpenChange={onDetailOpenChange}
-          size="3xl"
-          scrollBehavior="inside"
-        >
+        {/* All Courses Section */}
+        <Card className="flex-1">
+          <CardHeader className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+              <h2 className="text-lg font-bold text-[#181d27] dark:text-white">
+                Tất cả khóa học
+              </h2>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Tìm kiếm khóa học..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  startContent={<Search className="w-4 h-4 text-gray-400" />}
+                  className="w-64"
+                  size="sm"
+                />
+                <Button isIconOnly variant="light" size="sm">
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <Tabs
+              selectedKey={activeTab}
+              onSelectionChange={(key) => setActiveTab(key as string)}
+              size="sm"
+              color="primary"
+              variant="underlined"
+              classNames={{
+                tabList: "gap-6",
+              }}
+            >
+              <Tab
+                key="all"
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>Tất cả</span>
+                    <Chip size="sm" variant="flat">{stats.total}</Chip>
+                  </div>
+                }
+              />
+              <Tab
+                key="in_progress"
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>Đang học</span>
+                    <Chip size="sm" color="primary" variant="flat">{stats.inProgress}</Chip>
+                  </div>
+                }
+              />
+              <Tab
+                key="completed"
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>Hoàn thành</span>
+                    <Chip size="sm" color="success" variant="flat">{stats.completed}</Chip>
+                  </div>
+                }
+              />
+              <Tab
+                key="not_started"
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>Chưa bắt đầu</span>
+                    <Chip size="sm" variant="flat">{stats.notStarted}</Chip>
+                  </div>
+                }
+              />
+            </Tabs>
+          </CardHeader>
+
+          <CardBody>
+            {filteredCourses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <BookOpen className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  {searchQuery || activeTab !== "all"
+                    ? "Không tìm thấy khóa học"
+                    : "Bạn chưa có khóa học nào"}
+                </h3>
+                <p className="text-gray-500 max-w-md">
+                  {searchQuery || activeTab !== "all"
+                    ? "Thử thay đổi bộ lọc hoặc tìm kiếm khác"
+                    : "Khám phá các khóa học thú vị để bắt đầu hành trình học tập của bạn"}
+                </p>
+                {!searchQuery && activeTab === "all" && (
+                  <Link href="/dashboard/courses/explorer" className="mt-4">
+                    <Button color="primary" startContent={<BookOpen className="w-4 h-4" />}>
+                      Khám phá khóa học
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredCourses.map((course) => (
+                  <Card
+                    key={course.id}
+                    className="hover:shadow-lg transition-all group"
+                    isPressable
+                    onPress={() => handleViewDetails(course)}
+                  >
+                    <CardBody className="p-0">
+                      {/* Thumbnail */}
+                      <div className="relative h-40 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden">
+                        {course.thumbnailUrl ? (
+                          <Image
+                            src={course.thumbnailUrl}
+                            alt={course.title}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <BookOpen className="w-12 h-12 text-primary/20" />
+                          </div>
+                        )}
+                        <div className="absolute top-3 left-3">
+                          <Chip size="sm" color={getStatusColor(course.status)} variant="flat">
+                            {getStatusText(course.status)}
+                          </Chip>
+                        </div>
+                        {course.status === "in_progress" && (
+                          <div className="absolute top-3 right-3">
+                            <span className="bg-primary/90 text-white text-xs px-2 py-0.5 rounded-full">
+                              {course.progress}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {course.subject}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Khối {course.gradeLevel}
+                          </span>
+                        </div>
+
+                        <h3 className="font-semibold text-[#181d27] dark:text-white line-clamp-1 mb-1">
+                          {course.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                          {course.description}
+                        </p>
+
+                        {/* Progress */}
+                        {course.status !== "not_started" && (
+                          <div className="mb-3">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-500">Tiến độ</span>
+                              <span className="font-medium">{course.masteredKps}/{course.totalKps} KP</span>
+                            </div>
+                            <Progress
+                              value={course.progress}
+                              size="sm"
+                              color={course.status === "completed" ? "success" : "primary"}
+                            />
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/dashboard/courses/${course.id}`}
+                            className="flex-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              size="sm"
+                              color={course.status === "not_started" ? "primary" : "primary"}
+                              className="w-full"
+                              startContent={course.status === "not_started" ? <Play className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                            >
+                              {course.status === "not_started" ? "Bắt đầu" : "Tiếp tục"}
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Course Detail Modal */}
+        <Modal isOpen={isOpen} onClose={onClose} size="3xl" scrollBehavior="inside">
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="flex flex-col gap-1">
-                  <h2 className="text-xl font-semibold text-[#181d27]">
+                <ModalHeader>
+                  <h2 className="text-xl font-bold text-[#181d27]">
                     {selectedCourse?.title}
                   </h2>
                 </ModalHeader>
                 <ModalBody>
                   {loadingDetail ? (
-                    <div className="flex items-center justify-center py-8">
-                      <p className="text-[#535862]">Đang tải chi tiết...</p>
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-6">
+                    <div className="space-y-6">
+                      {/* Course Image */}
                       {selectedCourse?.thumbnailUrl && (
-                        <div className="relative w-full h-64 rounded-lg overflow-hidden">
+                        <div className="relative w-full h-48 rounded-xl overflow-hidden">
                           <Image
                             src={selectedCourse.thumbnailUrl}
                             alt={selectedCourse.title}
@@ -539,189 +537,71 @@ export default function MyCoursesPage() {
                         </div>
                       )}
 
-                      <div className="flex flex-col gap-4">
-                        <div>
-                          <h3 className="font-semibold text-lg text-[#181d27] mb-2">
-                            Mô tả
-                          </h3>
-                          <p className="text-sm text-[#535862]">
-                            {selectedCourse?.description}
-                          </p>
+                      {/* Course Info */}
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-blue-50 rounded-xl p-4 text-center">
+                          <Target className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                          <p className="text-lg font-bold">{selectedCourse?.masteredKps}/{selectedCourse?.totalKps}</p>
+                          <p className="text-xs text-gray-500">Điểm kiến thức</p>
                         </div>
-
-                        {/* Course Analytics */}
-                        {courseAnalytics && (
-                          <div>
-                            <h3 className="font-semibold text-lg text-[#181d27] mb-3 flex items-center gap-2">
-                              <BarChart3 className="w-5 h-5 text-[#7f56d9]" />
-                              Phân tích khóa học
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Completion Rate */}
-                              <div className="border border-[#e9eaeb] rounded-lg p-4 bg-gradient-to-br from-green-50 to-emerald-50">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <CheckSquare className="w-4 h-4 text-green-600" />
-                                  <span className="text-sm font-medium text-green-700">
-                                    Tỷ lệ hoàn thành
-                                  </span>
-                                </div>
-                                <p className="text-2xl font-bold text-green-700">
-                                  {courseAnalytics.completionRate}%
-                                </p>
-                                <p className="text-xs text-green-600 mt-1">
-                                  Học sinh hoàn thành khóa học
-                                </p>
-                              </div>
-
-                              {/* Average Section Time */}
-                              <div className="border border-[#e9eaeb] rounded-lg p-4 bg-gradient-to-br from-blue-50 to-cyan-50">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Clock className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm font-medium text-blue-700">
-                                    Thời gian trung bình
-                                  </span>
-                                </div>
-                                <p className="text-2xl font-bold text-blue-700">
-                                  {courseAnalytics.averageSectionTime} phút
-                                </p>
-                                <p className="text-xs text-blue-600 mt-1">
-                                  Mỗi section
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* High Failure KPs */}
-                            {courseAnalytics.highFailureKps &&
-                              courseAnalytics.highFailureKps.length > 0 && (
-                                <div className="mt-4 border border-[#e9eaeb] rounded-lg p-4 bg-red-50/50">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <AlertCircle className="w-4 h-4 text-red-600" />
-                                    <span className="text-sm font-medium text-red-700">
-                                      Điểm kiến thức có tỷ lệ sai cao
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    {courseAnalytics.highFailureKps
-                                      .slice(0, 5)
-                                      .map((kp: any) => (
-                                        <div
-                                          key={kp.kpId}
-                                          className="flex items-center justify-between text-sm bg-white rounded p-2"
-                                        >
-                                          <span className="text-[#535862]">
-                                            {kp.kpTitle}
-                                          </span>
-                                          <span className="font-semibold text-red-600">
-                                            {kp.errorRate}% sai
-                                          </span>
-                                        </div>
-                                      ))}
-                                  </div>
-                                </div>
-                              )}
-
-                            {/* Most Difficult Modules */}
-                            {courseAnalytics.mostDifficultModules &&
-                              courseAnalytics.mostDifficultModules.length >
-                                0 && (
-                                <div className="mt-4 border border-[#e9eaeb] rounded-lg p-4 bg-orange-50/50">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <TrendingDown className="w-4 h-4 text-orange-600" />
-                                    <span className="text-sm font-medium text-orange-700">
-                                      Module khó nhất
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    {courseAnalytics.mostDifficultModules.map(
-                                      (module: any) => (
-                                        <div
-                                          key={module.moduleId}
-                                          className="flex items-center justify-between text-sm bg-white rounded p-2"
-                                        >
-                                          <span className="text-[#535862]">
-                                            {module.moduleTitle}
-                                          </span>
-                                          <span className="font-semibold text-orange-600">
-                                            {module.averageMastery}% nắm vững
-                                          </span>
-                                        </div>
-                                      )
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                          </div>
-                        )}
-
-                        {loadingAnalytics && (
-                          <div className="flex items-center justify-center py-4">
-                            <p className="text-sm text-[#535862]">
-                              Đang tải phân tích...
-                            </p>
-                          </div>
-                        )}
-
-                        {courseStructure && (
-                          <div>
-                            <h3 className="font-semibold text-lg text-[#181d27] mb-3">
-                              Cấu trúc khóa học
-                            </h3>
-                            <div className="flex flex-col gap-4">
-                              {courseStructure.modules?.map(
-                                (module: any, moduleIndex: number) => (
-                                  <div
-                                    key={module.id}
-                                    className="border border-[#e9eaeb] rounded-lg p-4"
-                                  >
-                                    <h4 className="font-medium text-[#181d27] mb-2">
-                                      {moduleIndex + 1}. {module.title}
-                                    </h4>
-                                    {module.description && (
-                                      <p className="text-sm text-[#535862] mb-3">
-                                        {module.description}
-                                      </p>
-                                    )}
-                                    {module.sections &&
-                                      module.sections.length > 0 && (
-                                        <div className="flex flex-col gap-2 ml-4">
-                                          {module.sections.map(
-                                            (section: any) => (
-                                              <div
-                                                key={section.id}
-                                                className="text-sm text-[#535862]"
-                                              >
-                                                • {section.title}
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      )}
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        <div className="bg-green-50 rounded-xl p-4 text-center">
+                          <GraduationCap className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                          <p className="text-lg font-bold">{selectedCourse?.progress}%</p>
+                          <p className="text-xs text-gray-500">Tiến độ</p>
+                        </div>
+                        <div className="bg-purple-50 rounded-xl p-4 text-center">
+                          <Award className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                          <p className="text-lg font-bold">{selectedCourse?.gradeLevel}</p>
+                          <p className="text-xs text-gray-500">Khối lớp</p>
+                        </div>
                       </div>
+
+                      {/* Description */}
+                      <div>
+                        <h3 className="font-semibold text-[#181d27] mb-2">Mô tả</h3>
+                        <p className="text-gray-600">{selectedCourse?.description}</p>
+                      </div>
+
+                      {/* Course Structure */}
+                      {courseStructure?.modules && (
+                        <div>
+                          <h3 className="font-semibold text-[#181d27] mb-3">Nội dung khóa học</h3>
+                          <div className="space-y-3">
+                            {courseStructure.modules.map((module: any, idx: number) => (
+                              <div key={module.id} className="border rounded-xl p-4">
+                                <div className="flex items-center gap-3">
+                                  <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                                    {idx + 1}
+                                  </span>
+                                  <h4 className="font-medium">{module.title}</h4>
+                                </div>
+                                {module.sections?.length > 0 && (
+                                  <div className="mt-3 ml-11 space-y-2">
+                                    {module.sections.map((section: any) => (
+                                      <div key={section.id} className="text-sm text-gray-500 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                        {section.title}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="default" variant="light" onPress={onClose}>
+                  <Button variant="light" onPress={onClose}>
                     Đóng
                   </Button>
-                  {selectedCourse && (
-                    <Button
-                      className="bg-[#7f56d9] text-white"
-                      endContent={<ArrowRight className="w-4 h-4" />}
-                      onPress={() => {
-                        onClose();
-                        handleStartCourse(selectedCourse.id);
-                      }}
-                    >
-                      Bắt đầu học
+                  <Link href={`/dashboard/courses/${selectedCourse?.id}`}>
+                    <Button color="primary" startContent={<ArrowRight className="w-4 h-4" />}>
+                      {selectedCourse?.status === "not_started" ? "Bắt đầu học" : "Tiếp tục học"}
                     </Button>
-                  )}
+                  </Link>
                 </ModalFooter>
               </>
             )}
