@@ -15,8 +15,6 @@ import {
   knowledgePoint,
   teacherClassMap,
   questionAttempts,
-  assignments,
-  assignmentSubmissions,
 } from '../../db';
 import { UsersService } from '../users/users.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -516,24 +514,9 @@ export class StudentsService {
     }
 
     // 6. Get pending assignments count
-    const pendingAssignments = await db
-      .select({ count: count() })
-      .from(assignments)
-      .innerJoin(classCourses, eq(assignments.courseId, classCourses.courseId))
-      .where(
-        and(
-          inArray(classCourses.classId, classIds),
-          eq(assignments.isPublished, true),
-          gte(assignments.dueDate, new Date()),
-          sql`${assignments.id} NOT IN (
-            SELECT ${assignmentSubmissions.assignmentId} 
-            FROM ${assignmentSubmissions} 
-            WHERE ${assignmentSubmissions.studentId} = ${studentId}
-          )`
-        )
-      );
-
-    const pendingAssignmentsCount = pendingAssignments[0]?.count || 0;
+    // Note: Currently simplified since there's no assignmentSubmissions table
+    // TODO: Implement proper assignment tracking when submissions table is added
+    const pendingAssignmentsCount = 0;
 
     // 7. Get recent activity (last 7 days)
     const sevenDaysAgo = new Date();
@@ -569,7 +552,6 @@ export class StudentsService {
       .select({
         className: classes.className,
         gradeLevel: classes.gradeLevel,
-        schoolName: classes.schoolName,
       })
       .from(classEnrollment)
       .innerJoin(classes, eq(classEnrollment.classId, classes.id))

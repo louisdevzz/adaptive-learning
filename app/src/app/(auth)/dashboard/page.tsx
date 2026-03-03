@@ -734,7 +734,6 @@ interface StudentStats {
   classInfo: {
     className: string;
     gradeLevel: number;
-    schoolName: string;
   } | null;
 }
 
@@ -860,7 +859,7 @@ function StudentDashboardContent({ user }: { user: any }) {
               {stats.classInfo.className}
             </p>
             <p className="text-sm text-[#717680] dark:text-gray-400">
-              {stats.classInfo.schoolName} • Khối {stats.classInfo.gradeLevel}
+              Khối {stats.classInfo.gradeLevel}
             </p>
           </div>
         </div>
