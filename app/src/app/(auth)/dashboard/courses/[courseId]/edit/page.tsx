@@ -20,7 +20,6 @@ import {
   GripVertical,
   Loader2,
   ChevronLeft,
-  Save,
   MoreVertical,
   Eye,
   BookOpen,
@@ -29,6 +28,7 @@ import {
   Award,
   ArrowUpRight,
   X,
+  Settings,
 } from "lucide-react";
 import { Button } from "@heroui/button";
 import {
@@ -126,6 +126,14 @@ export default function CourseEditPage() {
   // Modal states
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [showSectionModal, setShowSectionModal] = useState(false);
+  const [showCourseSettingsModal, setShowCourseSettingsModal] = useState(false);
+  const [courseForm, setCourseForm] = useState({
+    title: "",
+    description: "",
+    subject: "",
+    gradeLevel: 1,
+    active: true,
+  });
   const [showKpModal, setShowKpModal] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleItem | null>(null);
   const [editingSection, setEditingSection] = useState<SectionItem | null>(null);
@@ -153,6 +161,13 @@ export default function CourseEditPage() {
       ]);
 
       setCourse(courseData);
+      setCourseForm({
+        title: courseData.title,
+        description: courseData.description || "",
+        subject: courseData.subject,
+        gradeLevel: courseData.gradeLevel,
+        active: courseData.active,
+      });
       const transformedModules = structureData.modules.map((mod: any) => ({
         id: mod.id,
         title: mod.title,
@@ -378,6 +393,21 @@ export default function CourseEditPage() {
     }
   };
 
+  const handleUpdateCourse = async () => {
+    try {
+      setSaving(true);
+      await api.courses.update(courseId, courseForm);
+      toast.success("Cập nhật khóa học thành công");
+      setShowCourseSettingsModal(false);
+      await fetchCourseData();
+    } catch (error: any) {
+      console.error("Error updating course:", error);
+      toast.error(error.response?.data?.message || "Không thể cập nhật khóa học");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleKpClick = async (kpId: string) => {
     try {
       setKpDetailLoading(true);
@@ -477,10 +507,12 @@ export default function CourseEditPage() {
               Xem trước
             </Button>
             <Button
-              className="bg-primary text-white"
-              startContent={<Save className="w-4 h-4" />}
+              variant="bordered"
+              className="border-[#d5d7da]"
+              startContent={<Settings className="w-4 h-4" />}
+              onClick={() => setShowCourseSettingsModal(true)}
             >
-              Lưu thay đổi
+              Chỉnh sửa thông tin
             </Button>
           </div>
         </div>
@@ -1020,6 +1052,98 @@ export default function CourseEditPage() {
           onSave={handleSaveKp}
           initialData={editingKp}
         />
+
+        {/* Course Settings Modal */}
+        <Modal isOpen={showCourseSettingsModal} onOpenChange={setShowCourseSettingsModal} size="2xl">
+          <ModalContent>
+            <ModalHeader>
+              <h3 className="text-lg font-bold text-[#181d27] dark:text-white">
+                Chỉnh sửa thông tin khóa học
+              </h3>
+            </ModalHeader>
+            <ModalBody>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                    Tên khóa học <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={courseForm.title}
+                    onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                    placeholder="Nhập tên khóa học"
+                    className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                    Mô tả
+                  </label>
+                  <textarea
+                    value={courseForm.description}
+                    onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                    placeholder="Mô tả về khóa học"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                      Môn học <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={courseForm.subject}
+                      onChange={(e) => setCourseForm({ ...courseForm, subject: e.target.value })}
+                      placeholder="VD: Toán, Lý, Hóa..."
+                      className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
+                      Khối lớp <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={courseForm.gradeLevel}
+                      onChange={(e) => setCourseForm({ ...courseForm, gradeLevel: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
+                        <option key={grade} value={grade}>Khối {grade}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="active"
+                    checked={courseForm.active}
+                    onChange={(e) => setCourseForm({ ...courseForm, active: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="active" className="text-sm text-[#181d27] dark:text-white">
+                    Xuất bản khóa học (hiển thị công khai)
+                  </label>
+                </div>
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="light" onPress={() => setShowCourseSettingsModal(false)}>
+                Hủy
+              </Button>
+              <Button
+                color="primary"
+                onPress={handleUpdateCourse}
+                isLoading={saving}
+                isDisabled={!courseForm.title || !courseForm.subject}
+              >
+                Cập nhật
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </div>
     </LayoutDashboard>
   );
