@@ -61,18 +61,20 @@ interface LearningPath {
 
 interface LearningPathItem {
   id: string;
-  pathId: string;
-  courseId: string | null;
-  kpId: string | null;
-  itemType: "course" | "kp" | "quiz" | "assignment";
+  learningPathId: string;
+  itemType: "kp" | "section" | "assignment";
+  itemId: string;
   orderIndex: number;
   status: "not_started" | "in_progress" | "completed";
-  course?: {
+  kp?: {
     id: string;
     title: string;
-    subject: string;
   };
-  kp?: {
+  section?: {
+    id: string;
+    title: string;
+  };
+  assignment?: {
     id: string;
     title: string;
   };
@@ -570,16 +572,14 @@ export default function LearningPathPage() {
 
                                   <div className="flex-1">
                                     <h4 className="font-medium">
-                                      {item.course?.title || item.kp?.title || "Không có tên"}
+                                      {item.kp?.title || item.section?.title || item.assignment?.title || "Không có tên"}
                                     </h4>
                                     <div className="flex items-center gap-2 mt-1">
                                       <Chip size="sm" variant="flat">
-                                        {item.itemType === "course"
-                                          ? "Khóa học"
-                                          : item.itemType === "kp"
+                                        {item.itemType === "kp"
                                           ? "Điểm kiến thức"
-                                          : item.itemType === "quiz"
-                                          ? "Bài kiểm tra"
+                                          : item.itemType === "section"
+                                          ? "Chương học"
                                           : "Bài tập"}
                                       </Chip>
                                       {item.course?.subject && (
