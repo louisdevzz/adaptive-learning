@@ -14,8 +14,6 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Input,
-  Textarea,
   useDisclosure,
   Dropdown,
   DropdownTrigger,
@@ -26,7 +24,6 @@ import {
 } from "@heroui/react";
 import {
   Route,
-  Plus,
   Calendar,
   MoreVertical,
   CheckCircle2,
@@ -36,8 +33,9 @@ import {
   TrendingUp,
   AlertCircle,
   Target,
+  GraduationCap,
+  Lightbulb,
 } from "lucide-react";
-import Link from "next/link";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -51,6 +49,7 @@ interface LearningPath {
   progress: number;
   createdAt: string;
   items?: LearningPathItem[];
+  createdBy?: string;
 }
 
 interface LearningPathItem {
@@ -83,15 +82,6 @@ export default function LearningPathPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const {
-    isOpen: isCreateOpen,
-    onOpen: onCreateOpen,
-    onClose: onCreateClose,
-  } = useDisclosure();
-
-  const [newPathTitle, setNewPathTitle] = useState("");
-  const [newPathDescription, setNewPathDescription] = useState("");
-  const [newPathTargetDate, setNewPathTargetDate] = useState("");
 
   useEffect(() => {
     if (user?.id) {
@@ -140,32 +130,6 @@ export default function LearningPathPage() {
     }
   };
 
-  const handleCreatePath = async () => {
-    if (!newPathTitle.trim()) {
-      toast.error("Vui lòng nhập tên lộ trình");
-      return;
-    }
-
-    try {
-      await api.learningPaths.create({
-        title: newPathTitle,
-        description: newPathDescription || undefined,
-        studentId: user?.id || "",
-        targetDate: newPathTargetDate || undefined,
-        status: "active",
-      });
-      toast.success("Tạo lộ trình thành công");
-      onCreateClose();
-      setNewPathTitle("");
-      setNewPathDescription("");
-      setNewPathTargetDate("");
-      fetchLearningPaths();
-    } catch (error) {
-      console.error("Failed to create path:", error);
-      toast.error("Không thể tạo lộ trình");
-    }
-  };
-
   const handleUpdateItemStatus = async (
     pathId: string,
     itemId: string,
@@ -180,19 +144,6 @@ export default function LearningPathPage() {
     } catch (error) {
       console.error("Failed to update item status:", error);
       toast.error("Không thể cập nhật trạng thái");
-    }
-  };
-
-  const handleDeletePath = async (pathId: string) => {
-    if (!confirm("Bạn có chắc muốn xóa lộ trình này?")) return;
-
-    try {
-      await api.learningPaths.delete(pathId);
-      toast.success("Xóa lộ trình thành công");
-      fetchLearningPaths();
-    } catch (error) {
-      console.error("Failed to delete path:", error);
-      toast.error("Không thể xóa lộ trình");
     }
   };
 
@@ -259,12 +210,23 @@ export default function LearningPathPage() {
               Lộ trình học tập
             </h1>
             <p className="text-[#717680] dark:text-gray-400 mt-1">
-              Lập kế hoạch và theo dõi lộ trình học tập của bạn
+              Xem và thực hiện các lộ trình được giáo viên phân công
             </p>
           </div>
-          <Button color="primary" startContent={<Plus className="w-4 h-4" />} onPress={onCreateOpen}>
-            Tạo lộ trình mới
-          </Button>
+        </div>
+
+        {/* Info Banner */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
+          <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-blue-900 dark:text-blue-200">
+              Lộ trình được phân công bởi giáo viên
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+              Các lộ trình học tập được giáo viên hoặc admin tạo và phân công cho bạn. 
+              Hãy hoàn thành từng mục tiêu để đạt được kết quả tốt nhất.
+            </p>
+          </div>
         </div>
 
         {/* Stats */}
@@ -373,17 +335,15 @@ export default function LearningPathPage() {
             {filteredPaths.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                  <Route className="w-10 h-10 text-gray-400" />
+                  <GraduationCap className="w-10 h-10 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
                   Chưa có lộ trình nào
                 </h3>
-                <p className="text-gray-500 max-w-md mb-4">
-                  Tạo lộ trình học tập để lập kế hoạch và theo dõi tiến độ học tập của bạn
+                <p className="text-gray-500 max-w-md">
+                  Giáo viên chưa phân công lộ trình học tập nào cho bạn. 
+                  Hãy liên hệ giáo viên để được hỗ trợ.
                 </p>
-                <Button color="primary" startContent={<Plus className="w-4 h-4" />} onPress={onCreateOpen}>
-                  Tạo lộ trình đầu tiên
-                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -409,26 +369,14 @@ export default function LearningPathPage() {
                           )}
                         </div>
                       </div>
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button isIconOnly variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu>
-                          <DropdownItem key="view" onPress={() => handleViewDetails(path)}>
-                            Xem chi tiết
-                          </DropdownItem>
-                          <DropdownItem
-                            key="delete"
-                            className="text-danger"
-                            color="danger"
-                            onPress={() => handleDeletePath(path.id)}
-                          >
-                            Xóa
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
+                      <Button 
+                        isIconOnly 
+                        variant="light" 
+                        size="sm"
+                        onPress={() => handleViewDetails(path)}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
                     </div>
 
                     {path.description && (
@@ -572,7 +520,11 @@ export default function LearningPathPage() {
 
                                   <Dropdown>
                                     <DropdownTrigger>
-                                      <Button variant="light" size="sm">
+                                      <Button 
+                                        variant="light" 
+                                        size="sm"
+                                        color={item.status === "completed" ? "success" : item.status === "in_progress" ? "primary" : "default"}
+                                      >
                                         {item.status === "completed"
                                           ? "Hoàn thành"
                                           : item.status === "in_progress"
@@ -606,50 +558,6 @@ export default function LearningPathPage() {
                 <ModalFooter>
                   <Button variant="light" onPress={onClose}>
                     Đóng
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
-
-        {/* Create Path Modal */}
-        <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalHeader>
-                  <h2 className="text-xl font-bold text-[#181d27]">Tạo lộ trình mới</h2>
-                </ModalHeader>
-                <ModalBody>
-                  <div className="space-y-4">
-                    <Input
-                      label="Tên lộ trình"
-                      placeholder="VD: Học Toán lớp 10"
-                      value={newPathTitle}
-                      onChange={(e) => setNewPathTitle(e.target.value)}
-                      isRequired
-                    />
-                    <Textarea
-                      label="Mô tả (tùy chọn)"
-                      placeholder="Mô tả mục tiêu của lộ trình này"
-                      value={newPathDescription}
-                      onChange={(e) => setNewPathDescription(e.target.value)}
-                    />
-                    <Input
-                      type="date"
-                      label="Ngày hoàn thành mong muốn (tùy chọn)"
-                      value={newPathTargetDate}
-                      onChange={(e) => setNewPathTargetDate(e.target.value)}
-                    />
-                  </div>
-                </ModalBody>
-                <ModalFooter>
-                  <Button variant="light" onPress={onClose}>
-                    Hủy
-                  </Button>
-                  <Button color="primary" onPress={handleCreatePath}>
-                    Tạo lộ trình
                   </Button>
                 </ModalFooter>
               </>
