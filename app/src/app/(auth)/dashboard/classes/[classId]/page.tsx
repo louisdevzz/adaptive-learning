@@ -193,11 +193,11 @@ export default function ClassPage() {
     fetchData();
   }, [fetchData]);
 
-  // Fetch all students for the add student modal
+  // Fetch available students for the add student modal (not enrolled in this class)
   const fetchAllStudents = async () => {
     try {
       setLoadingAllStudents(true);
-      const data = await api.students.getAll();
+      const data = await api.classes.getAvailableStudents(classId);
       setAllStudents(data);
     } catch (err) {
       console.error("Error fetching students:", err);

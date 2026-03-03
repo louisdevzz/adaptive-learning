@@ -397,6 +397,11 @@ export const api = {
       return response.data;
     },
 
+    getAvailableStudents: async (classId: string) => {
+      const response = await apiClient.get(`/classes/${classId}/available-students`);
+      return response.data;
+    },
+
     removeStudent: async (classId: string, studentId: string) => {
       const response = await apiClient.delete(
         `/classes/${classId}/students/${studentId}`

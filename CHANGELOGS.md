@@ -3,6 +3,11 @@
 ## [Unreleased] - 2026-03-03
 
 ### Added
+- **Available Students API**: New endpoint to get students not enrolled in a specific class
+  - API endpoint: `GET /api/classes/:id/available-students` (teacher/admin access)
+  - Returns all students who are not currently enrolled in the specified class
+  - Fixed issue where teachers couldn't see available students to add to their classes
+
 - **Admin Password Reset**: Password reset functionality for users from user detail page (admin only)
   - API endpoint: `POST /api/users/:id/reset-password` (admin role required)
   - Frontend modal with password validation and generate random password feature

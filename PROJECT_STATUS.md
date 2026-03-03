@@ -113,6 +113,7 @@ adaptive-learning/
 |---------|--------|
 | Class CRUD | ✅ Complete |
 | Student Enrollment | ✅ Complete |
+| Available Students List | ✅ Complete |
 | Teacher Assignment | ✅ Complete |
 | Class-Course Assignment | ✅ Complete |
 | Class Progress Tracking | ✅ Complete |
@@ -406,6 +407,8 @@ adaptive-learning/
 ### Class Management APIs
 - `GET/POST /api/classes` - Class CRUD
 - `POST /api/classes/:id/students` - Enroll student
+- `GET /api/classes/:id/students` - Get enrolled students
+- `GET /api/classes/:id/available-students` - Get students not enrolled (for adding)
 - `DELETE /api/classes/:id/students/:studentId` - Remove student
 - `POST /api/classes/:id/teachers` - Assign teacher
 - `POST /api/classes/:id/courses` - Assign course
@@ -501,6 +504,12 @@ adaptive-learning/
 ## 📝 Recent Changes
 
 ### [Unreleased] - 2026-03-03
+- ✅ **Available Students API**: Fixed teacher cannot add existing students to class
+  - Backend: `GET /api/classes/:id/available-students` endpoint
+  - Returns students not currently enrolled in the specified class
+  - Updated Frontend: Class detail page now uses new endpoint instead of `api.students.getAll()`
+  - Updated Frontend: StudentsTab component now uses new endpoint
+  
 - ✅ **Admin Password Reset**: Password reset feature from admin panel
   - Backend: `POST /api/users/:id/reset-password` endpoint with role guard
   - Frontend: Password reset modal with validation and password generation
