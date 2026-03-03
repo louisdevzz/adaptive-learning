@@ -501,55 +501,6 @@ adaptive-learning/
 
 ---
 
-## 📝 Recent Changes
-
-### [Unreleased] - 2026-03-03
-- ✅ **Available Students API**: Fixed teacher cannot add existing students to class
-  - Backend: `GET /api/classes/:id/available-students` endpoint
-  - Returns students not currently enrolled in the specified class
-  - Updated Frontend: Class detail page now uses new endpoint instead of `api.students.getAll()`
-  - Updated Frontend: StudentsTab component now uses new endpoint
-  
-- ✅ **Admin Password Reset**: Password reset feature from admin panel
-  - Backend: `POST /api/users/:id/reset-password` endpoint with role guard
-  - Frontend: Password reset modal with validation and password generation
-  - API Integration: Connected to `api.users.resetPassword()` method
-  
-- ✅ **Teacher Dashboard Stats**: New endpoint for teacher-specific statistics
-  - Backend: `GET /api/dashboard/teacher-stats` endpoint
-  - Frontend: Integration with teacher dashboard
-  
-- ✅ **Class Progress Tracking**: Class-level progress monitoring
-  - Backend: `GET /api/classes/:id/progress` endpoint
-  - Frontend: Class progress display
-  
-- ✅ **Teacher Class Filtering**: Classes filtered by assigned teacher
-  - Teachers only see their assigned classes
-  - Admins continue to see all classes
-
-### [Unreleased] - 2026-02-20
-- ✅ **UI/UX Redesign v3.0**: Complete interface redesign
-- ✅ **Firebase Integration**: Firebase Auth, Analytics, Enhanced Dashboard
-- ✅ **Adaptive Learning Features**: Updated and improved adaptive learning
-- ✅ **Bug Fixes**: Login, Middleware, CORS, Deployment
-
-### [2026-01-04]
-- ✅ Knowledge Point Detail View
-- ✅ Questions & Games System (4 types)
-- ✅ Localized Resource Management
-- ✅ AI Content Generation (Theory-based)
-- ✅ Toast Migration (sonner → HeroUI)
-
-### Previous
-- ✅ AI Content Generation for Knowledge Points
-- ✅ Content Field for Knowledge Points
-- ✅ Removed Tags Field
-- ✅ Removed Section Summary Field
-- ✅ Course Management System
-- ✅ User Management System
-
----
-
 ## 🎯 Upcoming Features / Future
 
 Based on code review, the following features may need further development:
