@@ -412,16 +412,7 @@ function LoginForm() {
               </Button>
             </form>
 
-            {/* Sign up link */}
-            <p className="mt-8 text-center text-sm text-gray-500">
-              Chưa có tài khoản?{" "}
-              <Link
-                href="#"
-                className="font-semibold text-black hover:text-blue-600 transition-colors"
-              >
-                Đăng ký ngay
-              </Link>
-            </p>
+            <div className="mt-10 text-center text-sm text-gray-500" />
           </motion.div>
         </div>
       </motion.div>

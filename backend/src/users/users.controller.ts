@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Body,
@@ -12,9 +13,11 @@ import {
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -60,5 +63,16 @@ export class UsersController {
     await this.usersService.deleteUserRole(id);
     await this.usersService.deleteUser(id);
     return { message: 'User deleted successfully' };
+  }
+
+  @Post(':id/reset-password')
+  @Roles('admin')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Param('id') id: string,
+    @Body() resetPasswordDto: { password: string },
+  ) {
+    await this.usersService.resetPassword(id, resetPasswordDto.password);
+    return { message: 'Password reset successfully' };
   }
 }

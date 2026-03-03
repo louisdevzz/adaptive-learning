@@ -6,88 +6,51 @@ import {
   StickyNote,
   Search,
   ChevronDown,
-  RefreshCw,
   Filter,
   TrendingUp,
   Flag,
-  User,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Calendar,
   BookOpen,
   Award,
-  ArrowUpRight,
   MoreVertical,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Button, Avatar, Progress, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import { Button, Avatar, Progress, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Spinner } from "@heroui/react";
+import { api } from "@/lib/api";
 
-interface Student {
+interface StudentProgress {
   id: string;
   name: string;
   email: string;
   avatar?: string;
-  initials?: string;
   progress: number;
   masteryScore: number;
-  attendance: number;
-  lastActive: string;
+  totalKps: number;
+  masteredKps: number;
+  engagementScore: number;
+  lastActive: string | null;
   status: "excellent" | "good" | "at-risk" | "needs-help";
-  riskLevel?: "high" | "medium" | "low";
-  completedLessons: number;
-  totalLessons: number;
+  riskLevel: "high" | "medium" | "low";
+  courseMastery: { courseId: string; score: number }[];
 }
 
-// Progress Ring Component
-function ProgressRing({
-  progress,
-  size = 48,
-  strokeWidth = 4,
-}: {
-  progress: number;
-  size?: number;
-  strokeWidth?: number;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (progress / 100) * circumference;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          className="text-gray-200 dark:text-gray-700"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="text-primary transition-all duration-500"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-[#181d27] dark:text-white">{progress}%</span>
-      </div>
-    </div>
-  );
+interface ClassProgressData {
+  students: StudentProgress[];
+  summary: {
+    totalStudents: number;
+    avgMastery: number;
+    atRiskCount: number;
+    excellentCount: number;
+    totalKpsMastered: number;
+  };
 }
 
 // Stat Card Component
@@ -96,14 +59,12 @@ function StatCard({
   value,
   subtitle,
   icon: Icon,
-  trend,
   color,
 }: {
   title: string;
   value: string;
   subtitle?: string;
   icon: any;
-  trend?: { value: string; positive: boolean };
   color: string;
 }) {
   return (
@@ -112,17 +73,6 @@ function StatCard({
         <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center`}>
           <Icon className="w-6 h-6" />
         </div>
-        {trend && (
-          <span
-            className={`text-xs font-medium px-2 py-1 rounded-full ${
-              trend.positive
-                ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-            }`}
-          >
-            {trend.value}
-          </span>
-        )}
       </div>
       <div className="mt-4">
         <p className="text-2xl font-bold text-[#181d27] dark:text-white">{value}</p>
@@ -133,99 +83,59 @@ function StatCard({
   );
 }
 
+function formatLastActive(dateStr: string | null): string {
+  if (!dateStr) return "Chưa hoạt động";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString("vi-VN");
+}
+
 export default function ClassProgressPage() {
   const params = useParams();
   const classId = params.classId as string;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [timeRange, setTimeRange] = useState("week");
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ClassProgressData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const students: Student[] = [
-    {
-      id: "1",
-      name: "Trần Thị B",
-      email: "btran@adapt.edu.vn",
-      progress: 85,
-      masteryScore: 88,
-      attendance: 95,
-      lastActive: "2 giờ trước",
-      status: "excellent",
-      riskLevel: "low",
-      completedLessons: 42,
-      totalLessons: 50,
-    },
-    {
-      id: "2",
-      name: "Hoàng Văn E",
-      email: "ehoang@adapt.edu.vn",
-      initials: "HE",
-      progress: 72,
-      masteryScore: 75,
-      attendance: 88,
-      lastActive: "5 giờ trước",
-      status: "good",
-      riskLevel: "low",
-      completedLessons: 36,
-      totalLessons: 50,
-    },
-    {
-      id: "3",
-      name: "Nguyễn Thị G",
-      email: "gnguyen@adapt.edu.vn",
-      progress: 58,
-      masteryScore: 62,
-      attendance: 75,
-      lastActive: "1 ngày trước",
-      status: "at-risk",
-      riskLevel: "medium",
-      completedLessons: 29,
-      totalLessons: 50,
-    },
-    {
-      id: "4",
-      name: "Phạm Hoàng H",
-      email: "hpham@adapt.edu.vn",
-      initials: "PH",
-      progress: 35,
-      masteryScore: 40,
-      attendance: 60,
-      lastActive: "3 ngày trước",
-      status: "needs-help",
-      riskLevel: "high",
-      completedLessons: 17,
-      totalLessons: 50,
-    },
-    {
-      id: "5",
-      name: "Lê Kim L",
-      email: "lle@adapt.edu.vn",
-      progress: 92,
-      masteryScore: 94,
-      attendance: 98,
-      lastActive: "1 giờ trước",
-      status: "excellent",
-      riskLevel: "low",
-      completedLessons: 46,
-      totalLessons: 50,
-    },
-    {
-      id: "6",
-      name: "Mai Anh T",
-      email: "tmai@adapt.edu.vn",
-      initials: "MT",
-      progress: 45,
-      masteryScore: 48,
-      attendance: 70,
-      lastActive: "2 ngày trước",
-      status: "at-risk",
-      riskLevel: "high",
-      completedLessons: 22,
-      totalLessons: 50,
-    },
-  ];
+  const fetchProgress = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await api.classes.getClassProgress(classId);
+      setData(result);
+      setError(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Không thể tải dữ liệu tiến độ");
+    } finally {
+      setLoading(false);
+    }
+  }, [classId]);
+
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
+
+  const students = data?.students || [];
+  const summary = data?.summary || {
+    totalStudents: 0,
+    avgMastery: 0,
+    atRiskCount: 0,
+    excellentCount: 0,
+    totalKpsMastered: 0,
+  };
 
   const filteredStudents = students.filter((student) => {
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter ? student.status === statusFilter : true;
     return matchesSearch && matchesStatus;
   });
@@ -293,10 +203,42 @@ export default function ClassProgressPage() {
     }
   };
 
-  // Calculate averages
-  const avgProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length);
-  const avgAttendance = Math.round(students.reduce((acc, s) => acc + s.attendance, 0) / students.length);
-  const atRiskCount = students.filter((s) => s.status === "at-risk" || s.status === "needs-help").length;
+  // Status distribution for chart placeholder
+  const statusCounts = {
+    excellent: students.filter((s) => s.status === "excellent").length,
+    good: students.filter((s) => s.status === "good").length,
+    atRisk: students.filter((s) => s.status === "at-risk").length,
+    needsHelp: students.filter((s) => s.status === "needs-help").length,
+  };
+
+  if (loading) {
+    return (
+      <LayoutDashboard>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner size="lg" />
+            <p className="text-[#717680] dark:text-gray-400">Đang tải tiến độ lớp học...</p>
+          </div>
+        </div>
+      </LayoutDashboard>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutDashboard>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+            <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
+            <Button className="mt-4" onPress={fetchProgress}>
+              Thử lại
+            </Button>
+          </div>
+        </div>
+      </LayoutDashboard>
+    );
+  }
 
   return (
     <LayoutDashboard>
@@ -339,98 +281,136 @@ export default function ClassProgressPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             title="Tiến độ trung bình"
-            value={`${avgProgress}%`}
+            value={`${summary.avgMastery}%`}
             subtitle="Toàn lớp"
             icon={TrendingUp}
             color="bg-blue-50 text-blue-600 dark:bg-blue-900/20"
-            trend={{ value: "+5%", positive: true }}
           />
           <StatCard
-            title="Điểm danh trung bình"
-            value={`${avgAttendance}%`}
-            subtitle="Tuần này"
-            icon={Clock}
+            title="Tổng học sinh"
+            value={summary.totalStudents.toString()}
+            subtitle="Đang học"
+            icon={BookOpen}
             color="bg-green-50 text-green-600 dark:bg-green-900/20"
-            trend={{ value: "+2%", positive: true }}
           />
           <StatCard
             title="Học sinh cần chú ý"
-            value={atRiskCount.toString()}
+            value={summary.atRiskCount.toString()}
             subtitle="Cần can thiệp"
             icon={AlertTriangle}
             color="bg-orange-50 text-orange-600 dark:bg-orange-900/20"
           />
           <StatCard
-            title="Bài học đã hoàn thành"
-            value="245"
-            subtitle="Tổng số 300 bài"
-            icon={BookOpen}
+            title="KP đã nắm vững"
+            value={summary.totalKpsMastered.toString()}
+            subtitle={`${summary.excellentCount} học sinh xuất sắc`}
+            icon={Award}
             color="bg-purple-50 text-purple-600 dark:bg-purple-900/20"
-            trend={{ value: "+12", positive: true }}
           />
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Chart */}
+          {/* Status Distribution */}
           <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-bold text-[#181d27] dark:text-white">Tiến độ học tập</h3>
-                <p className="text-sm text-[#717680] dark:text-gray-400">Biểu đồ tiến độ trung bình theo tuần</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-3 py-1.5 bg-[#f9fafb] dark:bg-gray-800 border border-[#e9eaeb] dark:border-gray-700 rounded-lg text-sm text-[#181d27] dark:text-white"
-                >
-                  <option value="week">7 ngày qua</option>
-                  <option value="month">30 ngày qua</option>
-                  <option value="semester">Học kỳ</option>
-                </select>
+                <h3 className="font-bold text-[#181d27] dark:text-white">Phân bố trạng thái học sinh</h3>
+                <p className="text-sm text-[#717680] dark:text-gray-400">Tổng quan trạng thái học tập</p>
               </div>
             </div>
-            <div className="h-64 bg-[#f9fafb] dark:bg-gray-800/50 rounded-xl border border-dashed border-[#e9eaeb] dark:border-gray-700 flex items-center justify-center">
-              <div className="text-center">
-                <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-[#717680] dark:text-gray-400 text-sm">Biểu đồ tiến độ học tập</p>
-                <p className="text-xs text-[#a4a7ae] dark:text-gray-500 mt-1">Đang phát triển</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Side Charts */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5">
-              <h3 className="font-bold text-[#181d27] dark:text-white mb-4">Phân bố trạng thái</h3>
-              <div className="h-48 bg-[#f9fafb] dark:bg-gray-800/50 rounded-xl border border-dashed border-[#e9eaeb] dark:border-gray-700 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📊</div>
-                  <p className="text-xs text-[#717680] dark:text-gray-400">Biểu đồ phân bố</p>
+            {summary.totalStudents > 0 ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-sm text-[#717680] dark:text-gray-400">Xuất sắc</div>
+                  <div className="flex-1">
+                    <Progress
+                      value={summary.totalStudents > 0 ? (statusCounts.excellent / summary.totalStudents) * 100 : 0}
+                      size="md"
+                      color="success"
+                      className="h-3"
+                    />
+                  </div>
+                  <div className="w-10 text-right text-sm font-semibold text-[#181d27] dark:text-white">{statusCounts.excellent}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-sm text-[#717680] dark:text-gray-400">Tốt</div>
+                  <div className="flex-1">
+                    <Progress
+                      value={summary.totalStudents > 0 ? (statusCounts.good / summary.totalStudents) * 100 : 0}
+                      size="md"
+                      color="primary"
+                      className="h-3"
+                    />
+                  </div>
+                  <div className="w-10 text-right text-sm font-semibold text-[#181d27] dark:text-white">{statusCounts.good}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-sm text-[#717680] dark:text-gray-400">Cần chú ý</div>
+                  <div className="flex-1">
+                    <Progress
+                      value={summary.totalStudents > 0 ? (statusCounts.atRisk / summary.totalStudents) * 100 : 0}
+                      size="md"
+                      color="warning"
+                      className="h-3"
+                    />
+                  </div>
+                  <div className="w-10 text-right text-sm font-semibold text-[#181d27] dark:text-white">{statusCounts.atRisk}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-24 text-sm text-[#717680] dark:text-gray-400">Cần hỗ trợ</div>
+                  <div className="flex-1">
+                    <Progress
+                      value={summary.totalStudents > 0 ? (statusCounts.needsHelp / summary.totalStudents) * 100 : 0}
+                      size="md"
+                      color="danger"
+                      className="h-3"
+                    />
+                  </div>
+                  <div className="w-10 text-right text-sm font-semibold text-[#181d27] dark:text-white">{statusCounts.needsHelp}</div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="h-48 flex items-center justify-center">
+                <p className="text-[#717680] dark:text-gray-400 text-sm">Chưa có học sinh trong lớp</p>
+              </div>
+            )}
+          </div>
 
-            <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5">
-              <h3 className="font-bold text-[#181d27] dark:text-white mb-4">Hoạt động gần đây</h3>
-              <div className="space-y-3">
-                {[
-                  { text: "Trần Thị B hoàn thành bài tập", time: "2 giờ trước", icon: CheckCircle2 },
-                  { text: "Hoàng Văn E đạt 90% bài kiểm tra", time: "5 giờ trước", icon: Award },
-                  { text: "Cảnh báo: Phạm Hoàng H chưa học 3 ngày", time: "1 ngày trước", icon: AlertTriangle },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <item.icon className="w-4 h-4 text-primary" />
-                    </div>
+          {/* Top Students */}
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-5">
+            <h3 className="font-bold text-[#181d27] dark:text-white mb-4">Học sinh cần chú ý</h3>
+            <div className="space-y-3">
+              {students
+                .filter((s) => s.status === "at-risk" || s.status === "needs-help")
+                .slice(0, 5)
+                .map((student) => (
+                  <div key={student.id} className="flex items-start gap-3">
+                    <Avatar
+                      src={student.avatar || undefined}
+                      name={student.name}
+                      size="sm"
+                      className="shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#535862] dark:text-gray-300">{item.text}</p>
-                      <p className="text-xs text-[#a4a7ae] dark:text-gray-500">{item.time}</p>
+                      <p className="text-sm font-medium text-[#181d27] dark:text-white truncate">
+                        {student.name}
+                      </p>
+                      <p className="text-xs text-[#a4a7ae] dark:text-gray-500">
+                        Mastery: {student.masteryScore}% · {student.masteredKps}/{student.totalKps} KP
+                      </p>
                     </div>
+                    {getRiskBadge(student.riskLevel)}
                   </div>
                 ))}
-              </div>
+              {students.filter((s) => s.status === "at-risk" || s.status === "needs-help").length === 0 && (
+                <div className="text-center py-6">
+                  <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-sm text-[#717680] dark:text-gray-400">
+                    Không có học sinh cần can thiệp
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -464,108 +444,105 @@ export default function ClassProgressPage() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680] pointer-events-none" />
               </div>
-              <Button variant="bordered" startContent={<Filter className="w-4 h-4" />} className="border-[#d5d7da]">
-                Lọc nâng cao
-              </Button>
             </div>
           </div>
 
           {/* Students Grid */}
           <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredStudents.map((student) => (
-                <div
-                  key={student.id}
-                  className="bg-[#f9fafb] dark:bg-gray-800/50 rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar
-                        src={student.avatar}
-                        name={student.name}
-                        className="shrink-0"
-                      />
+            {filteredStudents.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-[#717680] dark:text-gray-400">
+                  {students.length === 0
+                    ? "Chưa có học sinh trong lớp"
+                    : "Không tìm thấy học sinh phù hợp"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    className="bg-[#f9fafb] dark:bg-gray-800/50 rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          src={student.avatar || undefined}
+                          name={student.name}
+                          className="shrink-0"
+                        />
+                        <div>
+                          <p className="font-semibold text-[#181d27] dark:text-white">{student.name}</p>
+                          <p className="text-xs text-[#717680] dark:text-gray-400">{student.email}</p>
+                        </div>
+                      </div>
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <Button isIconOnly variant="light" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu>
+                          <DropdownItem key="view">Xem chi tiết</DropdownItem>
+                          <DropdownItem key="progress">Tiến độ chi tiết</DropdownItem>
+                          <DropdownItem key="contact">Liên hệ phụ huynh</DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </div>
+
+                    {/* Status Badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {getStatusBadge(student.status)}
+                      {getRiskBadge(student.riskLevel)}
+                    </div>
+
+                    {/* Progress Stats */}
+                    <div className="space-y-3">
                       <div>
-                        <p className="font-semibold text-[#181d27] dark:text-white">{student.name}</p>
-                        <p className="text-xs text-[#717680] dark:text-gray-400">{student.email}</p>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-[#717680] dark:text-gray-400">Tiến độ</span>
+                          <span className="font-medium text-[#181d27] dark:text-white">{student.progress}%</span>
+                        </div>
+                        <Progress value={student.progress} size="sm" className="h-1.5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-[#717680] dark:text-gray-400">Điểm nắm vững KP</span>
+                          <span className="font-medium text-[#181d27] dark:text-white">{student.masteryScore}%</span>
+                        </div>
+                        <Progress value={student.masteryScore} size="sm" className="h-1.5" color="success" />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-[#717680] dark:text-gray-400">Mức độ tham gia</span>
+                          <span className="font-medium text-[#181d27] dark:text-white">{student.engagementScore}%</span>
+                        </div>
+                        <Progress value={student.engagementScore} size="sm" className="h-1.5" color="warning" />
                       </div>
                     </div>
-                    <Dropdown>
-                      <DropdownTrigger>
-                        <Button isIconOnly variant="light" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownTrigger>
-                      <DropdownMenu>
-                        <DropdownItem key="view">Xem chi tiết</DropdownItem>
-                        <DropdownItem key="progress">Tiến độ chi tiết</DropdownItem>
-                        <DropdownItem key="contact">Liên hệ phụ huynh</DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                  </div>
 
-                  {/* Status Badges */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {getStatusBadge(student.status)}
-                    {getRiskBadge(student.riskLevel)}
-                  </div>
-
-                  {/* Progress Stats */}
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-[#717680] dark:text-gray-400">Tiến độ</span>
-                        <span className="font-medium text-[#181d27] dark:text-white">{student.progress}%</span>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#e9eaeb] dark:border-gray-700">
+                      <div className="flex items-center gap-1 text-xs text-[#717680] dark:text-gray-400">
+                        <Clock className="w-3 h-3" />
+                        {formatLastActive(student.lastActive)}
                       </div>
-                      <Progress value={student.progress} size="sm" className="h-1.5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-[#717680] dark:text-gray-400">Điểm nắm vững</span>
-                        <span className="font-medium text-[#181d27] dark:text-white">{student.masteryScore}%</span>
+                      <div className="text-xs text-[#717680] dark:text-gray-400">
+                        {student.masteredKps}/{student.totalKps} KP
                       </div>
-                      <Progress value={student.masteryScore} size="sm" className="h-1.5" color="success" />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-[#717680] dark:text-gray-400">Điểm danh</span>
-                        <span className="font-medium text-[#181d27] dark:text-white">{student.attendance}%</span>
-                      </div>
-                      <Progress value={student.attendance} size="sm" className="h-1.5" color="warning" />
                     </div>
                   </div>
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#e9eaeb] dark:border-gray-700">
-                    <div className="flex items-center gap-1 text-xs text-[#717680] dark:text-gray-400">
-                      <Clock className="w-3 h-3" />
-                      {student.lastActive}
-                    </div>
-                    <div className="text-xs text-[#717680] dark:text-gray-400">
-                      {student.completedLessons}/{student.totalLessons} bài
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
           <div className="px-4 py-3 border-t border-[#e9eaeb] dark:border-gray-800 flex items-center justify-between bg-[#f9fafb] dark:bg-gray-800/30">
             <span className="text-sm text-[#717680] dark:text-gray-400">
-              Hiển thị <strong className="text-[#181d27] dark:text-white">{filteredStudents.length}</strong> học sinh
+              Hiển thị <strong className="text-[#181d27] dark:text-white">{filteredStudents.length}</strong> / {students.length} học sinh
             </span>
-            <div className="flex items-center gap-1">
-              <Button isIconOnly variant="light" size="sm" isDisabled>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button size="sm" className="bg-primary text-white min-w-[32px]">
-                1
-              </Button>
-              <Button isIconOnly variant="light" size="sm" isDisabled>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
         </div>
       </div>

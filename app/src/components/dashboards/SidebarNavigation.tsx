@@ -81,7 +81,7 @@ const menuItems: Record<string, MenuItem[]> = {
       submenu: courseManagementSubmenu,
     },
     { icon: Users, label: "Quản lý học sinh", href: "/dashboard/students" },
-    { icon: School, label: "Lớp học", href: "/dashboard/classes" },
+    { icon: School, label: "Quản lý Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
   student: [
@@ -267,7 +267,7 @@ export function SidebarNavigation() {
           {user && (
             <Dropdown placement="bottom-end">
               <DropdownTrigger>
-                <button className="flex items-center gap-2 pl-2 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <button className="flex items-center gap-2 pl-2 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                   <Avatar
                     src={
                       user.avatarUrl ||
@@ -290,34 +290,29 @@ export function SidebarNavigation() {
               >
                 <DropdownItem
                   key="settings"
-                  textValue="Settings"
                   startContent={<Settings className="w-4 h-4 text-[#4c669a]" />}
                   as={Link}
                   href="/dashboard/settings"
+                  className="cursor-pointer text-[#0d121b] dark:text-gray-200"
                 >
-                  <span className="text-[#0d121b] dark:text-gray-200">
-                    Cài đặt
-                  </span>
+                  Cài đặt
                 </DropdownItem>
                 <DropdownItem
                   key="help"
-                  textValue="Help"
                   startContent={
                     <HelpCircle className="w-4 h-4 text-[#4c669a]" />
                   }
+                  className="cursor-pointer text-[#0d121b] dark:text-gray-200"
                 >
-                  <span className="text-[#0d121b] dark:text-gray-200">
-                    Hỗ trợ
-                  </span>
+                  Hỗ trợ
                 </DropdownItem>
                 <DropdownItem
                   key="logout"
-                  textValue="Logout"
                   startContent={<LogOut className="w-4 h-4 text-[#b42318]" />}
                   onPress={handleLogout}
-                  className="text-[#b42318]"
+                  className="cursor-pointer text-[#b42318]"
                 >
-                  <span className="text-[#b42318]">Đăng xuất</span>
+                  Đăng xuất
                 </DropdownItem>
               </DropdownMenu>
             </Dropdown>

@@ -174,4 +174,29 @@ export class UsersService {
     }
     return result;
   }
+
+  async resetPassword(id: string, newPassword: string) {
+    // Check if user exists
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Hash the new password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        passwordHash: passwordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+
+    this.logger.log(`Password reset successfully for user: ${user.email}`);
+    return updatedUser;
+  }
 }

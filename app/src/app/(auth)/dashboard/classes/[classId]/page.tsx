@@ -23,12 +23,16 @@ import {
   ArrowUpRight,
   Users,
   BookOpen,
+  X,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Class, ClassEnrollment } from "@/types/class";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
+import { toast } from "sonner";
 import {
   Button,
   Dropdown,
@@ -37,6 +41,12 @@ import {
   DropdownItem,
   Avatar,
   Progress,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
 } from "@heroui/react";
 
 // Stat Card Component
@@ -142,6 +152,10 @@ export default function ClassPage() {
   const params = useParams();
   const classId = params.classId as string;
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isTeacher = user?.role?.toLowerCase() === "teacher";
+  const canAddStudent = isAdmin || isTeacher;
 
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<ClassEnrollment[]>([]);
@@ -149,6 +163,13 @@ export default function ClassPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+
+  // Add student modal states
+  const { isOpen: isAddStudentOpen, onOpen: onAddStudentOpen, onOpenChange: onAddStudentOpenChange } = useDisclosure();
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [addStudentSearch, setAddStudentSearch] = useState("");
+  const [loadingAllStudents, setLoadingAllStudents] = useState(false);
+  const [enrollingStudentId, setEnrollingStudentId] = useState<string | null>(null);
 
   const fetchData = React.useCallback(async () => {
     if (!classId) return;
@@ -171,6 +192,54 @@ export default function ClassPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Fetch all students for the add student modal
+  const fetchAllStudents = async () => {
+    try {
+      setLoadingAllStudents(true);
+      const data = await api.students.getAll();
+      setAllStudents(data);
+    } catch (err) {
+      console.error("Error fetching students:", err);
+    } finally {
+      setLoadingAllStudents(false);
+    }
+  };
+
+  const handleOpenAddStudent = () => {
+    fetchAllStudents();
+    setAddStudentSearch("");
+    onAddStudentOpen();
+  };
+
+  const handleEnrollStudent = async (studentId: string) => {
+    try {
+      setEnrollingStudentId(studentId);
+      await api.classes.enrollStudent(classId, { studentId, status: "active" });
+      toast.success("Đã thêm học sinh vào lớp");
+      await fetchData();
+      // Update allStudents list to reflect the change
+      setAllStudents((prev) => prev);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Lỗi khi thêm học sinh";
+      toast.error(msg);
+    } finally {
+      setEnrollingStudentId(null);
+    }
+  };
+
+  // Filter students in the add modal (exclude already enrolled)
+  const enrolledStudentIds = new Set(students.map((s) => s.student.id));
+  const availableStudents = allStudents.filter((s) => {
+    if (enrolledStudentIds.has(s.id)) return false;
+    if (!addStudentSearch.trim()) return true;
+    const q = addStudentSearch.toLowerCase();
+    return (
+      s.fullName?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q) ||
+      s.studentInfo?.studentCode?.toLowerCase().includes(q)
+    );
+  });
 
   // Filter students
   const filteredStudents = students.filter((enrollment) => {
@@ -303,13 +372,15 @@ export default function ClassPage() {
             >
               Không gian làm việc
             </Button>
-            <Button
-              className="bg-primary text-white"
-              startContent={<UserPlus className="w-4 h-4" />}
-              onClick={() => router.push(`/dashboard/users/create`)}
-            >
-              Thêm học sinh
-            </Button>
+            {canAddStudent && (
+              <Button
+                className="bg-primary text-white"
+                startContent={<UserPlus className="w-4 h-4" />}
+                onPress={handleOpenAddStudent}
+              >
+                Thêm học sinh
+              </Button>
+            )}
           </div>
         </div>
 
@@ -345,9 +416,9 @@ export default function ClassPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Student List - Takes 2 columns */}
-          <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden">
+          <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden flex flex-col h-[600px]">
             {/* Toolbar */}
             <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800 flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
@@ -376,7 +447,7 @@ export default function ClassPage() {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div className="flex-1 overflow-auto">
               <table className="w-full">
                 <thead className="bg-[#f9fafb] dark:bg-gray-800/50">
                   <tr>
@@ -504,7 +575,7 @@ export default function ClassPage() {
 
             {/* Pagination */}
             {filteredStudents.length > 0 && (
-              <div className="px-4 py-3 border-t border-[#e9eaeb] dark:border-gray-800 flex items-center justify-between bg-[#f9fafb] dark:bg-gray-800/30">
+              <div className="px-4 py-3 border-t border-[#e9eaeb] dark:border-gray-800 flex items-center justify-between bg-[#f9fafb] dark:bg-gray-800/30 shrink-0">
                 <span className="text-sm text-[#717680] dark:text-gray-400">
                   Hiển thị{" "}
                   <strong className="text-[#181d27] dark:text-white">
@@ -627,6 +698,102 @@ export default function ClassPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Student Modal */}
+      <Modal
+        isOpen={isAddStudentOpen}
+        onOpenChange={onAddStudentOpenChange}
+        size="2xl"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h2 className="text-lg font-bold text-[#181d27] dark:text-white">
+                  Thêm học sinh vào lớp {classData?.className}
+                </h2>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-normal">
+                  Chọn học sinh có sẵn trong hệ thống để thêm vào lớp
+                </p>
+              </ModalHeader>
+              <ModalBody>
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680]" />
+                  <input
+                    type="text"
+                    value={addStudentSearch}
+                    onChange={(e) => setAddStudentSearch(e.target.value)}
+                    placeholder="Tìm theo tên, email, mã học sinh..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#f9fafb] dark:bg-gray-800 border border-[#e9eaeb] dark:border-gray-700 rounded-lg text-sm text-[#181d27] dark:text-white placeholder:text-[#a4a7ae] focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                {loadingAllStudents ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : availableStudents.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-[#717680] dark:text-gray-400">
+                      {addStudentSearch
+                        ? "Không tìm thấy học sinh phù hợp"
+                        : "Tất cả học sinh đã được thêm vào lớp"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[400px]">
+                    {availableStudents.map((student) => (
+                      <div
+                        key={student.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-[#e9eaeb] dark:border-gray-700 hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar
+                            src={student.avatarUrl || undefined}
+                            size="sm"
+                            className="shrink-0"
+                            fallback={student.fullName?.charAt(0)?.toUpperCase() || "?"}
+                          />
+                          <div>
+                            <p className="font-medium text-sm text-[#181d27] dark:text-white">
+                              {student.fullName}
+                            </p>
+                            <p className="text-xs text-[#717680] dark:text-gray-400">
+                              {student.email}
+                              {student.studentInfo?.studentCode && (
+                                <span className="ml-2 font-mono">
+                                  • {student.studentInfo.studentCode}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-primary text-white"
+                          startContent={<UserPlus className="w-3.5 h-3.5" />}
+                          isLoading={enrollingStudentId === student.id}
+                          onPress={() => handleEnrollStudent(student.id)}
+                        >
+                          Thêm
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Đóng
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </LayoutDashboard>
   );
 }

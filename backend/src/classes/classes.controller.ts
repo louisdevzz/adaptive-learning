@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  Req,
 } from '@nestjs/common';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
@@ -31,7 +32,10 @@ export class ClassesController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Req() req: any) {
+    if (req.user.role === 'teacher') {
+      return this.classesService.findByTeacher(req.user.userId);
+    }
     return this.classesService.findAll();
   }
 
@@ -85,6 +89,12 @@ export class ClassesController {
   @HttpCode(HttpStatus.OK)
   removeTeacherFromClass(@Param('id') id: string, @Param('teacherId') teacherId: string) {
     return this.classesService.removeTeacherFromClass(id, teacherId);
+  }
+
+  // Class Progress
+  @Get(':id/progress')
+  getClassProgress(@Param('id') id: string) {
+    return this.classesService.getClassProgress(id);
   }
 
   // Course Assignment Endpoints

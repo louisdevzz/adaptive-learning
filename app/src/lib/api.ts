@@ -93,6 +93,16 @@ export const api = {
     },
   },
 
+  // Users endpoints
+  users: {
+    resetPassword: async (userId: string, password: string) => {
+      const response = await apiClient.post(`/users/${userId}/reset-password`, {
+        password,
+      });
+      return response.data;
+    },
+  },
+
   // Admins endpoints
   admins: {
     getAll: async () => {
@@ -435,6 +445,11 @@ export const api = {
         `/classes/${classId}/courses`,
         data
       );
+      return response.data;
+    },
+
+    getClassProgress: async (classId: string) => {
+      const response = await apiClient.get(`/classes/${classId}/progress`);
       return response.data;
     },
 
@@ -1059,6 +1074,11 @@ export const api = {
 
   // Dashboard endpoints
   dashboard: {
+    getTeacherStats: async () => {
+      const response = await apiClient.get("/dashboard/teacher-stats");
+      return response.data;
+    },
+
     getStats: async (params?: {
       startDate?: string;
       endDate?: string;

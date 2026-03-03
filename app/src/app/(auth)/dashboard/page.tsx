@@ -505,23 +505,65 @@ function AdminDashboardContent({ user }: { user: any }) {
 }
 
 // Teacher Dashboard Content
+interface TeacherStats {
+  totalClasses: number;
+  totalStudents: number;
+  totalCourses: number;
+  totalAssignments: number;
+  averageProgress: number;
+  classes: {
+    id: string;
+    name: string;
+    gradeLevel: number | null;
+    students: number;
+    progress: number;
+  }[];
+  strugglingStudents: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    className: string;
+    avgMastery: number;
+    issue: string;
+  }[];
+}
+
 function TeacherDashboardContent({ user }: { user: any }) {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<TeacherStats>({
     totalClasses: 0,
     totalStudents: 0,
-    pendingAssignments: 0,
+    totalCourses: 0,
+    totalAssignments: 0,
     averageProgress: 0,
+    classes: [],
+    strugglingStudents: [],
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock data - replace with API
-    setStats({
-      totalClasses: 5,
-      totalStudents: 127,
-      pendingAssignments: 12,
-      averageProgress: 72,
-    });
+    const fetchTeacherData = async () => {
+      try {
+        setLoading(true);
+        const data = await api.dashboard.getTeacherStats();
+        setStats(data);
+      } catch (error) {
+        console.error("Error fetching teacher dashboard data:", error);
+        toast.error("Không thể tải dữ liệu dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeacherData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -537,20 +579,45 @@ function TeacherDashboardContent({ user }: { user: any }) {
         />
         <QuickStatCard
           title="Học sinh"
-          value={stats.totalStudents.toString()}
-          change="+5"
-          changeType="up"
+          value={stats.totalStudents.toLocaleString()}
           icon={<Users className="w-6 h-6 text-green-600" />}
           color="bg-green-50 dark:bg-green-900/20"
           href="/dashboard/students"
         />
         <QuickStatCard
-          title="Bài cần chấm"
-          value={stats.pendingAssignments.toString()}
+          title="Khóa học"
+          value={stats.totalCourses.toString()}
+          icon={<BookOpen className="w-6 h-6 text-purple-600" />}
+          color="bg-purple-50 dark:bg-purple-900/20"
+          href="/dashboard/courses"
+        />
+        <QuickStatCard
+          title="Bài tập đã tạo"
+          value={stats.totalAssignments.toString()}
           icon={<Clock4 className="w-6 h-6 text-orange-600" />}
           color="bg-orange-50 dark:bg-orange-900/20"
         />
       </div>
+
+      {/* Average Progress Overview */}
+      {stats.totalClasses > 0 && (
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-[#717680] dark:text-gray-400">
+              Tiến độ trung bình tất cả lớp
+            </span>
+            <span className="text-2xl font-bold text-[#181d27] dark:text-white">
+              {stats.averageProgress}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3">
+            <div
+              className="bg-primary h-3 rounded-full transition-all"
+              style={{ width: `${stats.averageProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
@@ -559,38 +626,39 @@ function TeacherDashboardContent({ user }: { user: any }) {
           </h2>
           <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4">
             <div className="space-y-3">
-              {[
-                { name: "10A1", students: 32, progress: 78 },
-                { name: "10A2", students: 30, progress: 75 },
-                { name: "11B1", students: 35, progress: 82 },
-                { name: "11B2", students: 30, progress: 70 },
-              ].map((cls) => (
-                <Link key={cls.name} href={`/dashboard/classes`}>
-                  <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                        <School className="w-5 h-5 text-blue-600" />
+              {stats.classes.length === 0 ? (
+                <p className="text-sm text-[#717680] dark:text-gray-400 text-center py-4">
+                  Chưa có lớp học nào được phân công
+                </p>
+              ) : (
+                stats.classes.map((cls) => (
+                  <Link key={cls.id} href={`/dashboard/classes`}>
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                          <School className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-[#181d27] dark:text-white">
+                            {cls.name}
+                          </p>
+                          <p className="text-xs text-[#717680] dark:text-gray-400">
+                            {cls.students} học sinh
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-[#181d27] dark:text-white">
-                          Lớp {cls.name}
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                          {cls.progress}%
                         </p>
                         <p className="text-xs text-[#717680] dark:text-gray-400">
-                          {cls.students} học sinh
+                          tiến độ
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-[#181d27] dark:text-white">
-                        {cls.progress}%
-                      </p>
-                      <p className="text-xs text-[#717680] dark:text-gray-400">
-                        tiến độ
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -601,33 +669,48 @@ function TeacherDashboardContent({ user }: { user: any }) {
           </h2>
           <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4">
             <div className="space-y-3">
-              {[
-                { name: "Nguyễn Văn A", issue: "Tiến độ thấp", score: 45 },
-                { name: "Trần Thị B", issue: "Chưa nộp bài", score: 0 },
-                { name: "Lê Văn C", issue: "Cần ôn tập", score: 55 },
-              ].map((student) => (
-                <div
-                  key={student.name}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      size="sm"
-                      className="rounded-full"
-                      fallback={student.name.charAt(0)}
-                    />
-                    <div>
-                      <p className="font-medium text-[#181d27] dark:text-white">
-                        {student.name}
-                      </p>
-                      <p className="text-xs text-red-500">{student.issue}</p>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="light" className="text-primary">
-                    Chi tiết
-                  </Button>
+              {stats.strugglingStudents.length === 0 ? (
+                <div className="text-center py-4">
+                  <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-sm text-[#717680] dark:text-gray-400">
+                    Tất cả học sinh đều có tiến độ tốt!
+                  </p>
                 </div>
-              ))}
+              ) : (
+                stats.strugglingStudents.map((student) => (
+                  <Link
+                    key={student.id}
+                    href={`/dashboard/students/${student.id}`}
+                  >
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          size="sm"
+                          className="rounded-full"
+                          src={student.avatarUrl || undefined}
+                          fallback={student.name?.charAt(0) || "?"}
+                        />
+                        <div>
+                          <p className="font-medium text-[#181d27] dark:text-white">
+                            {student.name}
+                          </p>
+                          <p className="text-xs text-red-500">
+                            {student.issue} - {student.className}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-medium ${student.avgMastery < 30 ? 'text-red-500' : 'text-orange-500'}`}>
+                          {student.avgMastery}%
+                        </p>
+                        <p className="text-xs text-[#717680] dark:text-gray-400">
+                          mastery
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         </div>

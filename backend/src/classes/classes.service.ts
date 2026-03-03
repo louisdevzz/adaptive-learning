@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
-import { db, classes, classEnrollment, teacherClassMap, students, teachers, users, classCourses, courses } from '../../db';
+import { eq, and, inArray } from 'drizzle-orm';
+import { db, classes, classEnrollment, teacherClassMap, students, teachers, users, classCourses, courses, studentKpProgress, studentMastery, studentInsights, knowledgePoint } from '../../db';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { EnrollStudentDto } from './dto/enroll-student.dto';
@@ -49,6 +49,52 @@ export class ClassesService {
       .from(classes)
       .leftJoin(teachers, eq(classes.homeroomTeacherId, teachers.id))
       .leftJoin(users, eq(teachers.id, users.id));
+
+    return result.map((row) => ({
+      ...row.class,
+      homeroomTeacher: row.homeroomTeacher.id ? row.homeroomTeacher : null,
+    }));
+  }
+
+  async findByTeacher(teacherId: string) {
+    // Get class IDs from teacherClassMap + homeroom
+    const assigned = await db
+      .select({ classId: teacherClassMap.classId })
+      .from(teacherClassMap)
+      .where(
+        and(
+          eq(teacherClassMap.teacherId, teacherId),
+          eq(teacherClassMap.status, 'active'),
+        ),
+      );
+
+    const homeroom = await db
+      .select({ classId: classes.id })
+      .from(classes)
+      .where(eq(classes.homeroomTeacherId, teacherId));
+
+    const classIds = [...new Set([
+      ...assigned.map(c => c.classId),
+      ...homeroom.map(c => c.classId),
+    ])];
+
+    if (classIds.length === 0) {
+      return [];
+    }
+
+    const result = await db
+      .select({
+        class: classes,
+        homeroomTeacher: {
+          id: teachers.id,
+          fullName: users.fullName,
+          email: users.email,
+        },
+      })
+      .from(classes)
+      .leftJoin(teachers, eq(classes.homeroomTeacherId, teachers.id))
+      .leftJoin(users, eq(teachers.id, users.id))
+      .where(inArray(classes.id, classIds));
 
     return result.map((row) => ({
       ...row.class,
@@ -474,5 +520,165 @@ export class ClassesService {
     }
 
     return { message: 'Course removed from class successfully' };
+  }
+
+  // Class Progress Aggregation
+  async getClassProgress(classId: string) {
+    await this.findOne(classId);
+
+    // Get enrolled students
+    const enrolledStudents = await db
+      .select({
+        enrollment: classEnrollment,
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+        },
+      })
+      .from(classEnrollment)
+      .innerJoin(students, eq(classEnrollment.studentId, students.id))
+      .innerJoin(users, eq(students.id, users.id))
+      .where(
+        and(
+          eq(classEnrollment.classId, classId),
+          eq(classEnrollment.status, 'active'),
+        ),
+      );
+
+    if (enrolledStudents.length === 0) {
+      return {
+        students: [],
+        summary: {
+          totalStudents: 0,
+          avgMastery: 0,
+          atRiskCount: 0,
+          excellentCount: 0,
+          totalKpsMastered: 0,
+        },
+      };
+    }
+
+    const studentIds = enrolledStudents.map((s) => s.user.id);
+
+    // Get all KP progress for enrolled students
+    const allKpProgress = await db
+      .select({
+        studentId: studentKpProgress.studentId,
+        masteryScore: studentKpProgress.masteryScore,
+        confidence: studentKpProgress.confidence,
+        lastUpdated: studentKpProgress.lastUpdated,
+      })
+      .from(studentKpProgress)
+      .where(inArray(studentKpProgress.studentId, studentIds));
+
+    // Get all mastery records for enrolled students
+    const allMastery = await db
+      .select()
+      .from(studentMastery)
+      .where(inArray(studentMastery.studentId, studentIds));
+
+    // Get all insights for enrolled students
+    const allInsights = await db
+      .select()
+      .from(studentInsights)
+      .where(inArray(studentInsights.studentId, studentIds));
+
+    // Build per-student progress
+    const studentsProgress = enrolledStudents.map((enrolled) => {
+      const studentId = enrolled.user.id;
+      const kpProgress = allKpProgress.filter((kp) => kp.studentId === studentId);
+      const mastery = allMastery.filter((m) => m.studentId === studentId);
+      const insights = allInsights.find((i) => i.studentId === studentId);
+
+      const totalKps = kpProgress.length;
+      const avgKpMastery = totalKps > 0
+        ? Math.round(kpProgress.reduce((sum, kp) => sum + kp.masteryScore, 0) / totalKps)
+        : 0;
+      const masteredKps = kpProgress.filter((kp) => kp.masteryScore >= 80).length;
+
+      const avgCourseMastery = mastery.length > 0
+        ? Math.round(mastery.reduce((sum, m) => sum + m.overallMasteryScore, 0) / mastery.length)
+        : 0;
+
+      const overallMastery = mastery.length > 0 ? avgCourseMastery : avgKpMastery;
+
+      // Determine status
+      let status: string;
+      let riskLevel: string;
+      if (overallMastery >= 80) {
+        status = 'excellent';
+        riskLevel = 'low';
+      } else if (overallMastery >= 60) {
+        status = 'good';
+        riskLevel = 'low';
+      } else if (overallMastery >= 40) {
+        status = 'at-risk';
+        riskLevel = 'medium';
+      } else {
+        status = 'needs-help';
+        riskLevel = 'high';
+      }
+
+      // Find last active time from KP progress
+      const lastActiveDate = kpProgress.length > 0
+        ? kpProgress.reduce((latest, kp) => {
+            const kpDate = new Date(kp.lastUpdated);
+            return kpDate > latest ? kpDate : latest;
+          }, new Date(0))
+        : null;
+
+      const engagementScore = insights
+        ? (typeof insights.engagementScore === 'number' ? insights.engagementScore : 0)
+        : 0;
+
+      return {
+        id: studentId,
+        name: enrolled.user.fullName,
+        email: enrolled.user.email,
+        avatar: enrolled.user.avatarUrl,
+        progress: overallMastery,
+        masteryScore: avgKpMastery,
+        totalKps,
+        masteredKps,
+        engagementScore,
+        lastActive: lastActiveDate ? lastActiveDate.toISOString() : null,
+        status,
+        riskLevel,
+        courseMastery: mastery.map((m) => ({
+          courseId: m.courseId,
+          score: m.overallMasteryScore,
+        })),
+      };
+    });
+
+    // Calculate summary
+    const totalStudents = studentsProgress.length;
+    const avgMastery = totalStudents > 0
+      ? Math.round(studentsProgress.reduce((sum, s) => sum + s.progress, 0) / totalStudents)
+      : 0;
+    const atRiskCount = studentsProgress.filter(
+      (s) => s.status === 'at-risk' || s.status === 'needs-help',
+    ).length;
+    const excellentCount = studentsProgress.filter(
+      (s) => s.status === 'excellent',
+    ).length;
+    const totalKpsMastered = studentsProgress.reduce(
+      (sum, s) => sum + s.masteredKps,
+      0,
+    );
+
+    return {
+      students: studentsProgress,
+      summary: {
+        totalStudents,
+        avgMastery,
+        atRiskCount,
+        excellentCount,
+        totalKpsMastered,
+      },
+    };
   }
 }

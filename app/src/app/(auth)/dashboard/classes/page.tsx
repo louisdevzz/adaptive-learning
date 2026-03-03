@@ -46,6 +46,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ClassModal } from "@/components/dashboards/admin/management/class/ClassModal";
+import { useUser } from "@/hooks/useUser";
 
 // Stat Card Component
 function StatCard({
@@ -93,11 +94,13 @@ function ClassCard({
   students,
   onEdit,
   onDelete,
+  isAdmin,
 }: {
   classItem: Class;
   students: ClassEnrollment[];
   onEdit: (classItem: Class) => void;
   onDelete: (id: string) => void;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const activeStudents = students.filter((s) => s.status === "active");
@@ -157,21 +160,25 @@ function ClassCard({
               >
                 Tiến độ lớp
               </DropdownItem>
-              <DropdownItem
-                key="edit"
-                startContent={<Edit className="w-4 h-4" />}
-                onPress={() => onEdit(classItem)}
-              >
-                Chỉnh sửa
-              </DropdownItem>
-              <DropdownItem
-                key="delete"
-                startContent={<Trash2 className="w-4 h-4 text-red-500" />}
-                className="text-red-500"
-                onPress={() => onDelete(classItem.id)}
-              >
-                Xóa lớp
-              </DropdownItem>
+              {isAdmin ? (
+                <DropdownItem
+                  key="edit"
+                  startContent={<Edit className="w-4 h-4" />}
+                  onPress={() => onEdit(classItem)}
+                >
+                  Chỉnh sửa
+                </DropdownItem>
+              ) : null}
+              {isAdmin ? (
+                <DropdownItem
+                  key="delete"
+                  startContent={<Trash2 className="w-4 h-4 text-red-500" />}
+                  className="text-red-500"
+                  onPress={() => onDelete(classItem.id)}
+                >
+                  Xóa lớp
+                </DropdownItem>
+              ) : null}
             </DropdownMenu>
           </Dropdown>
         </div>
@@ -267,11 +274,13 @@ function ClassListRow({
   students,
   onEdit,
   onDelete,
+  isAdmin,
 }: {
   classItem: Class;
   students: ClassEnrollment[];
   onEdit: (classItem: Class) => void;
   onDelete: (id: string) => void;
+  isAdmin: boolean;
 }) {
   const activeStudents = students.filter((s) => s.status === "active");
   const topStudents = activeStudents.slice(0, 3);
@@ -359,21 +368,25 @@ function ClassListRow({
             >
               Tiến độ lớp
             </DropdownItem>
-            <DropdownItem
-              key="edit"
-              startContent={<Edit className="w-4 h-4" />}
-              onPress={() => onEdit(classItem)}
-            >
-              Chỉnh sửa
-            </DropdownItem>
-            <DropdownItem
-              key="delete"
-              startContent={<Trash2 className="w-4 h-4 text-red-500" />}
-              className="text-red-500"
-              onPress={() => onDelete(classItem.id)}
-            >
-              Xóa lớp
-            </DropdownItem>
+            {isAdmin ? (
+              <DropdownItem
+                key="edit"
+                startContent={<Edit className="w-4 h-4" />}
+                onPress={() => onEdit(classItem)}
+              >
+                Chỉnh sửa
+              </DropdownItem>
+            ) : null}
+            {isAdmin ? (
+              <DropdownItem
+                key="delete"
+                startContent={<Trash2 className="w-4 h-4 text-red-500" />}
+                className="text-red-500"
+                onPress={() => onDelete(classItem.id)}
+              >
+                Xóa lớp
+              </DropdownItem>
+            ) : null}
           </DropdownMenu>
         </Dropdown>
       </td>
@@ -387,6 +400,8 @@ interface ClassWithStudents extends Class {
 
 export default function ClassesPage() {
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
   const [classes, setClasses] = useState<Class[]>([]);
   const [classesWithStudents, setClassesWithStudents] = useState<
     ClassWithStudents[]
@@ -603,13 +618,15 @@ export default function ClassesPage() {
               Quản lý lớp học, theo dõi tiến độ và phân công giáo viên
             </p>
           </div>
-          <Button
-            onPress={handleCreate}
-            className="bg-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Thêm lớp học
-          </Button>
+          {isAdmin && (
+            <Button
+              onPress={handleCreate}
+              className="bg-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm lớp học
+            </Button>
+          )}
         </div>
 
         {/* Stats Section */}
@@ -630,8 +647,8 @@ export default function ClassesPage() {
           />
           <StatCard
             title="Khối phổ biến nhất"
-            value={topGrade ? `Khối ${topGrade[0]}` : "N/A"}
-            subtitle={topGrade ? `${topGrade[1]} lớp` : ""}
+            value={topGrade ? `Khối ${topGrade[0]}` : "0"}
+            subtitle={topGrade ? `${topGrade[1]} lớp` : "Chưa có lớp học"}
             icon={<GraduationCap className="w-6 h-6 text-purple-600" />}
             color="bg-purple-50 dark:bg-purple-900/20"
           />
@@ -724,7 +741,7 @@ export default function ClassesPage() {
                 ? "Thử tìm kiếm với từ khóa khác"
                 : "Bắt đầu bằng cách thêm lớp học mới"}
             </p>
-            {!searchQuery && (
+            {!searchQuery && isAdmin && (
               <Button
                 onPress={handleCreate}
                 className="bg-primary text-white font-medium"
@@ -744,6 +761,7 @@ export default function ClassesPage() {
                 students={classItem.students}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                isAdmin={isAdmin}
               />
             ))}
           </div>
@@ -778,6 +796,7 @@ export default function ClassesPage() {
                     students={classItem.students}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    isAdmin={isAdmin}
                   />
                 ))}
               </tbody>

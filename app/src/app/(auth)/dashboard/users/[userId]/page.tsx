@@ -570,9 +570,18 @@ export default function UserDetailPage() {
   };
 
   const handleResetPassword = async (password: string) => {
-    // TODO: Implement actual password reset API
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Đặt lại mật khẩu thành công");
+    try {
+      await api.users.resetPassword(userId, password);
+      toast.success("Đặt lại mật khẩu thành công");
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể đặt lại mật khẩu. Vui lòng thử lại.";
+      toast.error(errorMessage);
+      throw error;
+    }
   };
 
   const handleDelete = async () => {

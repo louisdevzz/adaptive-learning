@@ -1,17 +1,19 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { eq, and, inArray, sql } from 'drizzle-orm';
-import { 
-  db, 
-  users, 
-  students, 
-  classEnrollment, 
-  classCourses, 
+import {
+  db,
+  users,
+  students,
+  classEnrollment,
+  classCourses,
   courses,
+  classes,
   modules,
   sections,
   sectionKpMap,
   studentKpProgress,
-  knowledgePoint
+  knowledgePoint,
+  teacherClassMap
 } from '../../db';
 import { UsersService } from '../users/users.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -66,6 +68,61 @@ export class StudentsService {
       .select()
       .from(students)
       .leftJoin(users, eq(students.id, users.id));
+
+    return result.map((row) => ({
+      ...row.users,
+      studentInfo: row.students,
+    }));
+  }
+
+  async findByTeacher(teacherId: string) {
+    // Get class IDs where this teacher is assigned (via teacherClassMap or homeroom)
+    const teacherClasses = await db
+      .select({ classId: teacherClassMap.classId })
+      .from(teacherClassMap)
+      .where(
+        and(
+          eq(teacherClassMap.teacherId, teacherId),
+          eq(teacherClassMap.status, 'active'),
+        ),
+      );
+
+    const homeroomClasses = await db
+      .select({ classId: classes.id })
+      .from(classes)
+      .where(eq(classes.homeroomTeacherId, teacherId));
+
+    const classIds = [...new Set([
+      ...teacherClasses.map(c => c.classId),
+      ...homeroomClasses.map(c => c.classId),
+    ])];
+
+    if (classIds.length === 0) {
+      return [];
+    }
+
+    // Get student IDs enrolled in these classes
+    const enrollments = await db
+      .select({ studentId: classEnrollment.studentId })
+      .from(classEnrollment)
+      .where(
+        and(
+          inArray(classEnrollment.classId, classIds),
+          eq(classEnrollment.status, 'active'),
+        ),
+      );
+
+    const studentIds = [...new Set(enrollments.map(e => e.studentId))];
+
+    if (studentIds.length === 0) {
+      return [];
+    }
+
+    const result = await db
+      .select()
+      .from(students)
+      .leftJoin(users, eq(students.id, users.id))
+      .where(inArray(students.id, studentIds));
 
     return result.map((row) => ({
       ...row.users,

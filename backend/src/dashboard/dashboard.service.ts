@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { eq, count, sql, and, gte, lte, desc, asc } from 'drizzle-orm';
+import { eq, count, sql, and, gte, lte, desc, asc, inArray } from 'drizzle-orm';
 import {
   db,
   students,
@@ -14,6 +14,7 @@ import {
   teacherClassMap,
   assignments,
   users,
+  teacherCourseMap,
 } from '../../db';
 
 @Injectable()
@@ -311,5 +312,200 @@ export class DashboardService {
         recentActivity: cls.recentActivity,
       };
     });
+  }
+
+  async getTeacherStats(teacherId: string) {
+    // 1. Get classes where this teacher is assigned
+    const teacherClasses = await db
+      .select({
+        classId: teacherClassMap.classId,
+        className: classes.className,
+        gradeLevel: classes.gradeLevel,
+        role: teacherClassMap.role,
+      })
+      .from(teacherClassMap)
+      .innerJoin(classes, eq(teacherClassMap.classId, classes.id))
+      .where(
+        and(
+          eq(teacherClassMap.teacherId, teacherId),
+          eq(teacherClassMap.status, 'active'),
+        ),
+      );
+
+    // Also check homeroom classes
+    const homeroomClasses = await db
+      .select({
+        classId: classes.id,
+        className: classes.className,
+        gradeLevel: classes.gradeLevel,
+      })
+      .from(classes)
+      .where(eq(classes.homeroomTeacherId, teacherId));
+
+    // Merge unique classes
+    const allClassIds = new Set<string>();
+    const allClasses: { classId: string; className: string; gradeLevel: number | null }[] = [];
+
+    for (const cls of [...teacherClasses, ...homeroomClasses.map(c => ({ ...c, role: 'homeroom' }))]) {
+      if (!allClassIds.has(cls.classId)) {
+        allClassIds.add(cls.classId);
+        allClasses.push({ classId: cls.classId, className: cls.className, gradeLevel: cls.gradeLevel });
+      }
+    }
+
+    const classIdArray = Array.from(allClassIds);
+
+    // 2. Get student count and per-class details
+    let totalStudents = 0;
+    const classDetails: {
+      id: string;
+      name: string;
+      gradeLevel: number | null;
+      students: number;
+      progress: number;
+    }[] = [];
+
+    for (const cls of allClasses) {
+      const [studentCountResult] = await db
+        .select({ count: count() })
+        .from(classEnrollment)
+        .where(
+          and(
+            eq(classEnrollment.classId, cls.classId),
+            eq(classEnrollment.status, 'active'),
+          ),
+        );
+
+      const studentCount = studentCountResult?.count || 0;
+      totalStudents += studentCount;
+
+      // Get average progress for students in this class
+      const progressResult = await db
+        .select({
+          avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
+        })
+        .from(classEnrollment)
+        .leftJoin(
+          studentKpProgress,
+          eq(classEnrollment.studentId, studentKpProgress.studentId),
+        )
+        .where(
+          and(
+            eq(classEnrollment.classId, cls.classId),
+            eq(classEnrollment.status, 'active'),
+          ),
+        );
+
+      const avgProgress = progressResult[0]?.avgMastery
+        ? Math.round(parseFloat(progressResult[0].avgMastery.toString()))
+        : 0;
+
+      classDetails.push({
+        id: cls.classId,
+        name: cls.className,
+        gradeLevel: cls.gradeLevel,
+        students: studentCount,
+        progress: avgProgress,
+      });
+    }
+
+    // 3. Get courses assigned to this teacher
+    const teacherCourses = await db
+      .select({ count: count() })
+      .from(teacherCourseMap)
+      .where(eq(teacherCourseMap.teacherId, teacherId));
+
+    const totalCourses = teacherCourses[0]?.count || 0;
+
+    // 4. Get pending assignments (created by teacher, published, not yet past due or with ungraded submissions)
+    const [pendingResult] = await db
+      .select({ count: count() })
+      .from(assignments)
+      .where(
+        and(
+          eq(assignments.teacherId, teacherId),
+          eq(assignments.isPublished, true),
+        ),
+      );
+
+    const totalAssignments = pendingResult?.count || 0;
+
+    // 5. Calculate overall average progress
+    let overallProgress = 0;
+    if (classDetails.length > 0) {
+      const totalProgress = classDetails.reduce((sum, cls) => sum + cls.progress, 0);
+      overallProgress = Math.round(totalProgress / classDetails.length);
+    }
+
+    // 6. Get struggling students (mastery < 50) from teacher's classes
+    const strugglingStudents: {
+      id: string;
+      name: string;
+      avatarUrl: string | null;
+      className: string;
+      avgMastery: number;
+      issue: string;
+    }[] = [];
+
+    if (classIdArray.length > 0) {
+      const lowProgressStudents = await db
+        .select({
+          studentId: classEnrollment.studentId,
+          classId: classEnrollment.classId,
+          className: classes.className,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
+        })
+        .from(classEnrollment)
+        .innerJoin(classes, eq(classEnrollment.classId, classes.id))
+        .innerJoin(users, eq(classEnrollment.studentId, users.id))
+        .leftJoin(
+          studentKpProgress,
+          eq(classEnrollment.studentId, studentKpProgress.studentId),
+        )
+        .where(
+          and(
+            inArray(classEnrollment.classId, classIdArray),
+            eq(classEnrollment.status, 'active'),
+          ),
+        )
+        .groupBy(
+          classEnrollment.studentId,
+          classEnrollment.classId,
+          classes.className,
+          users.fullName,
+          users.avatarUrl,
+        )
+        .having(sql`COALESCE(AVG(${studentKpProgress.masteryScore}), 0) < 50`)
+        .orderBy(asc(sql`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`))
+        .limit(10);
+
+      for (const student of lowProgressStudents) {
+        const mastery = Math.round(parseFloat(student.avgMastery.toString()));
+        let issue = 'Tiến độ thấp';
+        if (mastery === 0) issue = 'Chưa bắt đầu học';
+        else if (mastery < 30) issue = 'Cần hỗ trợ gấp';
+
+        strugglingStudents.push({
+          id: student.studentId,
+          name: student.fullName,
+          avatarUrl: student.avatarUrl,
+          className: student.className,
+          avgMastery: mastery,
+          issue,
+        });
+      }
+    }
+
+    return {
+      totalClasses: allClasses.length,
+      totalStudents,
+      totalCourses,
+      totalAssignments,
+      averageProgress: overallProgress,
+      classes: classDetails,
+      strugglingStudents,
+    };
   }
 }

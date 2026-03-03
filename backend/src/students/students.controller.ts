@@ -29,7 +29,10 @@ export class StudentsController {
   }
 
   @Get()
-  findAll() {
+  findAll(@CurrentUser() user: ICurrentUser) {
+    if (user.role === 'teacher') {
+      return this.studentsService.findByTeacher(user.userId);
+    }
     return this.studentsService.findAll();
   }
 

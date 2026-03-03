@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { StudentModal } from "@/components/dashboards/admin/management/student/StudentModal";
 import { Avatar } from "@heroui/react";
+import { useUser } from "@/hooks/useUser";
 import { Input } from "@heroui/input";
 import {
   Dropdown,
@@ -45,10 +46,12 @@ function StudentCard({
   student,
   onEdit,
   onDelete,
+  isAdmin,
 }: {
   student: Student;
   onEdit: (student: Student) => void;
   onDelete: (id: string) => void;
+  isAdmin: boolean;
 }) {
   const studentCode = student.studentInfo?.studentCode || "N/A";
   const gradeLevel = student.studentInfo?.gradeLevel || 0;
@@ -107,21 +110,25 @@ function StudentCard({
             >
               Xem chi tiết
             </DropdownItem>
-            <DropdownItem
-              key="edit"
-              startContent={<Edit className="w-4 h-4" />}
-              onPress={() => onEdit(student)}
-            >
-              Chỉnh sửa
-            </DropdownItem>
-            <DropdownItem
-              key="delete"
-              startContent={<Trash2 className="w-4 h-4 text-red-500" />}
-              className="text-red-500"
-              onPress={() => onDelete(student.id)}
-            >
-              Xóa
-            </DropdownItem>
+            {isAdmin ? (
+              <DropdownItem
+                key="edit"
+                startContent={<Edit className="w-4 h-4" />}
+                onPress={() => onEdit(student)}
+              >
+                Chỉnh sửa
+              </DropdownItem>
+            ) : null}
+            {isAdmin ? (
+              <DropdownItem
+                key="delete"
+                startContent={<Trash2 className="w-4 h-4 text-red-500" />}
+                className="text-red-500"
+                onPress={() => onDelete(student.id)}
+              >
+                Xóa
+              </DropdownItem>
+            ) : null}
           </DropdownMenu>
         </Dropdown>
       </div>
@@ -229,12 +236,14 @@ function StudentListRow({
   onDelete,
   isSelected,
   onSelect,
+  isAdmin,
 }: {
   student: Student;
   onEdit: (student: Student) => void;
   onDelete: (id: string) => void;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  isAdmin: boolean;
 }) {
   const studentCode = student.studentInfo?.studentCode || "N/A";
   const gradeLevel = student.studentInfo?.gradeLevel || 0;
@@ -308,21 +317,25 @@ function StudentListRow({
             >
               Xem chi tiết
             </DropdownItem>
-            <DropdownItem
-              key="edit"
-              startContent={<Edit className="w-4 h-4" />}
-              onPress={() => onEdit(student)}
-            >
-              Chỉnh sửa
-            </DropdownItem>
-            <DropdownItem
-              key="delete"
-              startContent={<Trash2 className="w-4 h-4 text-red-500" />}
-              className="text-red-500"
-              onPress={() => onDelete(student.id)}
-            >
-              Xóa
-            </DropdownItem>
+            {isAdmin ? (
+              <DropdownItem
+                key="edit"
+                startContent={<Edit className="w-4 h-4" />}
+                onPress={() => onEdit(student)}
+              >
+                Chỉnh sửa
+              </DropdownItem>
+            ) : null}
+            {isAdmin ? (
+              <DropdownItem
+                key="delete"
+                startContent={<Trash2 className="w-4 h-4 text-red-500" />}
+                className="text-red-500"
+                onPress={() => onDelete(student.id)}
+              >
+                Xóa
+              </DropdownItem>
+            ) : null}
           </DropdownMenu>
         </Dropdown>
       </td>
@@ -331,6 +344,8 @@ function StudentListRow({
 }
 
 export default function StudentsPage() {
+  const { user } = useUser();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -578,13 +593,15 @@ export default function StudentsPage() {
               Quản lý và theo dõi thông tin học sinh trong hệ thống
             </p>
           </div>
-          <Button
-            onPress={handleCreate}
-            className="bg-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Thêm học sinh
-          </Button>
+          {isAdmin && (
+            <Button
+              onPress={handleCreate}
+              className="bg-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm học sinh
+            </Button>
+          )}
         </div>
 
         {/* Stats Section */}
@@ -616,8 +633,8 @@ export default function StudentsPage() {
           />
           <StatCard
             title="Lớp phổ biến nhất"
-            value={topGrades[0] ? `Lớp ${topGrades[0][0]}` : "N/A"}
-            subtitle={topGrades[0] ? `${topGrades[0][1]} học sinh` : ""}
+            value={topGrades[0] ? `Lớp ${topGrades[0][0]}` : "0"}
+            subtitle={topGrades[0] ? `${topGrades[0][1]} học sinh` : "Chưa có học sinh"}
             icon={<GraduationCap className="w-6 h-6 text-purple-600" />}
             color="bg-purple-50 dark:bg-purple-900/20"
           />
@@ -712,7 +729,7 @@ export default function StudentsPage() {
                 ? "Thử tìm kiếm với từ khóa khác"
                 : "Bắt đầu bằng cách thêm học sinh mới"}
             </p>
-            {!searchQuery && (
+            {!searchQuery && isAdmin && (
               <Button
                 onPress={handleCreate}
                 className="bg-primary text-white font-medium"
@@ -731,6 +748,7 @@ export default function StudentsPage() {
                 student={student}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                isAdmin={isAdmin}
               />
             ))}
           </div>
@@ -785,6 +803,7 @@ export default function StudentsPage() {
                     onDelete={handleDelete}
                     isSelected={selectedStudents.includes(student.id)}
                     onSelect={toggleSelectStudent}
+                    isAdmin={isAdmin}
                   />
                 ))}
               </tbody>

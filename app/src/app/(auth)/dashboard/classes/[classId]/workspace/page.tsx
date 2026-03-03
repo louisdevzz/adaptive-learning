@@ -26,17 +26,43 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Button, Avatar, Progress, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import { Button, Avatar, Progress, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Spinner } from "@heroui/react";
+import { api } from "@/lib/api";
 
-interface Student {
+interface StudentProgress {
   id: string;
   name: string;
   email: string;
   avatar?: string;
-  initials?: string;
-  progress?: number;
+  progress: number;
+  masteryScore: number;
+  totalKps: number;
+  masteredKps: number;
+  engagementScore: number;
+  lastActive: string | null;
+  status: string;
+  riskLevel: string;
+}
+
+interface ClassProgressData {
+  students: StudentProgress[];
+  summary: {
+    totalStudents: number;
+    avgMastery: number;
+    atRiskCount: number;
+    excellentCount: number;
+    totalKpsMastered: number;
+  };
+}
+
+interface StatusColumn {
+  id: string;
+  title: string;
+  students: StudentProgress[];
+  color: "green" | "blue" | "orange" | "red";
+  description: string;
 }
 
 interface Announcement {
@@ -49,15 +75,6 @@ interface Announcement {
   icon?: "attachment" | "folder";
   author?: string;
   type?: "announcement" | "assignment" | "resource";
-}
-
-interface StatusColumn {
-  id: string;
-  title: string;
-  count: number;
-  students: Student[];
-  color: "green" | "orange" | "red" | "blue";
-  description?: string;
 }
 
 // Progress Ring Component
@@ -106,95 +123,90 @@ function ProgressRing({
   );
 }
 
-export default function ClassWorkspacePage() {
-  const params = useParams();
-  const classId = params.classId as string;
-  const [activeTab, setActiveTab] = useState<"announcements" | "board" | "chat">("board");
-  const [newMessage, setNewMessage] = useState("");
+function buildStatusColumns(students: StudentProgress[]): StatusColumn[] {
+  const mastered = students.filter((s) => s.status === "excellent");
+  const good = students.filter((s) => s.status === "good");
+  const atRisk = students.filter((s) => s.status === "at-risk");
+  const needsHelp = students.filter((s) => s.status === "needs-help");
 
-  const announcements: Announcement[] = [
-    {
-      id: "1",
-      title: "Kiểm tra Giữa kỳ môn Toán",
-      date: "15/10/2023",
-      content: "Bài kiểm tra giữa kỳ môn Toán sẽ diễn ra vào thứ Sáu tới. Tài liệu ôn tập đã được tải lên.",
-      link: "#",
-      linkText: "Xem tài liệu",
-      icon: "attachment",
-      author: "Cô Nguyễn Thị A",
-      type: "announcement",
-    },
-    {
-      id: "2",
-      title: "Bài tập nhóm: Dự án Khoa học",
-      date: "10/10/2023",
-      content: "Các nhóm dự án Khoa học, hãy xem lại hướng dẫn chi tiết và các mốc thời gian đã được cập nhật.",
-      link: "#",
-      linkText: "Xem hướng dẫn",
-      icon: "folder",
-      author: "Thầy Trần Văn B",
-      type: "assignment",
-    },
-    {
-      id: "3",
-      title: "Tài liệu bổ sung Chương 3",
-      date: "08/10/2023",
-      content: "Đã upload thêm video bài giảng và bài tập thực hành cho chương 3.",
-      link: "#",
-      linkText: "Truy cập tài liệu",
-      icon: "folder",
-      author: "Cô Nguyễn Thị A",
-      type: "resource",
-    },
-  ];
-
-  const statusColumns: StatusColumn[] = [
+  return [
     {
       id: "mastered",
       title: "Nắm vững",
-      count: 8,
+      students: mastered,
       color: "green",
       description: "Hoàn thành xuất sắc",
-      students: [
-        { id: "1", name: "Trần Thị B", email: "btran@adapt.edu.vn", progress: 95, initials: "TB" },
-        { id: "2", name: "Hoàng Văn E", email: "ehoang@adapt.edu.vn", progress: 88, initials: "HE" },
-        { id: "3", name: "Lê Thị C", email: "cle@adapt.edu.vn", progress: 92, initials: "LC" },
-      ],
     },
     {
-      id: "in-progress",
+      id: "good",
       title: "Đang tiến bộ",
-      count: 12,
+      students: good,
+      color: "blue",
+      description: "Tiến độ tốt",
+    },
+    {
+      id: "at-risk",
+      title: "Cần chú ý",
+      students: atRisk,
       color: "orange",
-      description: "Cần thêm thời gian",
-      students: [
-        { id: "4", name: "Nguyễn Thị G", email: "gnguyen@adapt.edu.vn", progress: 65, initials: "NG" },
-        { id: "5", name: "Mai Anh T", email: "tmai@adapt.edu.vn", progress: 58, initials: "MT" },
-        { id: "6", name: "Phạm Văn K", email: "kpham@adapt.edu.vn", progress: 72, initials: "PK" },
-      ],
+      description: "Cần thêm hỗ trợ",
     },
     {
       id: "needs-help",
       title: "Cần hỗ trợ",
-      count: 4,
+      students: needsHelp,
       color: "red",
       description: "Cần can thiệp ngay",
-      students: [
-        { id: "7", name: "Phạm Hoàng H", email: "hpham@adapt.edu.vn", progress: 35, initials: "PH" },
-        { id: "8", name: "Lê Kim L", email: "lle@adapt.edu.vn", progress: 28, initials: "KL" },
-      ],
-    },
-    {
-      id: "not-started",
-      title: "Chưa bắt đầu",
-      count: 2,
-      color: "blue",
-      description: "Mới tham gia",
-      students: [
-        { id: "9", name: "Nguyễn Văn M", email: "mnguyen@adapt.edu.vn", progress: 0, initials: "NM" },
-      ],
     },
   ];
+}
+
+export default function ClassWorkspacePage() {
+  const params = useParams();
+  const classId = params.classId as string;
+  const [activeTab, setActiveTab] = useState<"announcements" | "board">("board");
+  const [newMessage, setNewMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ClassProgressData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await api.classes.getClassProgress(classId);
+      setData(result);
+      setError(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Không thể tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  }, [classId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const allStudents = data?.students || [];
+  const summary = data?.summary || {
+    totalStudents: 0,
+    avgMastery: 0,
+    atRiskCount: 0,
+    excellentCount: 0,
+    totalKpsMastered: 0,
+  };
+
+  // Filter students by search
+  const filteredStudents = allStudents.filter((s) =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const statusColumns = buildStatusColumns(searchQuery ? filteredStudents : allStudents);
+
+  // Placeholder announcements (no backend yet)
+  const announcements: Announcement[] = [];
 
   const getColumnColors = (color: string) => {
     switch (color) {
@@ -247,6 +259,35 @@ export default function ClassWorkspacePage() {
     }
   };
 
+  if (loading) {
+    return (
+      <LayoutDashboard>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner size="lg" />
+            <p className="text-[#717680] dark:text-gray-400">Đang tải không gian làm việc...</p>
+          </div>
+        </div>
+      </LayoutDashboard>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutDashboard>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+            <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
+            <Button className="mt-4" onPress={fetchData}>
+              Thử lại
+            </Button>
+          </div>
+        </div>
+      </LayoutDashboard>
+    );
+  }
+
   return (
     <LayoutDashboard>
       <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
@@ -275,11 +316,13 @@ export default function ClassWorkspacePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="bordered" startContent={<RefreshCw className="w-4 h-4" />} className="border-[#d5d7da]">
+            <Button
+              variant="bordered"
+              startContent={<RefreshCw className="w-4 h-4" />}
+              className="border-[#d5d7da]"
+              onPress={fetchData}
+            >
               Làm mới
-            </Button>
-            <Button className="bg-primary text-white" startContent={<UserPlus className="w-4 h-4" />}>
-              Thêm học sinh
             </Button>
           </div>
         </div>
@@ -299,7 +342,7 @@ export default function ClassWorkspacePage() {
                     {column.title}
                   </span>
                 </div>
-                <p className="text-2xl font-bold text-[#181d27] dark:text-white">{column.count}</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white">{column.students.length}</p>
                 <p className="text-xs text-[#717680] dark:text-gray-400">{column.description}</p>
               </div>
             );
@@ -332,9 +375,11 @@ export default function ClassWorkspacePage() {
               >
                 <Bell className="w-4 h-4" />
                 Thông báo
-                <span className="ml-1 px-1.5 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                  {announcements.length}
-                </span>
+                {announcements.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                    {announcements.length}
+                  </span>
+                )}
               </button>
             </nav>
           </div>
@@ -349,116 +394,94 @@ export default function ClassWorkspacePage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680]" />
                     <input
                       type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Tìm kiếm học sinh..."
                       className="w-full pl-10 pr-4 py-2.5 bg-[#f9fafb] dark:bg-gray-800 border border-[#e9eaeb] dark:border-gray-700 rounded-lg text-sm text-[#181d27] dark:text-white placeholder:text-[#a4a7ae] focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
-                  <Button variant="bordered" startContent={<Filter className="w-4 h-4" />} className="border-[#d5d7da]">
-                    Lọc
-                  </Button>
-                  <Button variant="bordered" startContent={<Plus className="w-4 h-4" />} className="border-[#d5d7da]">
-                    Thêm cột
-                  </Button>
                 </div>
 
                 {/* Kanban Board */}
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex gap-4 min-w-max">
-                    {statusColumns.map((column) => {
-                      const colors = getColumnColors(column.color);
-                      return (
-                        <div
-                          key={column.id}
-                          className={`w-80 flex-shrink-0 ${colors.bg} rounded-xl border ${colors.border} p-3`}
-                        >
-                          {/* Column Header */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                              <h3 className="font-semibold text-[#181d27] dark:text-white text-sm">
-                                {column.title}
-                              </h3>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>
-                                {column.count}
-                              </span>
-                            </div>
-                            <Dropdown>
-                              <DropdownTrigger>
-                                <Button isIconOnly variant="light" size="sm">
-                                  <MoreHorizontal className="w-4 h-4 text-[#717680]" />
-                                </Button>
-                              </DropdownTrigger>
-                              <DropdownMenu>
-                                <DropdownItem key="edit">Chỉnh sửa cột</DropdownItem>
-                                <DropdownItem key="sort" className="text-danger">
-                                  Xóa cột
-                                </DropdownItem>
-                              </DropdownMenu>
-                            </Dropdown>
-                          </div>
-
-                          {/* Students */}
-                          <div className="space-y-2">
-                            {column.students.map((student) => (
-                              <div
-                                key={student.id}
-                                className="bg-white dark:bg-[#1a202c] rounded-lg border border-[#e9eaeb] dark:border-gray-700 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <Avatar
-                                    src={student.avatar}
-                                    name={student.name}
-                                    size="sm"
-                                    className="shrink-0"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-[#181d27] dark:text-white text-sm truncate">
-                                      {student.name}
-                                    </p>
-                                    <p className="text-xs text-[#717680] dark:text-gray-400 truncate">
-                                      {student.email}
-                                    </p>
-                                  </div>
-                                  <ProgressRing progress={student.progress || 0} size={36} strokeWidth={3} />
-                                </div>
-                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#e9eaeb] dark:border-gray-800">
-                                  <Button
-                                    size="sm"
-                                    variant="light"
-                                    className="h-7 text-xs"
-                                    startContent={<TrendingUp className="w-3 h-3" />}
-                                  >
-                                    Tiến độ
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="light"
-                                    className="h-7 text-xs"
-                                    startContent={<MessageCircle className="w-3 h-3" />}
-                                  >
-                                    Nhắn tin
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-
-                            {/* Add Student Button */}
-                            <button className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-[#e9eaeb] dark:border-gray-700 rounded-lg text-[#717680] dark:text-gray-400 hover:border-primary/50 hover:text-primary transition-colors">
-                              <Plus className="w-4 h-4" />
-                              <span className="text-sm">Thêm học sinh</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Add New Column */}
-                    <button className="w-80 flex-shrink-0 flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#e9eaeb] dark:border-gray-700 rounded-xl text-[#717680] dark:text-gray-400 hover:border-primary/50 hover:text-primary transition-colors">
-                      <Plus className="w-8 h-8" />
-                      <span className="font-medium">Thêm trạng thái mới</span>
-                    </button>
+                {allStudents.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-[#717680] dark:text-gray-400">Chưa có học sinh trong lớp</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="overflow-x-auto pb-2">
+                    <div className="flex gap-4 min-w-max">
+                      {statusColumns.map((column) => {
+                        const colors = getColumnColors(column.color);
+                        return (
+                          <div
+                            key={column.id}
+                            className={`w-80 flex-shrink-0 ${colors.bg} rounded-xl border ${colors.border} p-3`}
+                          >
+                            {/* Column Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
+                                <h3 className="font-semibold text-[#181d27] dark:text-white text-sm">
+                                  {column.title}
+                                </h3>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>
+                                  {column.students.length}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Students */}
+                            <div className="space-y-2">
+                              {column.students.length === 0 ? (
+                                <div className="text-center py-6 text-xs text-[#a4a7ae] dark:text-gray-500">
+                                  Không có học sinh
+                                </div>
+                              ) : (
+                                column.students.map((student) => (
+                                  <div
+                                    key={student.id}
+                                    className="bg-white dark:bg-[#1a202c] rounded-lg border border-[#e9eaeb] dark:border-gray-700 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <Avatar
+                                        src={student.avatar || undefined}
+                                        name={student.name}
+                                        size="sm"
+                                        className="shrink-0"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-[#181d27] dark:text-white text-sm truncate">
+                                          {student.name}
+                                        </p>
+                                        <p className="text-xs text-[#717680] dark:text-gray-400 truncate">
+                                          {student.email}
+                                        </p>
+                                      </div>
+                                      <ProgressRing progress={student.progress} size={36} strokeWidth={3} />
+                                    </div>
+                                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#e9eaeb] dark:border-gray-800">
+                                      <span className="text-xs text-[#717680] dark:text-gray-400">
+                                        {student.masteredKps}/{student.totalKps} KP
+                                      </span>
+                                      <Link
+                                        href={`/dashboard/classes/${classId}/progress`}
+                                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                                      >
+                                        <TrendingUp className="w-3 h-3" />
+                                        Tiến độ
+                                      </Link>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -499,71 +522,78 @@ export default function ClassWorkspacePage() {
                 </div>
 
                 {/* Announcements List */}
-                <div className="space-y-3">
-                  {announcements.map((announcement) => (
-                    <div
-                      key={announcement.id}
-                      className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-4 hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          {getTypeIcon(announcement.type)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <h3 className="font-semibold text-[#181d27] dark:text-white">
-                                {announcement.title}
-                              </h3>
-                              <div className="flex items-center gap-2 text-xs text-[#717680] dark:text-gray-400 mt-1">
-                                <span>{announcement.author}</span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {announcement.date}
-                                </span>
-                              </div>
-                            </div>
-                            <Dropdown>
-                              <DropdownTrigger>
-                                <Button isIconOnly variant="light" size="sm">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownTrigger>
-                              <DropdownMenu>
-                                <DropdownItem key="edit">Chỉnh sửa</DropdownItem>
-                                <DropdownItem key="pin">Ghim lên đầu</DropdownItem>
-                                <DropdownItem key="delete" className="text-danger">
-                                  Xóa
-                                </DropdownItem>
-                              </DropdownMenu>
-                            </Dropdown>
+                {announcements.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-[#717680] dark:text-gray-400">Chưa có thông báo nào</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((announcement) => (
+                      <div
+                        key={announcement.id}
+                        className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 p-4 hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            {getTypeIcon(announcement.type)}
                           </div>
-                          <p className="text-sm text-[#535862] dark:text-gray-300 mt-2">
-                            {announcement.content}
-                          </p>
-                          {announcement.link && (
-                            <Button
-                              size="sm"
-                              variant="light"
-                              className="mt-3 text-primary"
-                              startContent={
-                                announcement.icon === "attachment" ? (
-                                  <Paperclip className="w-4 h-4" />
-                                ) : (
-                                  <FolderOpen className="w-4 h-4" />
-                                )
-                              }
-                              endContent={<ArrowUpRight className="w-3 h-3" />}
-                            >
-                              {announcement.linkText}
-                            </Button>
-                          )}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h3 className="font-semibold text-[#181d27] dark:text-white">
+                                  {announcement.title}
+                                </h3>
+                                <div className="flex items-center gap-2 text-xs text-[#717680] dark:text-gray-400 mt-1">
+                                  <span>{announcement.author}</span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {announcement.date}
+                                  </span>
+                                </div>
+                              </div>
+                              <Dropdown>
+                                <DropdownTrigger>
+                                  <Button isIconOnly variant="light" size="sm">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownTrigger>
+                                <DropdownMenu>
+                                  <DropdownItem key="edit">Chỉnh sửa</DropdownItem>
+                                  <DropdownItem key="pin">Ghim lên đầu</DropdownItem>
+                                  <DropdownItem key="delete" className="text-danger">
+                                    Xóa
+                                  </DropdownItem>
+                                </DropdownMenu>
+                              </Dropdown>
+                            </div>
+                            <p className="text-sm text-[#535862] dark:text-gray-300 mt-2">
+                              {announcement.content}
+                            </p>
+                            {announcement.link && (
+                              <Button
+                                size="sm"
+                                variant="light"
+                                className="mt-3 text-primary"
+                                startContent={
+                                  announcement.icon === "attachment" ? (
+                                    <Paperclip className="w-4 h-4" />
+                                  ) : (
+                                    <FolderOpen className="w-4 h-4" />
+                                  )
+                                }
+                                endContent={<ArrowUpRight className="w-3 h-3" />}
+                              >
+                                {announcement.linkText}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
