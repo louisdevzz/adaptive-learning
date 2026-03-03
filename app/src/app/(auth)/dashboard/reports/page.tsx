@@ -34,8 +34,7 @@ import {
   Progress,
   Chip,
 } from "@heroui/react";
-import { parseDate, today, getLocalTimeZone } from "@internationalized/date";
-import { DateValue } from "@react-types/datepicker";
+import { parseDate, today, getLocalTimeZone, DateValue } from "@internationalized/date";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";

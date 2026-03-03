@@ -25,6 +25,11 @@ import {
   BookOpen,
   X,
   Check,
+  Plus,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -163,6 +168,16 @@ export default function ClassPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"students" | "courses">("students");
+
+  // Courses state
+  const [classCourses, setClassCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const { isOpen: isAddCourseOpen, onOpen: onAddCourseOpen, onOpenChange: onAddCourseOpenChange } = useDisclosure();
+  const [allCourses, setAllCourses] = useState<any[]>([]);
+  const [addCourseSearch, setAddCourseSearch] = useState("");
+  const [loadingAllCourses, setLoadingAllCourses] = useState(false);
+  const [assigningCourseId, setAssigningCourseId] = useState<string | null>(null);
 
   // Add student modal states
   const { isOpen: isAddStudentOpen, onOpen: onAddStudentOpen, onOpenChange: onAddStudentOpenChange } = useDisclosure();
@@ -191,7 +206,74 @@ export default function ClassPage() {
 
   useEffect(() => {
     fetchData();
+    fetchClassCourses();
   }, [fetchData]);
+
+  const fetchClassCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      const data = await api.classes.getClassCourses(classId);
+      setClassCourses(data);
+    } catch (err) {
+      console.error("Error fetching class courses:", err);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  const fetchAllCourses = async () => {
+    try {
+      setLoadingAllCourses(true);
+      const data = await api.courses.getAll();
+      setAllCourses(data);
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+    } finally {
+      setLoadingAllCourses(false);
+    }
+  };
+
+  const handleOpenAddCourse = () => {
+    fetchAllCourses();
+    setAddCourseSearch("");
+    onAddCourseOpen();
+  };
+
+  const handleAssignCourse = async (courseId: string, onCloseModal?: () => void) => {
+    try {
+      setAssigningCourseId(courseId);
+      await api.classes.assignCourse(classId, { courseId, status: "active" });
+      toast.success("Đã thêm khóa học vào lớp");
+      await fetchClassCourses();
+      onCloseModal?.();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Lỗi khi thêm khóa học";
+      toast.error(msg);
+    } finally {
+      setAssigningCourseId(null);
+    }
+  };
+
+  const handleUpdateCourseStatus = async (courseId: string, status: "active" | "inactive") => {
+    try {
+      await api.classes.updateClassCourseStatus(classId, courseId, status);
+      toast.success("Cập nhật trạng thái thành công");
+      await fetchClassCourses();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Lỗi khi cập nhật trạng thái");
+    }
+  };
+
+  const handleRemoveCourse = async (courseId: string) => {
+    if (!confirm("Bạn có chắc muốn xóa khóa học này khỏi lớp?")) return;
+    try {
+      await api.classes.removeCourse(classId, courseId);
+      toast.success("Đã xóa khóa học khỏi lớp");
+      await fetchClassCourses();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Lỗi khi xóa khóa học");
+    }
+  };
 
   // Fetch available students for the add student modal (not enrolled in this class)
   const fetchAllStudents = async () => {
@@ -415,12 +497,48 @@ export default function ClassPage() {
           />
         </div>
 
+        {/* Tabs */}
+        <div className="border-b border-[#e9eaeb] dark:border-gray-800">
+          <div className="flex gap-6">
+            <button
+              onClick={() => setActiveTab("students")}
+              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "students"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-[#414651] dark:text-gray-400 hover:text-[#181d27] dark:hover:text-white"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Học sinh
+              <span className="ml-1 px-2 py-0.5 bg-[#f4f4f5] dark:bg-gray-800 rounded-full text-xs">
+                {filteredStudents.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("courses")}
+              className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "courses"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-[#414651] dark:text-gray-400 hover:text-[#181d27] dark:hover:text-white"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              Khóa học
+              <span className="ml-1 px-2 py-0.5 bg-[#f4f4f5] dark:bg-gray-800 rounded-full text-xs">
+                {classCourses.length}
+              </span>
+            </button>
+          </div>
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* Student List - Takes 2 columns */}
+          {/* Main Panel - Takes 2 columns */}
           <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-800 overflow-hidden flex flex-col h-[600px]">
-            {/* Toolbar */}
-            <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800 flex flex-col sm:flex-row gap-3">
+            {activeTab === "students" ? (
+            <>
+              {/* Toolbar */}
+              <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800 flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680]" />
                 <input
@@ -599,7 +717,131 @@ export default function ClassPage() {
                 </div>
               </div>
             )}
-          </div>
+          </>
+        ) : (
+          /* Courses Tab Content */
+          <>
+            {/* Toolbar */}
+            <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-800 flex items-center justify-between">
+              <h2 className="font-semibold text-[#181d27] dark:text-white">
+                Danh sách khóa học
+              </h2>
+              {canAddStudent && (
+                <Button
+                  className="bg-primary text-white"
+                  size="sm"
+                  startContent={<Plus className="w-4 h-4" />}
+                  onPress={handleOpenAddCourse}
+                >
+                  Thêm khóa học
+                </Button>
+              )}
+            </div>
+
+            {/* Courses List */}
+            <div className="flex-1 overflow-auto p-4">
+              {loadingCourses ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : classCourses.length === 0 ? (
+                <div className="text-center py-12">
+                  <Layers className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-[#717680] dark:text-gray-400 mb-2">
+                    Chưa có khóa học nào
+                  </p>
+                  {canAddStudent && (
+                    <Button
+                      variant="light"
+                      className="text-primary"
+                      startContent={<Plus className="w-4 h-4" />}
+                      onPress={handleOpenAddCourse}
+                    >
+                      Thêm khóa học đầu tiên
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {classCourses.map((courseAssignment) => (
+                    <div
+                      key={courseAssignment.assignmentId || courseAssignment.course?.id}
+                      className="flex items-center justify-between p-4 border border-[#e9eaeb] dark:border-gray-800 rounded-lg hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        {courseAssignment.course?.thumbnailUrl ? (
+                          <img
+                            src={courseAssignment.course.thumbnailUrl}
+                            alt={courseAssignment.course.title}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                            {courseAssignment.course?.title?.charAt(0) || "C"}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-medium text-[#181d27] dark:text-white">
+                            {courseAssignment.course?.title}
+                          </h3>
+                          <p className="text-sm text-[#717680] dark:text-gray-400">
+                            {courseAssignment.course?.description?.slice(0, 60) || "Chưa có mô tả"}
+                            {courseAssignment.course?.description?.length > 60 ? "..." : ""}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-[#a4a7ae]">
+                              Đã thêm: {new Date(courseAssignment.assignedAt).toLocaleDateString("vi-VN")}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              courseAssignment.status === "active"
+                                ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            }`}>
+                              {courseAssignment.status === "active" ? "Đang hoạt động" : "Tạm dừng"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {canAddStudent && (
+                          <>
+                            <Button
+                              isIconOnly
+                              variant="light"
+                              size="sm"
+                              onPress={() => handleUpdateCourseStatus(
+                                courseAssignment.course?.id,
+                                courseAssignment.status === "active" ? "inactive" : "active"
+                              )}
+                              title={courseAssignment.status === "active" ? "Tạm dừng" : "Kích hoạt"}
+                            >
+                              {courseAssignment.status === "active" ? (
+                                <ToggleRight className="w-5 h-5 text-green-500" />
+                              ) : (
+                                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                              )}
+                            </Button>
+                            <Button
+                              isIconOnly
+                              variant="light"
+                              size="sm"
+                              className="text-red-500"
+                              onPress={() => handleRemoveCourse(courseAssignment.course?.id)}
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        </div>
 
           {/* Sidebar Info */}
           <div className="space-y-6">
@@ -783,6 +1025,134 @@ export default function ClassPage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Đóng
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Add Course Modal */}
+      <Modal
+        isOpen={isAddCourseOpen}
+        onOpenChange={onAddCourseOpenChange}
+        size="2xl"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h2 className="text-lg font-bold text-[#181d27] dark:text-white">
+                  Thêm khóa học vào lớp {classData?.className}
+                </h2>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-normal">
+                  Chọn khóa học để gán cho lớp
+                </p>
+              </ModalHeader>
+              <ModalBody>
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717680]" />
+                  <input
+                    type="text"
+                    value={addCourseSearch}
+                    onChange={(e) => setAddCourseSearch(e.target.value)}
+                    placeholder="Tìm kiếm khóa học..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#f9fafb] dark:bg-gray-800 border border-[#e9eaeb] dark:border-gray-700 rounded-lg text-sm text-[#181d27] dark:text-white placeholder:text-[#a4a7ae] focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                {loadingAllCourses ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  (() => {
+                    const assignedCourseIds = new Set(classCourses.map(c => c.course?.id));
+                    const filteredCourses = allCourses.filter(c => 
+                      addCourseSearch === "" ||
+                      c.title?.toLowerCase().includes(addCourseSearch.toLowerCase()) ||
+                      c.description?.toLowerCase().includes(addCourseSearch.toLowerCase())
+                    );
+                    
+                    return filteredCourses.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Layers className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-[#717680] dark:text-gray-400">
+                          {addCourseSearch
+                            ? "Không tìm thấy khóa học phù hợp"
+                            : "Chưa có khóa học nào trong hệ thống"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[400px]">
+                        {filteredCourses.map((course) => {
+                          const isAssigned = assignedCourseIds.has(course.id);
+                          return (
+                            <div
+                              key={course.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                                isAssigned 
+                                  ? "border-green-200 dark:border-green-900/30 bg-green-50/50 dark:bg-green-900/10" 
+                                  : "border-[#e9eaeb] dark:border-gray-700 hover:bg-[#f9fafb] dark:hover:bg-gray-800/50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {course.thumbnailUrl ? (
+                                  <img
+                                    src={course.thumbnailUrl}
+                                    alt={course.title}
+                                    className="w-10 h-10 rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold">
+                                    {course.title?.charAt(0) || "C"}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-medium text-sm truncate ${
+                                    isAssigned ? "text-green-700 dark:text-green-400" : "text-[#181d27] dark:text-white"
+                                  }`}>
+                                    {course.title}
+                                  </p>
+                                  <p className="text-xs text-[#717680] dark:text-gray-400 truncate">
+                                    {course.description?.slice(0, 50) || "Chưa có mô tả"}
+                                    {course.description?.length > 50 ? "..." : ""}
+                                  </p>
+                                </div>
+                              </div>
+                              {isAssigned ? (
+                                <Button
+                                  size="sm"
+                                  isDisabled
+                                  className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0"
+                                  startContent={<Check className="w-3.5 h-3.5" />}
+                                >
+                                  Đã thêm
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="bg-primary text-white"
+                                  startContent={<Plus className="w-3.5 h-3.5" />}
+                                  isLoading={assigningCourseId === course.id}
+                                  onPress={() => handleAssignCourse(course.id, onClose)}
+                                >
+                                  Thêm
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
                 )}
               </ModalBody>
               <ModalFooter>
