@@ -1362,8 +1362,8 @@ export default function ReportsPage() {
           {/* Date Range Picker + Export Dropdown */}
           <div className="flex items-center gap-3 flex-wrap">
             <DateRangePicker
-              label="Khoảng thời gian"
-              value={dateRange}
+              label="Khoảng thờI gian"
+              value={dateRange as any}
               onChange={(range) => {
                 if (range?.start && range?.end) {
                   setDateRange({ start: range.start, end: range.end });
