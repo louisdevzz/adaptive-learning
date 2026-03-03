@@ -41,6 +41,7 @@ import { Teacher } from "@/types/teacher";
 import { Student } from "@/types/student";
 import { Parent } from "@/types/parent";
 import { toast } from "sonner";
+import { useUser } from "@/hooks/useUser";
 
 type UserRole = "admin" | "teacher" | "student" | "parent";
 type UserStatus = "active" | "inactive" | "pending";
@@ -313,6 +314,19 @@ function UserListRow({
 
 export default function UsersPage() {
   const router = useRouter();
+  const { user: currentUser, loading: userLoading } = useUser();
+  
+  // Check admin access
+  useEffect(() => {
+    if (!userLoading && currentUser) {
+      const isAdmin = currentUser.role?.toLowerCase() === "admin";
+      if (!isAdmin) {
+        toast.error("Bạn không có quyền truy cập trang này");
+        router.push("/dashboard");
+      }
+    }
+  }, [currentUser, userLoading, router]);
+  
   const [users, setUsers] = useState<UnifiedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);

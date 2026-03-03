@@ -33,6 +33,8 @@ import {
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useUser } from "@/hooks/useUser";
+import { useEffect } from "react";
 
 type UserRole = "admin" | "teacher" | "student" | "parent";
 
@@ -65,6 +67,19 @@ const roleOptions = [
 
 export default function CreateUserPage() {
   const router = useRouter();
+  const { user: currentUser, loading: userLoading } = useUser();
+  
+  // Check admin access
+  useEffect(() => {
+    if (!userLoading && currentUser) {
+      const isAdmin = currentUser.role?.toLowerCase() === "admin";
+      if (!isAdmin) {
+        toast.error("Bạn không có quyền truy cập trang này");
+        router.push("/dashboard");
+      }
+    }
+  }, [currentUser, userLoading, router]);
+  
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<UserRole>("teacher");
   const [loading, setLoading] = useState(false);
