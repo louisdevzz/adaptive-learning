@@ -6,9 +6,6 @@ import { api } from "@/lib/api";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
 import {
-  Card,
-  CardBody,
-  CardHeader,
   Button,
   Progress,
   Chip,
@@ -30,18 +27,15 @@ import {
 import {
   Route,
   Plus,
-  Target,
   Calendar,
   MoreVertical,
   CheckCircle2,
   Clock,
   BookOpen,
-  GraduationCap,
   Loader2,
-  Trophy,
   TrendingUp,
   AlertCircle,
-  Play,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -95,7 +89,6 @@ export default function LearningPathPage() {
     onClose: onCreateClose,
   } = useDisclosure();
 
-  // Form state
   const [newPathTitle, setNewPathTitle] = useState("");
   const [newPathDescription, setNewPathDescription] = useState("");
   const [newPathTargetDate, setNewPathTargetDate] = useState("");
@@ -112,7 +105,6 @@ export default function LearningPathPage() {
       const data = await api.learningPaths.getAll({
         studentId: user?.id,
       });
-      // Calculate progress for each path
       const pathsWithProgress = data.map((path: LearningPath) => ({
         ...path,
         progress: calculatePathProgress(path),
@@ -182,10 +174,8 @@ export default function LearningPathPage() {
     try {
       await api.learningPaths.updateItemStatus(pathId, itemId, status);
       toast.success("Cập nhật trạng thái thành công");
-      // Refresh details
       const details = await api.learningPaths.getByIdWithItems(pathId);
       setPathDetails(details);
-      // Refresh list
       fetchLearningPaths();
     } catch (error) {
       console.error("Failed to update item status:", error);
@@ -237,7 +227,6 @@ export default function LearningPathPage() {
     return path.status === activeTab;
   });
 
-  // Stats
   const stats = {
     total: paths.length,
     active: paths.filter((p) => p.status === "active").length,
@@ -280,58 +269,58 @@ export default function LearningPathPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Tổng lộ trình</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.total}</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                 <Route className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-sm text-gray-500">Tổng lộ trình</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Đang hoạt động</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.active}</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
-                <Play className="w-6 h-6" />
+                <Target className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.active}</p>
-                <p className="text-sm text-gray-500">Đang hoạt động</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Hoàn thành</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.completed}</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.completed}</p>
-                <p className="text-sm text-gray-500">Hoàn thành</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Tiến độ TB</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.avgProgress}%</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
                 <TrendingUp className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.avgProgress}%</p>
-                <p className="text-sm text-gray-500">Tiến độ TB</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Tabs and List */}
-        <Card>
-          <CardHeader className="flex flex-col gap-4">
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700">
+          <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-700">
             <Tabs
               selectedKey={activeTab}
               onSelectionChange={(key) => setActiveTab(key as string)}
@@ -378,9 +367,9 @@ export default function LearningPathPage() {
                 }
               />
             </Tabs>
-          </CardHeader>
+          </div>
 
-          <CardBody>
+          <div className="p-4">
             {filteredPaths.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -399,84 +388,80 @@ export default function LearningPathPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredPaths.map((path) => (
-                  <Card
+                  <div
                     key={path.id}
-                    className="hover:shadow-lg transition-all"
-                    isPressable
-                    onPress={() => handleViewDetails(path)}
+                    className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 hover:border-primary/30 transition-all group"
                   >
-                    <CardBody className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                            <Route className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-[#181d27] dark:text-white">
-                              {path.title}
-                            </h3>
-                            {path.targetDate && (
-                              <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                Hạn: {format(new Date(path.targetDate), "dd/MM/yyyy", { locale: vi })}
-                              </p>
-                            )}
-                          </div>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <Route className="w-5 h-5" />
                         </div>
-                        <Dropdown>
-                          <DropdownTrigger>
-                            <Button isIconOnly variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownTrigger>
-                          <DropdownMenu>
-                            <DropdownItem key="view" onPress={() => handleViewDetails(path)}>
-                              Xem chi tiết
-                            </DropdownItem>
-                            <DropdownItem
-                              key="delete"
-                              className="text-danger"
-                              color="danger"
-                              onPress={() => handleDeletePath(path.id)}
-                            >
-                              Xóa
-                            </DropdownItem>
-                          </DropdownMenu>
-                        </Dropdown>
+                        <div>
+                          <h3 className="font-semibold text-[#181d27] dark:text-white">
+                            {path.title}
+                          </h3>
+                          {path.targetDate && (
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Hạn: {format(new Date(path.targetDate), "dd/MM/yyyy", { locale: vi })}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <Button isIconOnly variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu>
+                          <DropdownItem key="view" onPress={() => handleViewDetails(path)}>
+                            Xem chi tiết
+                          </DropdownItem>
+                          <DropdownItem
+                            key="delete"
+                            className="text-danger"
+                            color="danger"
+                            onPress={() => handleDeletePath(path.id)}
+                          >
+                            Xóa
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </div>
 
-                      {path.description && (
-                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">
-                          {path.description}
-                        </p>
-                      )}
+                    {path.description && (
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                        {path.description}
+                      </p>
+                    )}
 
-                      <div className="flex items-center justify-between mb-2">
-                        <Chip size="sm" color={getStatusColor(path.status)} variant="flat">
-                          {getStatusText(path.status)}
-                        </Chip>
-                        <span className="text-sm font-medium">{path.progress}%</span>
-                      </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Chip size="sm" color={getStatusColor(path.status)} variant="flat">
+                        {getStatusText(path.status)}
+                      </Chip>
+                      <span className="text-sm font-medium">{path.progress}%</span>
+                    </div>
 
-                      <Progress value={path.progress} size="sm" color={getStatusColor(path.status)} />
+                    <Progress value={path.progress} size="sm" color={getStatusColor(path.status)} />
 
-                      <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <BookOpen className="w-4 h-4" />
-                          {path.items?.length || 0} mục tiêu
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 className="w-4 h-4" />
-                          {path.items?.filter((i) => i.status === "completed").length || 0} hoàn thành
-                        </span>
-                      </div>
-                    </CardBody>
-                  </Card>
+                    <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="w-4 h-4" />
+                        {path.items?.length || 0} mục tiêu
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                        {path.items?.filter((i) => i.status === "completed").length || 0} hoàn thành
+                      </span>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
         {/* Path Detail Modal */}
         <Modal isOpen={isOpen} onClose={onClose} size="3xl" scrollBehavior="inside">
@@ -509,7 +494,7 @@ export default function LearningPathPage() {
                       <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <Trophy className="w-6 h-6 text-primary" />
+                            <Target className="w-6 h-6 text-primary" />
                             <span className="font-semibold">Tiến độ lộ trình</span>
                           </div>
                           <span className="text-2xl font-bold text-primary">{selectedPath?.progress}%</span>
@@ -551,7 +536,7 @@ export default function LearningPathPage() {
                                       ? "bg-green-50/50 border-green-200"
                                       : item.status === "in_progress"
                                       ? "bg-blue-50/50 border-blue-200"
-                                      : "bg-gray-50"
+                                      : "bg-gray-50 border-gray-200"
                                   }`}
                                 >
                                   <span
@@ -582,11 +567,6 @@ export default function LearningPathPage() {
                                           ? "Chương học"
                                           : "Bài tập"}
                                       </Chip>
-                                      {item.course?.subject && (
-                                        <span className="text-xs text-gray-500">
-                                          {item.course.subject}
-                                        </span>
-                                      )}
                                     </div>
                                   </div>
 

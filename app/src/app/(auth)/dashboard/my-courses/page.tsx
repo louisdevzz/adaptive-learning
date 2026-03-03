@@ -13,8 +13,8 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Chip,
   Progress,
+  Chip,
   Tabs,
   Tab,
 } from "@heroui/react";
@@ -25,14 +25,11 @@ import { toast } from "sonner";
 import {
   BookOpen,
   Search,
-  Filter,
   ArrowRight,
   Clock,
-  Award,
   TrendingUp,
   CheckCircle2,
   Play,
-  MoreHorizontal,
   Loader2,
   GraduationCap,
   Target,
@@ -95,12 +92,10 @@ export default function MyCoursesPage() {
   const filteredCourses = useMemo(() => {
     let filtered = courses;
 
-    // Filter by tab/status
     if (activeTab !== "all") {
       filtered = filtered.filter((c) => c.status === activeTab);
     }
 
-    // Filter by search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -194,53 +189,53 @@ export default function MyCoursesPage() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Tổng khóa học</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.total}</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                 <BookOpen className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-sm text-gray-500">Tổng khóa học</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Đang học</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.inProgress}</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
                 <Clock className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.inProgress}</p>
-                <p className="text-sm text-gray-500">Đang học</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Hoàn thành</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.completed}</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.completed}</p>
-                <p className="text-sm text-gray-500">Hoàn thành</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardBody className="flex flex-row items-center gap-4">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Tiến độ TB</p>
+                <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.avgProgress}%</p>
+              </div>
               <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
                 <TrendingUp className="w-6 h-6" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.avgProgress}%</p>
-                <p className="text-sm text-gray-500">Tiến độ TB</p>
-              </div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Continue Learning Section */}
@@ -252,8 +247,11 @@ export default function MyCoursesPage() {
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {continueLearning.map((course) => (
-                <Card key={course.id} className="hover:shadow-lg transition-shadow">
-                  <CardBody className="flex flex-row gap-4 p-4">
+                <div 
+                  key={course.id} 
+                  className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 overflow-hidden hover:border-primary/30 transition-all"
+                >
+                  <div className="flex flex-row gap-4 p-4">
                     <div className="relative w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
                       {course.thumbnailUrl ? (
                         <Image
@@ -276,9 +274,9 @@ export default function MyCoursesPage() {
                     <div className="flex-1 flex flex-col">
                       <div className="flex items-start justify-between">
                         <div>
-                          <Chip size="sm" color="primary" variant="flat" className="mb-2">
+                          <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-2">
                             {course.subject}
-                          </Chip>
+                          </span>
                           <h3 className="font-semibold text-lg text-[#181d27] dark:text-white line-clamp-1">
                             {course.title}
                           </h3>
@@ -309,17 +307,17 @@ export default function MyCoursesPage() {
                         </Button>
                       </div>
                     </div>
-                  </CardBody>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         )}
 
         {/* All Courses Section */}
-        <Card className="flex-1">
-          <CardHeader className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700">
+          <div className="p-4 border-b border-[#e9eaeb] dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="text-lg font-bold text-[#181d27] dark:text-white">
                 Tất cả khóa học
               </h2>
@@ -332,9 +330,6 @@ export default function MyCoursesPage() {
                   className="w-64"
                   size="sm"
                 />
-                <Button isIconOnly variant="light" size="sm">
-                  <Filter className="w-4 h-4" />
-                </Button>
               </div>
             </div>
 
@@ -345,7 +340,7 @@ export default function MyCoursesPage() {
               color="primary"
               variant="underlined"
               classNames={{
-                tabList: "gap-6",
+                tabList: "gap-6 mt-4",
               }}
             >
               <Tab
@@ -385,9 +380,9 @@ export default function MyCoursesPage() {
                 }
               />
             </Tabs>
-          </CardHeader>
+          </div>
 
-          <CardBody>
+          <div className="p-4">
             {filteredCourses.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -414,99 +409,98 @@ export default function MyCoursesPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredCourses.map((course) => (
-                  <Card
+                  <div
                     key={course.id}
-                    className="hover:shadow-lg transition-all group"
-                    isPressable
-                    onPress={() => handleViewDetails(course)}
+                    className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 overflow-hidden hover:border-primary/30 transition-all group"
                   >
-                    <CardBody className="p-0">
-                      {/* Thumbnail */}
-                      <div className="relative h-40 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden">
-                        {course.thumbnailUrl ? (
-                          <Image
-                            src={course.thumbnailUrl}
-                            alt={course.title}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform"
+                    {/* Thumbnail */}
+                    <div 
+                      className="relative h-40 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden cursor-pointer"
+                      onClick={() => handleViewDetails(course)}
+                    >
+                      {course.thumbnailUrl ? (
+                        <Image
+                          src={course.thumbnailUrl}
+                          alt={course.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen className="w-12 h-12 text-primary/20" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3">
+                        <Chip size="sm" color={getStatusColor(course.status)} variant="flat">
+                          {getStatusText(course.status)}
+                        </Chip>
+                      </div>
+                      {course.status === "in_progress" && (
+                        <div className="absolute top-3 right-3">
+                          <span className="bg-primary/90 text-white text-xs px-2 py-0.5 rounded-full">
+                            {course.progress}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          {course.subject}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Khối {course.gradeLevel}
+                        </span>
+                      </div>
+
+                      <h3 className="font-semibold text-[#181d27] dark:text-white line-clamp-1 mb-1">
+                        {course.title}
+                      </h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                        {course.description}
+                      </p>
+
+                      {/* Progress */}
+                      {course.status !== "not_started" && (
+                        <div className="mb-3">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-500">Tiến độ</span>
+                            <span className="font-medium">{course.masteredKps}/{course.totalKps} KP</span>
+                          </div>
+                          <Progress
+                            value={course.progress}
+                            size="sm"
+                            color={course.status === "completed" ? "success" : "primary"}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <BookOpen className="w-12 h-12 text-primary/20" />
-                          </div>
-                        )}
-                        <div className="absolute top-3 left-3">
-                          <Chip size="sm" color={getStatusColor(course.status)} variant="flat">
-                            {getStatusText(course.status)}
-                          </Chip>
                         </div>
-                        {course.status === "in_progress" && (
-                          <div className="absolute top-3 right-3">
-                            <span className="bg-primary/90 text-white text-xs px-2 py-0.5 rounded-full">
-                              {course.progress}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      )}
 
-                      {/* Content */}
-                      <div className="p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                            {course.subject}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            Khối {course.gradeLevel}
-                          </span>
-                        </div>
-
-                        <h3 className="font-semibold text-[#181d27] dark:text-white line-clamp-1 mb-1">
-                          {course.title}
-                        </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">
-                          {course.description}
-                        </p>
-
-                        {/* Progress */}
-                        {course.status !== "not_started" && (
-                          <div className="mb-3">
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-500">Tiến độ</span>
-                              <span className="font-medium">{course.masteredKps}/{course.totalKps} KP</span>
-                            </div>
-                            <Progress
-                              value={course.progress}
-                              size="sm"
-                              color={course.status === "completed" ? "success" : "primary"}
-                            />
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/dashboard/courses/${course.id}`}
-                            className="flex-1"
-                            onClick={(e) => e.stopPropagation()}
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/dashboard/courses/${course.id}`}
+                          className="flex-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            size="sm"
+                            color="primary"
+                            className="w-full"
+                            startContent={course.status === "not_started" ? <Play className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                           >
-                            <Button
-                              size="sm"
-                              color={course.status === "not_started" ? "primary" : "primary"}
-                              className="w-full"
-                              startContent={course.status === "not_started" ? <Play className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                            >
-                              {course.status === "not_started" ? "Bắt đầu" : "Tiếp tục"}
-                            </Button>
-                          </Link>
-                        </div>
+                            {course.status === "not_started" ? "Bắt đầu" : "Tiếp tục"}
+                          </Button>
+                        </Link>
                       </div>
-                    </CardBody>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
         {/* Course Detail Modal */}
         <Modal isOpen={isOpen} onClose={onClose} size="3xl" scrollBehavior="inside">
@@ -550,7 +544,7 @@ export default function MyCoursesPage() {
                           <p className="text-xs text-gray-500">Tiến độ</p>
                         </div>
                         <div className="bg-purple-50 rounded-xl p-4 text-center">
-                          <Award className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                          <BookOpen className="w-6 h-6 text-purple-600 mx-auto mb-2" />
                           <p className="text-lg font-bold">{selectedCourse?.gradeLevel}</p>
                           <p className="text-xs text-gray-500">Khối lớp</p>
                         </div>
@@ -568,7 +562,7 @@ export default function MyCoursesPage() {
                           <h3 className="font-semibold text-[#181d27] mb-3">Nội dung khóa học</h3>
                           <div className="space-y-3">
                             {courseStructure.modules.map((module: any, idx: number) => (
-                              <div key={module.id} className="border rounded-xl p-4">
+                              <div key={module.id} className="border border-[#e9eaeb] rounded-xl p-4">
                                 <div className="flex items-center gap-3">
                                   <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
                                     {idx + 1}
