@@ -148,26 +148,31 @@ export class PrerequisiteService {
       })
       .from(knowledgePoint)
       .where(inArray(knowledgePoint.id, kpIds));
-    
-    const result: KnowledgePointWithPrereqs[] = [];
-    
-    for (const kp of kps) {
-      const prereqs = await db
-        .select({
-          prerequisiteKpId: kpPrerequisites.prerequisiteKpId,
-        })
-        .from(kpPrerequisites)
-        .where(eq(kpPrerequisites.kpId, kp.id));
-      
-      result.push({
-        id: kp.id,
-        title: kp.title,
-        difficultyLevel: kp.difficultyLevel,
-        prerequisites: prereqs.map((p) => p.prerequisiteKpId),
-      });
+
+    // Batch fetch all prerequisites in a single query
+    const allPrereqs = await db
+      .select({
+        kpId: kpPrerequisites.kpId,
+        prerequisiteKpId: kpPrerequisites.prerequisiteKpId,
+      })
+      .from(kpPrerequisites)
+      .where(inArray(kpPrerequisites.kpId, kpIds));
+
+    // Group prerequisites by kpId
+    const prereqsByKpId = new Map<string, string[]>();
+    for (const prereq of allPrereqs) {
+      if (!prereqsByKpId.has(prereq.kpId)) {
+        prereqsByKpId.set(prereq.kpId, []);
+      }
+      prereqsByKpId.get(prereq.kpId)!.push(prereq.prerequisiteKpId);
     }
-    
-    return result;
+
+    return kps.map((kp) => ({
+      id: kp.id,
+      title: kp.title,
+      difficultyLevel: kp.difficultyLevel,
+      prerequisites: prereqsByKpId.get(kp.id) || [],
+    }));
   }
   
   /**
