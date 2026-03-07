@@ -21,10 +21,9 @@ export class AuthController {
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
 
     // Don't return accessToken in response body for security
@@ -39,13 +38,13 @@ export class AuthController {
 
     // Set HTTP-only cookie with the access token
     // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
+    // Don't set domain to allow cookie on any domain (flexible for Vercel)
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
 
     // Don't return accessToken in response body for security
@@ -66,10 +65,9 @@ export class AuthController {
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
 
     // Don't return accessToken in response body for security
@@ -89,9 +87,8 @@ export class AuthController {
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.slothai.xyz' : 'localhost',
     });
     return { message: 'Logged out successfully' };
   }
