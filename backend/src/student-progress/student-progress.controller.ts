@@ -108,7 +108,10 @@ export class StudentProgressController {
   ) {
     // Ensure student can only get their own attempts
     const actualStudentId = user.role === 'student' ? user.userId : studentId;
-    return this.progressService.getStudentQuestionAttempts(actualStudentId, kpId);
+    return this.progressService.getStudentQuestionAttempts(
+      actualStudentId,
+      kpId,
+    );
   }
 
   // ==================== TIME TRACKING ====================
@@ -120,7 +123,8 @@ export class StudentProgressController {
     @CurrentUser() user: ICurrentUser,
   ) {
     // Ensure student can only track time for themselves
-    const actualStudentId = user.role === 'student' ? user.userId : body.studentId;
+    const actualStudentId =
+      user.role === 'student' ? user.userId : body.studentId;
     return this.progressService.trackTimeOnTask(
       actualStudentId,
       body.kpId,
@@ -136,7 +140,10 @@ export class StudentProgressController {
   ) {
     // If parent, verify parent-child relationship
     if (user.role === 'parent') {
-      await this.studentsService.assertParentCanAccessStudent(user.userId, studentId);
+      await this.studentsService.assertParentCanAccessStudent(
+        user.userId,
+        studentId,
+      );
     }
     // Ensure student can only get their own study time
     const actualStudentId = user.role === 'student' ? user.userId : studentId;
@@ -152,7 +159,10 @@ export class StudentProgressController {
   ) {
     // If parent, verify parent-child relationship
     if (user.role === 'parent') {
-      await this.studentsService.assertParentCanAccessStudent(user.userId, studentId);
+      await this.studentsService.assertParentCanAccessStudent(
+        user.userId,
+        studentId,
+      );
     }
     // Ensure student can only get their own stats
     const actualStudentId = user.role === 'student' ? user.userId : studentId;
@@ -167,7 +177,10 @@ export class StudentProgressController {
   ) {
     // If parent, verify parent-child relationship
     if (user.role === 'parent') {
-      await this.studentsService.assertParentCanAccessStudent(user.userId, studentId);
+      await this.studentsService.assertParentCanAccessStudent(
+        user.userId,
+        studentId,
+      );
     }
     // Ensure student can only get their own activity
     const actualStudentId = user.role === 'student' ? user.userId : studentId;

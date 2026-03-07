@@ -11,4 +11,3 @@ import { KnowledgePointsModule } from '../knowledge-points/knowledge-points.modu
   exports: [ExplorerService],
 })
 export class ExplorerModule {}
-

@@ -51,7 +51,10 @@ export class TeachersController {
   // Course Assignment Endpoints
   @Post(':id/courses')
   @HttpCode(HttpStatus.CREATED)
-  assignCourse(@Param('id') id: string, @Body() assignCourseDto: AssignCourseDto) {
+  assignCourse(
+    @Param('id') id: string,
+    @Body() assignCourseDto: AssignCourseDto,
+  ) {
     return this.teachersService.assignCourse(id, assignCourseDto);
   }
 
@@ -62,7 +65,10 @@ export class TeachersController {
 
   @Delete(':id/courses/:courseId')
   @HttpCode(HttpStatus.OK)
-  removeCourseFromTeacher(@Param('id') id: string, @Param('courseId') courseId: string) {
+  removeCourseFromTeacher(
+    @Param('id') id: string,
+    @Param('courseId') courseId: string,
+  ) {
     return this.teachersService.removeCourseFromTeacher(id, courseId);
   }
 }

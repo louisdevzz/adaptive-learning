@@ -1,4 +1,14 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional, IsArray, IsUUID, ArrayMinSize } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  IsUUID,
+  ArrayMinSize,
+} from 'class-validator';
 
 export enum RelationshipType {
   FATHER = 'father',

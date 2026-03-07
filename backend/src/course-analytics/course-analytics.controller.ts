@@ -23,4 +23,3 @@ export class CourseAnalyticsController {
     return this.analyticsService.getModuleAnalytics(courseId, moduleId);
   }
 }
-

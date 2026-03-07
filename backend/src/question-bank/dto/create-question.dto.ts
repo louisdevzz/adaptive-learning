@@ -51,7 +51,11 @@ export class CreateQuestionDto {
   correctAnswer: string;
 
   @IsEnum(['multiple_choice', 'true_false', 'short_answer', 'multi_select'])
-  questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'multi_select';
+  questionType:
+    | 'multiple_choice'
+    | 'true_false'
+    | 'short_answer'
+    | 'multi_select';
 
   @IsBoolean()
   @IsOptional()

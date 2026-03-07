@@ -7,7 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { FirebaseModule } from '../firebase/firebase.module';
-import type { StringValue } from "ms";
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -19,9 +19,12 @@ import type { StringValue } from "ms";
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => {
         return {
-          secret: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-this',
+          secret:
+            configService.get<string>('JWT_SECRET') ||
+            'your-secret-key-change-this',
           signOptions: {
-            expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '7D') as StringValue,
+            expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ||
+              '7D') as StringValue,
           },
         };
       },

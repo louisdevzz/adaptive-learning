@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -13,7 +22,10 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() createUserDto: CreateUserDto, @Res({ passthrough: true }) res: Response) {
+  async register(
+    @Body() createUserDto: CreateUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.createUser(createUserDto);
 
     // Set HTTP-only cookie with the access token
@@ -26,14 +38,16 @@ export class AuthController {
       path: '/',
     });
 
-    // Don't return accessToken in response body for security
-    const { accessToken, ...response } = result;
-    return response;
+    // Also return accessToken in response body for cross-domain cookie setting
+    return result;
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.login(loginDto);
 
     // Set HTTP-only cookie with the access token
@@ -47,9 +61,8 @@ export class AuthController {
       path: '/',
     });
 
-    // Don't return accessToken in response body for security
-    const { accessToken, ...response } = result;
-    return response;
+    // Also return accessToken in response body for cross-domain cookie setting
+    return result;
   }
 
   @Post('google')
@@ -70,9 +83,8 @@ export class AuthController {
       path: '/',
     });
 
-    // Don't return accessToken in response body for security
-    const { accessToken, ...response } = result;
-    return response;
+    // Also return accessToken in response body for cross-domain cookie setting
+    return result;
   }
 
   @Get('me')

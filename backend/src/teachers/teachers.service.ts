@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import { db, users, teachers, teacherCourseMap, courses } from '../../db';
 import { UsersService } from '../users/users.service';
@@ -74,7 +78,12 @@ export class TeachersService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateTeacherDto.email || updateTeacherDto.password || updateTeacherDto.fullName || updateTeacherDto.avatarUrl !== undefined) {
+    if (
+      updateTeacherDto.email ||
+      updateTeacherDto.password ||
+      updateTeacherDto.fullName ||
+      updateTeacherDto.avatarUrl !== undefined
+    ) {
       await this.usersService.updateUser(id, {
         email: updateTeacherDto.email,
         password: updateTeacherDto.password,
@@ -85,11 +94,16 @@ export class TeachersService {
 
     // Update teacher info
     const teacherUpdateData: any = {};
-    if (updateTeacherDto.specialization) teacherUpdateData.specialization = updateTeacherDto.specialization;
-    if (updateTeacherDto.experienceYears) teacherUpdateData.experienceYears = updateTeacherDto.experienceYears;
-    if (updateTeacherDto.certifications) teacherUpdateData.certifications = updateTeacherDto.certifications;
-    if (updateTeacherDto.phone) teacherUpdateData.phone = updateTeacherDto.phone;
-    if (updateTeacherDto.bio !== undefined) teacherUpdateData.bio = updateTeacherDto.bio;
+    if (updateTeacherDto.specialization)
+      teacherUpdateData.specialization = updateTeacherDto.specialization;
+    if (updateTeacherDto.experienceYears)
+      teacherUpdateData.experienceYears = updateTeacherDto.experienceYears;
+    if (updateTeacherDto.certifications)
+      teacherUpdateData.certifications = updateTeacherDto.certifications;
+    if (updateTeacherDto.phone)
+      teacherUpdateData.phone = updateTeacherDto.phone;
+    if (updateTeacherDto.bio !== undefined)
+      teacherUpdateData.bio = updateTeacherDto.bio;
 
     if (Object.keys(teacherUpdateData).length > 0) {
       teacherUpdateData.updatedAt = new Date();
@@ -135,8 +149,8 @@ export class TeachersService {
       .where(
         and(
           eq(teacherCourseMap.teacherId, teacherId),
-          eq(teacherCourseMap.courseId, assignCourseDto.courseId)
-        )
+          eq(teacherCourseMap.courseId, assignCourseDto.courseId),
+        ),
       )
       .limit(1);
 
@@ -184,8 +198,8 @@ export class TeachersService {
       .where(
         and(
           eq(teacherCourseMap.teacherId, teacherId),
-          eq(teacherCourseMap.courseId, courseId)
-        )
+          eq(teacherCourseMap.courseId, courseId),
+        ),
       )
       .returning();
 

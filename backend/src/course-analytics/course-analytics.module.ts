@@ -8,4 +8,3 @@ import { CourseAnalyticsController } from './course-analytics.controller';
   exports: [CourseAnalyticsService],
 })
 export class CourseAnalyticsModule {}
-

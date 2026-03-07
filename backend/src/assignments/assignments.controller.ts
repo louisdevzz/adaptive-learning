@@ -16,7 +16,10 @@ import { AssignToStudentDto } from './dto/assign-to-student.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
-import { CreateAssignmentAttemptDto, UpdateAssignmentAttemptDto } from './dto/create-assignment-attempt.dto';
+import {
+  CreateAssignmentAttemptDto,
+  UpdateAssignmentAttemptDto,
+} from './dto/create-assignment-attempt.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -54,7 +57,10 @@ export class AssignmentsController {
 
   @Patch(':id')
   @Roles('admin', 'teacher')
-  update(@Param('id') id: string, @Body() updateAssignmentDto: UpdateAssignmentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAssignmentDto: UpdateAssignmentDto,
+  ) {
     return this.assignmentsService.update(id, updateAssignmentDto);
   }
 
@@ -77,7 +83,10 @@ export class AssignmentsController {
     @Param('studentId') studentId: string,
     @Param('assignmentId') assignmentId: string,
   ) {
-    return this.assignmentsService.getStudentAssignment(studentId, assignmentId);
+    return this.assignmentsService.getStudentAssignment(
+      studentId,
+      assignmentId,
+    );
   }
 
   @Post('student-assignments/:studentAssignmentId/start')
@@ -123,7 +132,10 @@ export class AssignmentsController {
     @Param('sectionId') sectionId: string,
     @Param('assignmentId') assignmentId: string,
   ) {
-    return this.assignmentsService.removeSectionAssignment(sectionId, assignmentId);
+    return this.assignmentsService.removeSectionAssignment(
+      sectionId,
+      assignmentId,
+    );
   }
 
   // ==================== ASSIGNMENT TARGETS ====================
@@ -150,7 +162,9 @@ export class AssignmentsController {
 
   @Post('attempts')
   @Roles('student')
-  createAssignmentAttempt(@Body() createAttemptDto: CreateAssignmentAttemptDto) {
+  createAssignmentAttempt(
+    @Body() createAttemptDto: CreateAssignmentAttemptDto,
+  ) {
     return this.assignmentsService.createAssignmentAttempt(createAttemptDto);
   }
 
@@ -160,12 +174,17 @@ export class AssignmentsController {
     @Param('attemptId') attemptId: string,
     @Body() updateAttemptDto: UpdateAssignmentAttemptDto,
   ) {
-    return this.assignmentsService.updateAssignmentAttempt(attemptId, updateAttemptDto);
+    return this.assignmentsService.updateAssignmentAttempt(
+      attemptId,
+      updateAttemptDto,
+    );
   }
 
   @Get('student-assignments/:studentAssignmentId/attempts')
   @Roles('student', 'teacher', 'admin')
-  getAssignmentAttempts(@Param('studentAssignmentId') studentAssignmentId: string) {
+  getAssignmentAttempts(
+    @Param('studentAssignmentId') studentAssignmentId: string,
+  ) {
     return this.assignmentsService.getAssignmentAttempts(studentAssignmentId);
   }
 }

@@ -37,7 +37,11 @@ export interface AdminInfo {
   updatedAt: Date;
 }
 
-export type RoleSpecificInfo = StudentInfo | TeacherInfo | ParentInfo | AdminInfo;
+export type RoleSpecificInfo =
+  | StudentInfo
+  | TeacherInfo
+  | ParentInfo
+  | AdminInfo;
 
 export class AuthResponseDto {
   user: {

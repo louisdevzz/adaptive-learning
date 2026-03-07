@@ -1,4 +1,10 @@
-import { IsUUID, IsNotEmpty, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import {
+  IsUUID,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateAssignmentAttemptDto {
   @IsUUID()
@@ -19,4 +25,3 @@ export class UpdateAssignmentAttemptDto {
   @IsOptional()
   endedAt?: string;
 }
-

@@ -33,7 +33,11 @@ import {
 export class CoursesService {
   // ==================== COURSES ====================
 
-  async create(createCourseDto: CreateCourseDto, userId?: string, userRole?: string) {
+  async create(
+    createCourseDto: CreateCourseDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     const result = await db
       .insert(courses)
       .values({

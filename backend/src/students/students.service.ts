@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { eq, and, inArray, sql, count, gte } from 'drizzle-orm';
 import {
   db,
@@ -107,10 +112,12 @@ export class StudentsService {
       .from(classes)
       .where(eq(classes.homeroomTeacherId, teacherId));
 
-    const classIds = [...new Set([
-      ...teacherClasses.map(c => c.classId),
-      ...homeroomClasses.map(c => c.classId),
-    ])];
+    const classIds = [
+      ...new Set([
+        ...teacherClasses.map((c) => c.classId),
+        ...homeroomClasses.map((c) => c.classId),
+      ]),
+    ];
 
     if (classIds.length === 0) {
       return [];
@@ -127,7 +134,7 @@ export class StudentsService {
         ),
       );
 
-    const studentIds = [...new Set(enrollments.map(e => e.studentId))];
+    const studentIds = [...new Set(enrollments.map((e) => e.studentId))];
 
     if (studentIds.length === 0) {
       return [];
@@ -170,7 +177,9 @@ export class StudentsService {
       .limit(1);
 
     if (relationship.length === 0) {
-      throw new ForbiddenException('Parent does not have access to this student');
+      throw new ForbiddenException(
+        'Parent does not have access to this student',
+      );
     }
   }
 
@@ -236,7 +245,12 @@ export class StudentsService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateStudentDto.email || updateStudentDto.password || updateStudentDto.fullName || updateStudentDto.avatarUrl !== undefined) {
+    if (
+      updateStudentDto.email ||
+      updateStudentDto.password ||
+      updateStudentDto.fullName ||
+      updateStudentDto.avatarUrl !== undefined
+    ) {
       await this.usersService.updateUser(id, {
         email: updateStudentDto.email,
         password: updateStudentDto.password,
@@ -247,11 +261,16 @@ export class StudentsService {
 
     // Update student info
     const studentUpdateData: any = {};
-    if (updateStudentDto.studentCode) studentUpdateData.studentCode = updateStudentDto.studentCode;
-    if (updateStudentDto.gradeLevel) studentUpdateData.gradeLevel = updateStudentDto.gradeLevel;
-    if (updateStudentDto.schoolName) studentUpdateData.schoolName = updateStudentDto.schoolName;
-    if (updateStudentDto.dateOfBirth) studentUpdateData.dateOfBirth = updateStudentDto.dateOfBirth;
-    if (updateStudentDto.gender) studentUpdateData.gender = updateStudentDto.gender;
+    if (updateStudentDto.studentCode)
+      studentUpdateData.studentCode = updateStudentDto.studentCode;
+    if (updateStudentDto.gradeLevel)
+      studentUpdateData.gradeLevel = updateStudentDto.gradeLevel;
+    if (updateStudentDto.schoolName)
+      studentUpdateData.schoolName = updateStudentDto.schoolName;
+    if (updateStudentDto.dateOfBirth)
+      studentUpdateData.dateOfBirth = updateStudentDto.dateOfBirth;
+    if (updateStudentDto.gender)
+      studentUpdateData.gender = updateStudentDto.gender;
 
     if (Object.keys(studentUpdateData).length > 0) {
       studentUpdateData.updatedAt = new Date();
@@ -287,8 +306,8 @@ export class StudentsService {
       .where(
         and(
           eq(classEnrollment.studentId, studentId),
-          eq(classEnrollment.status, 'active')
-        )
+          eq(classEnrollment.status, 'active'),
+        ),
       );
 
     if (enrollments.length === 0) {
@@ -309,8 +328,8 @@ export class StudentsService {
         and(
           inArray(classCourses.classId, classIds),
           eq(classCourses.status, 'active'),
-          eq(courses.active, true)
-        )
+          eq(courses.active, true),
+        ),
       );
 
     // Remove duplicates by course ID and return unique courses
@@ -337,8 +356,8 @@ export class StudentsService {
       .where(
         and(
           eq(classEnrollment.studentId, studentId),
-          eq(classEnrollment.status, 'active')
-        )
+          eq(classEnrollment.status, 'active'),
+        ),
       );
 
     if (enrollments.length === 0) {
@@ -359,8 +378,8 @@ export class StudentsService {
         and(
           inArray(classCourses.classId, classIds),
           eq(classCourses.status, 'active'),
-          eq(courses.active, true)
-        )
+          eq(courses.active, true),
+        ),
       );
 
     // Remove duplicates by course ID (keep first class info)
@@ -404,7 +423,11 @@ export class StudentsService {
         }
 
         // Get student's progress for these KPs
-        let studentProgress: Array<{ kpId: string; masteryScore: number; lastUpdated: Date }> = [];
+        let studentProgress: Array<{
+          kpId: string;
+          masteryScore: number;
+          lastUpdated: Date;
+        }> = [];
         if (kpIds.length > 0) {
           studentProgress = await db
             .select({
@@ -416,20 +439,25 @@ export class StudentsService {
             .where(
               and(
                 eq(studentKpProgress.studentId, studentId),
-                inArray(studentKpProgress.kpId, kpIds)
-              )
+                inArray(studentKpProgress.kpId, kpIds),
+              ),
             );
         }
 
         // Get last accessed time (most recent progress update)
-        const lastAccessed = studentProgress.length > 0
-          ? studentProgress.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())[0].lastUpdated
-          : null;
+        const lastAccessed =
+          studentProgress.length > 0
+            ? studentProgress.sort(
+                (a, b) =>
+                  new Date(b.lastUpdated).getTime() -
+                  new Date(a.lastUpdated).getTime(),
+              )[0].lastUpdated
+            : null;
 
         // Count mastered KPs (mastery_score >= 60)
         const MASTERY_THRESHOLD = 60;
         const masteredKps = studentProgress.filter(
-          (p) => p.masteryScore >= MASTERY_THRESHOLD
+          (p) => p.masteryScore >= MASTERY_THRESHOLD,
         ).length;
 
         // Check if student has any progress at all (has any record in student_kp_progress)
@@ -457,7 +485,7 @@ export class StudentsService {
           totalKps,
           lastAccessed,
         };
-      })
+      }),
     );
 
     return coursesWithProgress;
@@ -474,8 +502,8 @@ export class StudentsService {
       .where(
         and(
           eq(classEnrollment.studentId, studentId),
-          eq(classEnrollment.status, 'active')
-        )
+          eq(classEnrollment.status, 'active'),
+        ),
       );
 
     const classIds = enrollments.map((e) => e.classId);
@@ -492,11 +520,13 @@ export class StudentsService {
           and(
             inArray(classCourses.classId, classIds),
             eq(classCourses.status, 'active'),
-            eq(courses.active, true)
-          )
+            eq(courses.active, true),
+          ),
         );
 
-      const uniqueCourseIds = [...new Set(courseAssignments.map((c) => c.courseId))];
+      const uniqueCourseIds = [
+        ...new Set(courseAssignments.map((c) => c.courseId)),
+      ];
       totalCourses = uniqueCourseIds.length;
 
       // Check progress for each course
@@ -520,12 +550,12 @@ export class StudentsService {
             .where(
               and(
                 eq(studentKpProgress.studentId, studentId),
-                inArray(studentKpProgress.kpId, kpIds)
-              )
+                inArray(studentKpProgress.kpId, kpIds),
+              ),
             );
 
           const masteredKps = studentProgress.filter(
-            (p) => p.masteryScore >= 60
+            (p) => p.masteryScore >= 60,
           ).length;
 
           const progress = Math.round((masteredKps / totalKps) * 100);
@@ -544,21 +574,25 @@ export class StudentsService {
 
     // 2. Get overall mastery score (average of all KP progress)
     const progressData = await db
-      .select({ avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)` })
+      .select({
+        avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
+      })
       .from(studentKpProgress)
       .where(eq(studentKpProgress.studentId, studentId));
 
-    const masteryScore = Math.round(parseFloat(progressData[0]?.avgMastery?.toString() || '0'));
+    const masteryScore = Math.round(
+      parseFloat(progressData[0]?.avgMastery?.toString() || '0'),
+    );
 
     // 3. Get total KPs mastered
-          const masteredKpsCount = await db
+    const masteredKpsCount = await db
       .select({ count: count() })
       .from(studentKpProgress)
       .where(
         and(
           eq(studentKpProgress.studentId, studentId),
-          gte(studentKpProgress.masteryScore, 60)
-        )
+          gte(studentKpProgress.masteryScore, 60),
+        ),
       );
 
     const kpMastered = masteredKpsCount[0]?.count || 0;
@@ -583,8 +617,8 @@ export class StudentsService {
       .where(
         and(
           eq(questionAttempts.studentId, studentId),
-          gte(questionAttempts.attemptTime, thirtyDaysAgo)
-        )
+          gte(questionAttempts.attemptTime, thirtyDaysAgo),
+        ),
       )
       .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
       .orderBy(sql`DATE(${questionAttempts.attemptTime}) DESC`);
@@ -593,8 +627,10 @@ export class StudentsService {
     let streak = 0;
     if (recentAttempts.length > 0) {
       const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      
+      const yesterday = new Date(Date.now() - 86400000)
+        .toISOString()
+        .split('T')[0];
+
       // Check if active today or yesterday
       const lastActiveDate = recentAttempts[0]?.date;
       if (lastActiveDate === today || lastActiveDate === yesterday) {
@@ -602,8 +638,10 @@ export class StudentsService {
         for (let i = 1; i < recentAttempts.length; i++) {
           const currentDate = new Date(recentAttempts[i - 1]?.date);
           const prevDate = new Date(recentAttempts[i]?.date);
-          const diffDays = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-          
+          const diffDays =
+            (currentDate.getTime() - prevDate.getTime()) /
+            (1000 * 60 * 60 * 24);
+
           if (diffDays === 1) {
             streak++;
           } else {
@@ -628,8 +666,8 @@ export class StudentsService {
       .where(
         and(
           eq(questionAttempts.studentId, studentId),
-          gte(questionAttempts.attemptTime, sevenDaysAgo)
-        )
+          gte(questionAttempts.attemptTime, sevenDaysAgo),
+        ),
       );
 
     // 8. Get total study time (in minutes) from timeOnTask table
@@ -641,11 +679,13 @@ export class StudentsService {
       .where(
         and(
           eq(timeOnTask.studentId, studentId),
-          gte(timeOnTask.computedAt, thirtyDaysAgo)
-        )
+          gte(timeOnTask.computedAt, thirtyDaysAgo),
+        ),
       );
 
-    const totalStudyTimeMinutes = Math.round((studyTimeData[0]?.totalTime || 0) / 60);
+    const totalStudyTimeMinutes = Math.round(
+      (studyTimeData[0]?.totalTime || 0) / 60,
+    );
 
     // 9. Get class info
     const classInfo = await db
@@ -658,8 +698,8 @@ export class StudentsService {
       .where(
         and(
           eq(classEnrollment.studentId, studentId),
-          eq(classEnrollment.status, 'active')
-        )
+          eq(classEnrollment.status, 'active'),
+        ),
       )
       .limit(1);
 

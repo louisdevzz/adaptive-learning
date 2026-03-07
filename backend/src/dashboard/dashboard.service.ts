@@ -21,7 +21,11 @@ import {
 export class DashboardService {
   constructor() {}
 
-  async getAdminStats(startDate?: string, endDate?: string, gradeLevel?: number) {
+  async getAdminStats(
+    startDate?: string,
+    endDate?: string,
+    gradeLevel?: number,
+  ) {
     // Build date filter conditions
     const dateConditions: any[] = [];
     if (startDate) {
@@ -40,7 +44,9 @@ export class DashboardService {
     const [totalStudentsResult] = await db
       .select({ count: count() })
       .from(students)
-      .where(studentConditions.length > 0 ? and(...studentConditions) : undefined);
+      .where(
+        studentConditions.length > 0 ? and(...studentConditions) : undefined,
+      );
 
     // Get total teachers count
     const [totalTeachersResult] = await db
@@ -83,9 +89,13 @@ export class DashboardService {
       .select({ count: count() })
       .from(students);
 
-    const dropoutRate = totalActiveStudents.count > 0
-      ? ((1 - (recentActivityResult.count / totalActiveStudents.count)) * 100).toFixed(1)
-      : '0.0';
+    const dropoutRate =
+      totalActiveStudents.count > 0
+        ? (
+            (1 - recentActivityResult.count / totalActiveStudents.count) *
+            100
+          ).toFixed(1)
+        : '0.0';
 
     // Calculate average study time per day (in minutes)
     const avgTimeData = await db
@@ -123,17 +133,17 @@ export class DashboardService {
         sectionKpMap,
         sql`${sectionKpMap.kpId} IN (
           SELECT ${knowledgePoint.id} FROM ${knowledgePoint}
-        )`
+        )`,
       )
       .leftJoin(
         studentKpProgress,
-        eq(sectionKpMap.kpId, studentKpProgress.kpId)
+        eq(sectionKpMap.kpId, studentKpProgress.kpId),
       )
       .groupBy(courses.id, courses.title, courses.subject)
       .orderBy(desc(sql`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`))
       .limit(limit);
 
-    return topCourses.map(course => ({
+    return topCourses.map((course) => ({
       name: course.courseName,
       subject: course.subject,
       progress: Math.round(parseFloat(course.avgProgress.toString())),
@@ -153,13 +163,21 @@ export class DashboardService {
       .leftJoin(questionAttempts, eq(knowledgePoint.id, questionAttempts.kpId))
       .groupBy(knowledgePoint.id, knowledgePoint.title)
       .having(sql`COUNT(${questionAttempts.id}) > 10`) // Only include KPs with significant data
-      .orderBy(desc(sql`SUM(CASE WHEN ${questionAttempts.isCorrect} = false THEN 1 ELSE 0 END) / NULLIF(COUNT(${questionAttempts.id}), 0)`))
+      .orderBy(
+        desc(
+          sql`SUM(CASE WHEN ${questionAttempts.isCorrect} = false THEN 1 ELSE 0 END) / NULLIF(COUNT(${questionAttempts.id}), 0)`,
+        ),
+      )
       .limit(limit);
 
-    return difficultKPs.map(kp => {
-      const failRate = kp.totalAttempts > 0
-        ? Math.round((parseFloat(kp.failedAttempts.toString()) / kp.totalAttempts) * 100)
-        : 0;
+    return difficultKPs.map((kp) => {
+      const failRate =
+        kp.totalAttempts > 0
+          ? Math.round(
+              (parseFloat(kp.failedAttempts.toString()) / kp.totalAttempts) *
+                100,
+            )
+          : 0;
 
       return {
         name: kp.kpTitle,
@@ -192,7 +210,7 @@ export class DashboardService {
       .groupBy(classes.id, classes.className, classes.gradeLevel)
       .orderBy(asc(classes.gradeLevel), asc(classes.className));
 
-    return classStats.map(cls => ({
+    return classStats.map((cls) => ({
       name: cls.className,
       gradeLevel: cls.gradeLevel,
       value: cls.studentCount,
@@ -202,7 +220,9 @@ export class DashboardService {
   async getLearningHealth(startDate?: string, endDate?: string) {
     // Get daily KP completion counts for the last 7 days by default
     const end = endDate ? new Date(endDate) : new Date();
-    const start = startDate ? new Date(startDate) : new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const dailyCompletions = await db
       .select({
@@ -214,13 +234,13 @@ export class DashboardService {
         and(
           gte(studentKpProgress.lastUpdated, start),
           lte(studentKpProgress.lastUpdated, end),
-          gte(studentKpProgress.masteryScore, 70) // Consider mastery >= 70 as completion
-        )
+          gte(studentKpProgress.masteryScore, 70), // Consider mastery >= 70 as completion
+        ),
       )
       .groupBy(sql`DATE(${studentKpProgress.lastUpdated})`)
       .orderBy(asc(sql`DATE(${studentKpProgress.lastUpdated})`));
 
-    return dailyCompletions.map(day => ({
+    return dailyCompletions.map((day) => ({
       date: day.date,
       completions: day.completions,
     }));
@@ -241,28 +261,35 @@ export class DashboardService {
       })
       .from(teachers)
       .innerJoin(users, eq(teachers.id, users.id))
-      .leftJoin(teacherClassMap, and(
-        eq(teachers.id, teacherClassMap.teacherId),
-        eq(teacherClassMap.role, 'homeroom'),
-        eq(teacherClassMap.status, 'active')
-      ))
+      .leftJoin(
+        teacherClassMap,
+        and(
+          eq(teachers.id, teacherClassMap.teacherId),
+          eq(teacherClassMap.role, 'homeroom'),
+          eq(teacherClassMap.status, 'active'),
+        ),
+      )
       .leftJoin(classes, eq(teacherClassMap.classId, classes.id))
-      .leftJoin(assignments, and(
-        eq(teachers.id, assignments.teacherId),
-        gte(assignments.createdAt, thirtyDaysAgo)
-      ))
+      .leftJoin(
+        assignments,
+        and(
+          eq(teachers.id, assignments.teacherId),
+          gte(assignments.createdAt, thirtyDaysAgo),
+        ),
+      )
       .groupBy(teachers.id, users.fullName, users.avatarUrl, classes.className)
       .orderBy(desc(count(assignments.id)))
       .limit(limit);
 
     return teacherStats.map((teacher, index) => {
       // Generate initials from full name
-      const initials = teacher.fullName
-        ?.split(' ')
-        .map(word => word[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2) || 'T';
+      const initials =
+        teacher.fullName
+          ?.split(' ')
+          .map((word) => word[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2) || 'T';
 
       return {
         id: teacher.teacherId,
@@ -270,7 +297,12 @@ export class DashboardService {
         initials,
         avatarUrl: teacher.avatarUrl,
         className: teacher.className || 'No class assigned',
-        activityLevel: teacher.assignmentCount > 5 ? 'Hoạt động cao' : teacher.assignmentCount > 2 ? 'Tương tác tốt' : 'Hoạt động thấp',
+        activityLevel:
+          teacher.assignmentCount > 5
+            ? 'Hoạt động cao'
+            : teacher.assignmentCount > 2
+              ? 'Tương tác tốt'
+              : 'Hoạt động thấp',
         assignmentCount: teacher.assignmentCount,
       };
     });
@@ -289,19 +321,28 @@ export class DashboardService {
         gradeLevel: classes.gradeLevel,
         avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
         recentActivity: count(
-          sql`CASE WHEN ${studentKpProgress.lastUpdated} >= ${threeWeeksAgo} THEN 1 END`
+          sql`CASE WHEN ${studentKpProgress.lastUpdated} >= ${threeWeeksAgo} THEN 1 END`,
         ),
       })
       .from(classes)
       .leftJoin(classEnrollment, eq(classes.id, classEnrollment.classId))
-      .leftJoin(studentKpProgress, eq(classEnrollment.studentId, studentKpProgress.studentId))
+      .leftJoin(
+        studentKpProgress,
+        eq(classEnrollment.studentId, studentKpProgress.studentId),
+      )
       .groupBy(classes.id, classes.className, classes.gradeLevel)
       .having(sql`COUNT(${classEnrollment.studentId}) > 0`) // Only classes with students
       .orderBy(asc(sql`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`))
       .limit(limit);
 
-    return classProgress.map(cls => {
-      const weeksSinceActivity = cls.recentActivity === 0 ? 3 : Math.floor((Date.now() - threeWeeksAgo.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    return classProgress.map((cls) => {
+      const weeksSinceActivity =
+        cls.recentActivity === 0
+          ? 3
+          : Math.floor(
+              (Date.now() - threeWeeksAgo.getTime()) /
+                (7 * 24 * 60 * 60 * 1000),
+            );
 
       return {
         id: cls.classId,
@@ -344,12 +385,23 @@ export class DashboardService {
 
     // Merge unique classes
     const allClassIds = new Set<string>();
-    const allClasses: { classId: string; className: string; gradeLevel: number | null }[] = [];
+    const allClasses: {
+      classId: string;
+      className: string;
+      gradeLevel: number | null;
+    }[] = [];
 
-    for (const cls of [...teacherClasses, ...homeroomClasses.map(c => ({ ...c, role: 'homeroom' }))]) {
+    for (const cls of [
+      ...teacherClasses,
+      ...homeroomClasses.map((c) => ({ ...c, role: 'homeroom' })),
+    ]) {
       if (!allClassIds.has(cls.classId)) {
         allClassIds.add(cls.classId);
-        allClasses.push({ classId: cls.classId, className: cls.className, gradeLevel: cls.gradeLevel });
+        allClasses.push({
+          classId: cls.classId,
+          className: cls.className,
+          gradeLevel: cls.gradeLevel,
+        });
       }
     }
 
@@ -433,7 +485,10 @@ export class DashboardService {
     // 5. Calculate overall average progress
     let overallProgress = 0;
     if (classDetails.length > 0) {
-      const totalProgress = classDetails.reduce((sum, cls) => sum + cls.progress, 0);
+      const totalProgress = classDetails.reduce(
+        (sum, cls) => sum + cls.progress,
+        0,
+      );
       overallProgress = Math.round(totalProgress / classDetails.length);
     }
 

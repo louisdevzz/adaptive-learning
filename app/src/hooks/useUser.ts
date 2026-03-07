@@ -52,6 +52,8 @@ export function useUser() {
   const logout = async () => {
     try {
       await api.auth.logout();
+      // Clear cookie on frontend domain (cross-domain fix)
+      await fetch("/api/auth/clear-cookie", { method: "POST" });
       // Clear SWR cache for user profile
       mutate(USER_PROFILE_KEY, null, { revalidate: false });
       router.push("/login");

@@ -1,6 +1,24 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and, inArray, notInArray } from 'drizzle-orm';
-import { db, classes, classEnrollment, teacherClassMap, students, teachers, users, classCourses, courses, studentKpProgress, studentMastery, studentInsights, knowledgePoint } from '../../db';
+import {
+  db,
+  classes,
+  classEnrollment,
+  teacherClassMap,
+  students,
+  teachers,
+  users,
+  classCourses,
+  courses,
+  studentKpProgress,
+  studentMastery,
+  studentInsights,
+  knowledgePoint,
+} from '../../db';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { EnrollStudentDto } from './dto/enroll-student.dto';
@@ -83,10 +101,12 @@ export class ClassesService {
       .from(classes)
       .where(eq(classes.homeroomTeacherId, teacherId));
 
-    const classIds = [...new Set([
-      ...assigned.map(c => c.classId),
-      ...homeroom.map(c => c.classId),
-    ])];
+    const classIds = [
+      ...new Set([
+        ...assigned.map((c) => c.classId),
+        ...homeroom.map((c) => c.classId),
+      ]),
+    ];
 
     if (classIds.length === 0) {
       return [];
@@ -134,7 +154,9 @@ export class ClassesService {
 
     return {
       ...result[0].class,
-      homeroomTeacher: result[0].homeroomTeacher.id ? result[0].homeroomTeacher : null,
+      homeroomTeacher: result[0].homeroomTeacher.id
+        ? result[0].homeroomTeacher
+        : null,
     };
   }
 
@@ -195,8 +217,8 @@ export class ClassesService {
       .where(
         and(
           eq(classEnrollment.classId, classId),
-          eq(classEnrollment.studentId, enrollStudentDto.studentId)
-        )
+          eq(classEnrollment.studentId, enrollStudentDto.studentId),
+        ),
       )
       .limit(1);
 
@@ -254,8 +276,8 @@ export class ClassesService {
       .where(
         and(
           eq(classEnrollment.classId, classId),
-          eq(classEnrollment.studentId, studentId)
-        )
+          eq(classEnrollment.studentId, studentId),
+        ),
       )
       .returning();
 
@@ -315,7 +337,10 @@ export class ClassesService {
   }
 
   // Teacher Assignment
-  async assignTeacher(classId: string, assignTeacherDto: AssignTeacherToClassDto) {
+  async assignTeacher(
+    classId: string,
+    assignTeacherDto: AssignTeacherToClassDto,
+  ) {
     // Check if class exists
     await this.findOne(classId);
 
@@ -337,8 +362,8 @@ export class ClassesService {
       .where(
         and(
           eq(teacherClassMap.classId, classId),
-          eq(teacherClassMap.teacherId, assignTeacherDto.teacherId)
-        )
+          eq(teacherClassMap.teacherId, assignTeacherDto.teacherId),
+        ),
       )
       .limit(1);
 
@@ -398,8 +423,8 @@ export class ClassesService {
       .where(
         and(
           eq(teacherClassMap.classId, classId),
-          eq(teacherClassMap.teacherId, teacherId)
-        )
+          eq(teacherClassMap.teacherId, teacherId),
+        ),
       )
       .returning();
 
@@ -433,8 +458,8 @@ export class ClassesService {
       .where(
         and(
           eq(classCourses.classId, classId),
-          eq(classCourses.courseId, assignCourseDto.courseId)
-        )
+          eq(classCourses.courseId, assignCourseDto.courseId),
+        ),
       )
       .limit(1);
 
@@ -499,10 +524,7 @@ export class ClassesService {
       .innerJoin(courses, eq(classCourses.courseId, courses.id))
       .leftJoin(users, eq(classCourses.assignedBy, users.id))
       .where(
-        and(
-          eq(classCourses.classId, classId),
-          eq(classCourses.status, status)
-        )
+        and(eq(classCourses.classId, classId), eq(classCourses.status, status)),
       );
 
     return result.map((row) => ({
@@ -514,7 +536,11 @@ export class ClassesService {
     }));
   }
 
-  async updateClassCourseStatus(classId: string, courseId: string, status: string) {
+  async updateClassCourseStatus(
+    classId: string,
+    courseId: string,
+    status: string,
+  ) {
     await this.findOne(classId);
 
     // Check if course exists
@@ -535,8 +561,8 @@ export class ClassesService {
       .where(
         and(
           eq(classCourses.classId, classId),
-          eq(classCourses.courseId, courseId)
-        )
+          eq(classCourses.courseId, courseId),
+        ),
       )
       .limit(1);
 
@@ -552,8 +578,8 @@ export class ClassesService {
       .where(
         and(
           eq(classCourses.classId, classId),
-          eq(classCourses.courseId, courseId)
-        )
+          eq(classCourses.courseId, courseId),
+        ),
       )
       .returning();
 
@@ -568,8 +594,8 @@ export class ClassesService {
       .where(
         and(
           eq(classCourses.classId, classId),
-          eq(classCourses.courseId, courseId)
-        )
+          eq(classCourses.courseId, courseId),
+        ),
       )
       .returning();
 
@@ -647,21 +673,34 @@ export class ClassesService {
     // Build per-student progress
     const studentsProgress = enrolledStudents.map((enrolled) => {
       const studentId = enrolled.user.id;
-      const kpProgress = allKpProgress.filter((kp) => kp.studentId === studentId);
+      const kpProgress = allKpProgress.filter(
+        (kp) => kp.studentId === studentId,
+      );
       const mastery = allMastery.filter((m) => m.studentId === studentId);
       const insights = allInsights.find((i) => i.studentId === studentId);
 
       const totalKps = kpProgress.length;
-      const avgKpMastery = totalKps > 0
-        ? Math.round(kpProgress.reduce((sum, kp) => sum + kp.masteryScore, 0) / totalKps)
-        : 0;
-      const masteredKps = kpProgress.filter((kp) => kp.masteryScore >= 80).length;
+      const avgKpMastery =
+        totalKps > 0
+          ? Math.round(
+              kpProgress.reduce((sum, kp) => sum + kp.masteryScore, 0) /
+                totalKps,
+            )
+          : 0;
+      const masteredKps = kpProgress.filter(
+        (kp) => kp.masteryScore >= 80,
+      ).length;
 
-      const avgCourseMastery = mastery.length > 0
-        ? Math.round(mastery.reduce((sum, m) => sum + m.overallMasteryScore, 0) / mastery.length)
-        : 0;
+      const avgCourseMastery =
+        mastery.length > 0
+          ? Math.round(
+              mastery.reduce((sum, m) => sum + m.overallMasteryScore, 0) /
+                mastery.length,
+            )
+          : 0;
 
-      const overallMastery = mastery.length > 0 ? avgCourseMastery : avgKpMastery;
+      const overallMastery =
+        mastery.length > 0 ? avgCourseMastery : avgKpMastery;
 
       // Determine status
       let status: string;
@@ -681,15 +720,18 @@ export class ClassesService {
       }
 
       // Find last active time from KP progress
-      const lastActiveDate = kpProgress.length > 0
-        ? kpProgress.reduce((latest, kp) => {
-            const kpDate = new Date(kp.lastUpdated);
-            return kpDate > latest ? kpDate : latest;
-          }, new Date(0))
-        : null;
+      const lastActiveDate =
+        kpProgress.length > 0
+          ? kpProgress.reduce((latest, kp) => {
+              const kpDate = new Date(kp.lastUpdated);
+              return kpDate > latest ? kpDate : latest;
+            }, new Date(0))
+          : null;
 
       const engagementScore = insights
-        ? (typeof insights.engagementScore === 'number' ? insights.engagementScore : 0)
+        ? typeof insights.engagementScore === 'number'
+          ? insights.engagementScore
+          : 0
         : 0;
 
       return {
@@ -714,9 +756,13 @@ export class ClassesService {
 
     // Calculate summary
     const totalStudents = studentsProgress.length;
-    const avgMastery = totalStudents > 0
-      ? Math.round(studentsProgress.reduce((sum, s) => sum + s.progress, 0) / totalStudents)
-      : 0;
+    const avgMastery =
+      totalStudents > 0
+        ? Math.round(
+            studentsProgress.reduce((sum, s) => sum + s.progress, 0) /
+              totalStudents,
+          )
+        : 0;
     const atRiskCount = studentsProgress.filter(
       (s) => s.status === 'at-risk' || s.status === 'needs-help',
     ).length;

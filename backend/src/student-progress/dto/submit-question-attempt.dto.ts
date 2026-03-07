@@ -1,4 +1,11 @@
-import { IsUUID, IsNotEmpty, IsString, IsOptional, IsInt, Min } from 'class-validator';
+import {
+  IsUUID,
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 export class SubmitQuestionAttemptDto {
   @IsUUID()
@@ -22,4 +29,3 @@ export class SubmitQuestionAttemptDto {
   @Min(0)
   timeSpent?: number; // seconds
 }
-

@@ -29,8 +29,8 @@ export class FirebaseAdminService implements OnModuleInit {
         } catch (parseError) {
           // If that fails, try replacing escaped newlines
           const cleanedServiceAccount = serviceAccount
-            .replace(/\\n/g, '\n')  // Replace literal \n with actual newlines
-            .replace(/^["']|["']$/g, '');  // Remove surrounding quotes if present
+            .replace(/\\n/g, '\n') // Replace literal \n with actual newlines
+            .replace(/^["']|["']$/g, ''); // Remove surrounding quotes if present
 
           serviceAccountJson = JSON.parse(cleanedServiceAccount);
         }

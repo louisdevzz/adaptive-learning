@@ -58,7 +58,10 @@ export class ClassesController {
   // Student Enrollment Endpoints
   @Post(':id/students')
   @HttpCode(HttpStatus.CREATED)
-  enrollStudent(@Param('id') id: string, @Body() enrollStudentDto: EnrollStudentDto) {
+  enrollStudent(
+    @Param('id') id: string,
+    @Body() enrollStudentDto: EnrollStudentDto,
+  ) {
     return this.classesService.enrollStudent(id, enrollStudentDto);
   }
 
@@ -74,14 +77,20 @@ export class ClassesController {
 
   @Delete(':id/students/:studentId')
   @HttpCode(HttpStatus.OK)
-  removeStudentFromClass(@Param('id') id: string, @Param('studentId') studentId: string) {
+  removeStudentFromClass(
+    @Param('id') id: string,
+    @Param('studentId') studentId: string,
+  ) {
     return this.classesService.removeStudentFromClass(id, studentId);
   }
 
   // Teacher Assignment Endpoints
   @Post(':id/teachers')
   @HttpCode(HttpStatus.CREATED)
-  assignTeacher(@Param('id') id: string, @Body() assignTeacherDto: AssignTeacherToClassDto) {
+  assignTeacher(
+    @Param('id') id: string,
+    @Body() assignTeacherDto: AssignTeacherToClassDto,
+  ) {
     return this.classesService.assignTeacher(id, assignTeacherDto);
   }
 
@@ -92,7 +101,10 @@ export class ClassesController {
 
   @Delete(':id/teachers/:teacherId')
   @HttpCode(HttpStatus.OK)
-  removeTeacherFromClass(@Param('id') id: string, @Param('teacherId') teacherId: string) {
+  removeTeacherFromClass(
+    @Param('id') id: string,
+    @Param('teacherId') teacherId: string,
+  ) {
     return this.classesService.removeTeacherFromClass(id, teacherId);
   }
 
@@ -105,15 +117,15 @@ export class ClassesController {
   // Course Assignment Endpoints
   @Post(':id/courses')
   @HttpCode(HttpStatus.CREATED)
-  assignCourse(@Param('id') id: string, @Body() assignCourseDto: AssignCourseToClassDto) {
+  assignCourse(
+    @Param('id') id: string,
+    @Body() assignCourseDto: AssignCourseToClassDto,
+  ) {
     return this.classesService.assignCourse(id, assignCourseDto);
   }
 
   @Get(':id/courses')
-  getClassCourses(
-    @Param('id') id: string,
-    @Query('status') status?: string
-  ) {
+  getClassCourses(@Param('id') id: string, @Query('status') status?: string) {
     if (status) {
       return this.classesService.getClassCoursesByStatus(id, status);
     }
@@ -124,14 +136,17 @@ export class ClassesController {
   updateClassCourseStatus(
     @Param('id') id: string,
     @Param('courseId') courseId: string,
-    @Body('status') status: string
+    @Body('status') status: string,
   ) {
     return this.classesService.updateClassCourseStatus(id, courseId, status);
   }
 
   @Delete(':id/courses/:courseId')
   @HttpCode(HttpStatus.OK)
-  removeCourseFromClass(@Param('id') id: string, @Param('courseId') courseId: string) {
+  removeCourseFromClass(
+    @Param('id') id: string,
+    @Param('courseId') courseId: string,
+  ) {
     return this.classesService.removeCourseFromClass(id, courseId);
   }
 }

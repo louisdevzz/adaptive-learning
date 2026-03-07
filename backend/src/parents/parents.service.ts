@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and, inArray } from 'drizzle-orm';
 import { db, users, parents, parentStudentMap, students } from '../../db';
 import { UsersService } from '../users/users.service';
@@ -90,7 +94,12 @@ export class ParentsService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateParentDto.email || updateParentDto.password || updateParentDto.fullName || updateParentDto.avatarUrl !== undefined) {
+    if (
+      updateParentDto.email ||
+      updateParentDto.password ||
+      updateParentDto.fullName ||
+      updateParentDto.avatarUrl !== undefined
+    ) {
       await this.usersService.updateUser(id, {
         email: updateParentDto.email,
         password: updateParentDto.password,
@@ -102,21 +111,22 @@ export class ParentsService {
     // Update parent info
     const parentUpdateData: any = {};
     if (updateParentDto.phone) parentUpdateData.phone = updateParentDto.phone;
-    if (updateParentDto.address) parentUpdateData.address = updateParentDto.address;
-    if (updateParentDto.relationshipType) parentUpdateData.relationshipType = updateParentDto.relationshipType;
+    if (updateParentDto.address)
+      parentUpdateData.address = updateParentDto.address;
+    if (updateParentDto.relationshipType)
+      parentUpdateData.relationshipType = updateParentDto.relationshipType;
 
     if (Object.keys(parentUpdateData).length > 0) {
       parentUpdateData.updatedAt = new Date();
-      await db
-        .update(parents)
-        .set(parentUpdateData)
-        .where(eq(parents.id, id));
+      await db.update(parents).set(parentUpdateData).where(eq(parents.id, id));
     }
 
     // Update parent-student mappings if studentIds provided
     if (updateParentDto.studentIds !== undefined) {
       // Delete existing mappings
-      await db.delete(parentStudentMap).where(eq(parentStudentMap.parentId, id));
+      await db
+        .delete(parentStudentMap)
+        .where(eq(parentStudentMap.parentId, id));
 
       // Create new mappings if studentIds provided
       if (updateParentDto.studentIds.length > 0) {
@@ -199,8 +209,8 @@ export class ParentsService {
       .where(
         and(
           eq(parentStudentMap.parentId, parentId),
-          eq(parentStudentMap.studentId, studentId)
-        )
+          eq(parentStudentMap.studentId, studentId),
+        ),
       )
       .limit(1);
 
@@ -231,8 +241,8 @@ export class ParentsService {
       .where(
         and(
           eq(parentStudentMap.parentId, parentId),
-          eq(parentStudentMap.studentId, studentId)
-        )
+          eq(parentStudentMap.studentId, studentId),
+        ),
       )
       .limit(1);
 
@@ -246,8 +256,8 @@ export class ParentsService {
       .where(
         and(
           eq(parentStudentMap.parentId, parentId),
-          eq(parentStudentMap.studentId, studentId)
-        )
+          eq(parentStudentMap.studentId, studentId),
+        ),
       );
 
     return { message: 'Student removed from parent successfully' };

@@ -33,17 +33,13 @@ export class DashboardController {
   @Get('top-courses')
   @Roles('admin')
   async getTopCourses(@Query('limit') limit?: string) {
-    return this.dashboardService.getTopCourses(
-      limit ? parseInt(limit) : 5,
-    );
+    return this.dashboardService.getTopCourses(limit ? parseInt(limit) : 5);
   }
 
   @Get('difficult-kps')
   @Roles('admin')
   async getDifficultKPs(@Query('limit') limit?: string) {
-    return this.dashboardService.getDifficultKPs(
-      limit ? parseInt(limit) : 5,
-    );
+    return this.dashboardService.getDifficultKPs(limit ? parseInt(limit) : 5);
   }
 
   @Get('game-completions')

@@ -1,4 +1,11 @@
-import { IsString, IsEnum, IsArray, IsOptional, IsEmail, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsArray,
+  IsOptional,
+  IsEmail,
+  MinLength,
+} from 'class-validator';
 import { AdminLevel } from './create-admin.dto';
 
 export class UpdateAdminDto {
