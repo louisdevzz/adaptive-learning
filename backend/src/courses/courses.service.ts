@@ -33,7 +33,7 @@ import {
 export class CoursesService {
   // ==================== COURSES ====================
 
-  async create(createCourseDto: CreateCourseDto, userId?: string) {
+  async create(createCourseDto: CreateCourseDto, userId?: string, userRole?: string) {
     const result = await db
       .insert(courses)
       .values({
@@ -49,7 +49,18 @@ export class CoursesService {
       })
       .returning();
 
-    return result[0];
+    const newCourse = result[0];
+
+    // Also insert into teacher_course_map if created by a teacher
+    if (userId && userRole === 'teacher') {
+      await db.insert(teacherCourseMap).values({
+        teacherId: userId,
+        courseId: newCourse.id,
+        role: 'creator',
+      });
+    }
+
+    return newCourse;
   }
 
   async findAll(
