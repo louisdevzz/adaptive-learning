@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
 import {
   db,
@@ -22,6 +23,8 @@ import { SubmitContentQuestionDto } from './dto/submit-content-question.dto';
 
 @Injectable()
 export class StudentProgressService {
+  constructor(private readonly eventEmitter: EventEmitter2) {}
+
   // ==================== STUDENT KP PROGRESS ====================
 
   async updateKpProgress(updateDto: UpdateKpProgressDto) {
@@ -102,6 +105,16 @@ export class StudentProgressService {
         attemptId: updateDto.lastAttemptId,
       });
 
+      return { progress, oldMasteryScore: oldScore };
+    }).then(({ progress, oldMasteryScore }) => {
+      // Emit event after transaction commits
+      this.eventEmitter.emit('progress.updated', {
+        studentId: updateDto.studentId,
+        kpId: updateDto.kpId,
+        newMasteryScore: updateDto.masteryScore,
+        oldMasteryScore,
+        timestamp: new Date(),
+      });
       return progress;
     });
   }
@@ -336,7 +349,7 @@ export class StudentProgressService {
     // Check if answer is correct
     const isCorrect = String(submitDto.selectedAnswer) === String(correctAnswer);
 
-    return await db.transaction(async (tx) => {
+    const txResult = await db.transaction(async (tx) => {
       // Create question attempt
       const [attempt] = await tx
         .insert(questionAttempts)
@@ -422,13 +435,24 @@ export class StudentProgressService {
         attemptId: attempt.id,
       });
 
-      return {
-        attempt,
-        isCorrect,
-        masteryScore,
-        confidence,
-      };
+      return { attempt, isCorrect, masteryScore, confidence, oldMasteryScore: oldScore };
     });
+
+    // Emit event after transaction commits to avoid seeing uncommitted data
+    this.eventEmitter.emit('progress.updated', {
+      studentId: submitDto.studentId,
+      kpId: submitDto.kpId,
+      newMasteryScore: txResult.masteryScore,
+      oldMasteryScore: txResult.oldMasteryScore,
+      timestamp: new Date(),
+    });
+
+    return {
+      attempt: txResult.attempt,
+      isCorrect: txResult.isCorrect,
+      masteryScore: txResult.masteryScore,
+      confidence: txResult.confidence,
+    };
   }
 
   async getStudentQuestionAttempts(studentId: string, kpId: string) {
@@ -580,6 +604,15 @@ export class StudentProgressService {
       newScore: masteryScore,
       confidence,
       source: 'practice',
+    });
+
+    // Emit event after DB writes complete
+    this.eventEmitter.emit('progress.updated', {
+      studentId: submitDto.studentId,
+      kpId: submitDto.kpId,
+      newMasteryScore: masteryScore,
+      oldMasteryScore: oldScore,
+      timestamp: new Date(),
     });
 
     return {

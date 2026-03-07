@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StudentsModule } from './students/students.module';
@@ -24,6 +26,15 @@ import { DashboardModule } from './dashboard/dashboard.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    EventEmitterModule.forRoot({
+      // Enable wildcard for event patterns
+      wildcard: true,
+      // Max listeners per event
+      maxListeners: 20,
+      // Show verbose memory leak warning
+      verboseMemoryLeak: true,
+    }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     StudentsModule,
