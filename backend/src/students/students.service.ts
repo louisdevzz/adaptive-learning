@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { eq, and, inArray, sql, count, gte } from 'drizzle-orm';
 import {
   db,
@@ -68,13 +68,25 @@ export class StudentsService {
 
   async findAll() {
     const result = await db
-      .select()
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
       .from(students)
       .leftJoin(users, eq(students.id, users.id));
 
     return result.map((row) => ({
-      ...row.users,
-      studentInfo: row.students,
+      ...row.user,
+      studentInfo: row.student,
     }));
   }
 
@@ -122,15 +134,44 @@ export class StudentsService {
     }
 
     const result = await db
-      .select()
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
       .from(students)
       .leftJoin(users, eq(students.id, users.id))
       .where(inArray(students.id, studentIds));
 
     return result.map((row) => ({
-      ...row.users,
-      studentInfo: row.students,
+      ...row.user,
+      studentInfo: row.student,
     }));
+  }
+
+  async assertParentCanAccessStudent(parentId: string, studentId: string) {
+    const relationship = await db
+      .select()
+      .from(parentStudentMap)
+      .where(
+        and(
+          eq(parentStudentMap.parentId, parentId),
+          eq(parentStudentMap.studentId, studentId),
+        ),
+      )
+      .limit(1);
+
+    if (relationship.length === 0) {
+      throw new ForbiddenException('Parent does not have access to this student');
+    }
   }
 
   async findByParent(parentId: string) {
@@ -138,7 +179,16 @@ export class StudentsService {
     const result = await db
       .select({
         student: students,
-        user: users,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
       })
       .from(parentStudentMap)
       .innerJoin(students, eq(parentStudentMap.studentId, students.id))
@@ -153,7 +203,19 @@ export class StudentsService {
 
   async findOne(id: string) {
     const result = await db
-      .select()
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
       .from(students)
       .leftJoin(users, eq(students.id, users.id))
       .where(eq(students.id, id))
@@ -164,8 +226,8 @@ export class StudentsService {
     }
 
     return {
-      ...result[0].users,
-      studentInfo: result[0].students,
+      ...result[0].user,
+      studentInfo: result[0].student,
     };
   }
 
