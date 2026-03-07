@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
 import {
   db,
@@ -22,6 +23,8 @@ import { SubmitContentQuestionDto } from './dto/submit-content-question.dto';
 
 @Injectable()
 export class StudentProgressService {
+  constructor(private readonly eventEmitter: EventEmitter2) {}
+
   // ==================== STUDENT KP PROGRESS ====================
 
   async updateKpProgress(updateDto: UpdateKpProgressDto) {
@@ -422,12 +425,23 @@ export class StudentProgressService {
         attemptId: attempt.id,
       });
 
-      return {
+      const result = {
         attempt,
         isCorrect,
         masteryScore,
         confidence,
       };
+
+      // Emit event for learning path auto-generation
+      this.eventEmitter.emit('progress.updated', {
+        studentId: submitDto.studentId,
+        kpId: submitDto.kpId,
+        newMasteryScore: masteryScore,
+        oldMasteryScore: oldScore,
+        timestamp: new Date(),
+      });
+
+      return result;
     });
   }
 
