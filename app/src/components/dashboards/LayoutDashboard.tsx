@@ -2,6 +2,7 @@
 
 import { SidebarNavigation } from "./SidebarNavigation";
 import { DashboardBreadcrumbs } from "./DashboardBreadcrumbs";
+import { SearchModal } from "./SearchModal";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
@@ -17,6 +18,20 @@ export default function LayoutDashboard({
   const { user } = useUser();
   const [entityNames, setEntityNames] = useState<Record<string, string>>({});
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Keyboard shortcut to open search (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Check if a string is a UUID
   const isUUID = (str: string): boolean => {
@@ -266,14 +281,19 @@ export default function LayoutDashboard({
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white border-b border-[#E5E5E5] px-6 py-3 flex items-center justify-between gap-4 lg:mt-0 mt-[57px]">
           {/* Search */}
-          <div className="flex items-center bg-[#f5f5f5] rounded-lg px-3 py-2 w-full max-w-sm focus-within:ring-2 focus-within:ring-[#6244F4]/20 transition-all">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center bg-[#f5f5f5] rounded-lg px-3 py-2 w-full max-w-sm hover:bg-[#eeeeee] transition-all text-left"
+          >
             <Search className="w-4 h-4 text-[#666666] shrink-0" />
-            <input
-              className="bg-transparent border-none text-sm w-full focus:ring-0 text-[#010101] placeholder:text-[#666666] ml-2 outline-none"
-              placeholder="Tìm kiếm..."
-              type="text"
-            />
-          </div>
+            <span className="text-sm ml-2 flex-1 text-[#666666]">
+              Tìm kiếm...
+            </span>
+            <kbd className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-white border border-[#E5E5E5] text-[#666666]">
+              <span>⌘</span>
+              <span>K</span>
+            </kbd>
+          </button>
 
           {/* Right actions */}
           <div className="flex items-center gap-2 shrink-0">
@@ -296,6 +316,9 @@ export default function LayoutDashboard({
           {children}
         </main>
       </div>
+
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }
