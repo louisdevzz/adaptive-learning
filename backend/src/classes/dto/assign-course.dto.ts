@@ -18,4 +18,3 @@ export class AssignCourseToClassDto {
   @IsOptional()
   status?: ClassCourseStatus;
 }
-

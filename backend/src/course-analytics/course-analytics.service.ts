@@ -68,7 +68,10 @@ export class CourseAnalyticsService {
     const highFailureKps = await this.findHighFailureKps(kpIds);
 
     // 3. Find most difficult modules
-    const mostDifficultModules = await this.findMostDifficultModules(courseId, courseKps);
+    const mostDifficultModules = await this.findMostDifficultModules(
+      courseId,
+      courseKps,
+    );
 
     // 4. Calculate average time per section
     const averageSectionTime = await this.calculateAverageSectionTime(courseId);
@@ -136,7 +139,8 @@ export class CourseAnalyticsService {
     const averageMastery =
       masteryData.length > 0
         ? Math.round(
-            masteryData.reduce((sum, d) => sum + d.masteryScore, 0) / masteryData.length
+            masteryData.reduce((sum, d) => sum + d.masteryScore, 0) /
+              masteryData.length,
           )
         : 0;
 
@@ -150,7 +154,10 @@ export class CourseAnalyticsService {
 
   // ==================== HELPER METHODS ====================
 
-  private async calculateCompletionRate(courseId: string, kpIds: string[]): Promise<number> {
+  private async calculateCompletionRate(
+    courseId: string,
+    kpIds: string[],
+  ): Promise<number> {
     if (kpIds.length === 0) return 0;
 
     // Get all students enrolled in this course (through classes or direct enrollment)
@@ -177,11 +184,13 @@ export class CourseAnalyticsService {
         .where(
           and(
             eq(studentKpProgress.studentId, student.studentId),
-            inArray(studentKpProgress.kpId, kpIds)
-          )
+            inArray(studentKpProgress.kpId, kpIds),
+          ),
         );
 
-      const masteredKps = studentProgress.filter((p) => p.masteryScore >= 80).length;
+      const masteredKps = studentProgress.filter(
+        (p) => p.masteryScore >= 80,
+      ).length;
       const completionPercentage = (masteredKps / kpIds.length) * 100;
 
       if (completionPercentage >= 80) {
@@ -246,7 +255,8 @@ export class CourseAnalyticsService {
     const highFailureKps = Object.entries(kpStats)
       .map(([kpId, stats]) => {
         const totalAttempts = stats.correct + stats.incorrect;
-        const errorRate = totalAttempts > 0 ? (stats.incorrect / totalAttempts) * 100 : 0;
+        const errorRate =
+          totalAttempts > 0 ? (stats.incorrect / totalAttempts) * 100 : 0;
 
         return {
           kpId,
@@ -268,7 +278,7 @@ export class CourseAnalyticsService {
       kpId: string;
       moduleId: string;
       module: { id: string; title: string };
-    }>
+    }>,
   ): Promise<
     Array<{
       moduleId: string;
@@ -302,7 +312,8 @@ export class CourseAnalyticsService {
         const averageMastery =
           masteryData.length > 0
             ? Math.round(
-                masteryData.reduce((sum, d) => sum + d.masteryScore, 0) / masteryData.length
+                masteryData.reduce((sum, d) => sum + d.masteryScore, 0) /
+                  masteryData.length,
               )
             : 0;
 
@@ -315,11 +326,13 @@ export class CourseAnalyticsService {
           averageMastery,
           difficultyScore,
         };
-      })
+      }),
     );
 
     // Sort by difficulty (highest difficulty score first)
-    return moduleStats.sort((a, b) => b.difficultyScore - a.difficultyScore).slice(0, 5);
+    return moduleStats
+      .sort((a, b) => b.difficultyScore - a.difficultyScore)
+      .slice(0, 5);
   }
 
   private async calculateAverageSectionTime(courseId: string): Promise<number> {
@@ -346,7 +359,10 @@ export class CourseAnalyticsService {
 
     if (timeData.length === 0) return 0;
 
-    const totalSeconds = timeData.reduce((sum, d) => sum + d.timeSpentSeconds, 0);
+    const totalSeconds = timeData.reduce(
+      (sum, d) => sum + d.timeSpentSeconds,
+      0,
+    );
     const averageSeconds = Math.round(totalSeconds / timeData.length);
 
     // Convert to minutes
@@ -390,15 +406,19 @@ export class CourseAnalyticsService {
       .where(
         and(
           inArray(studentKpHistory.kpId, kpIds),
-          gte(studentKpHistory.timestamp, eightWeeksAgo)
-        )
+          gte(studentKpHistory.timestamp, eightWeeksAgo),
+        ),
       )
       .orderBy(desc(studentKpHistory.timestamp));
 
     // Group by week
     const weeklyData: Record<
       string,
-      { scores: number[]; students: Set<string>; completedStudents: Set<string> }
+      {
+        scores: number[];
+        students: Set<string>;
+        completedStudents: Set<string>;
+      }
     > = {};
 
     for (const record of historyData) {
@@ -426,7 +446,9 @@ export class CourseAnalyticsService {
       .map(([week, data]) => {
         const averageMastery =
           data.scores.length > 0
-            ? Math.round(data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length)
+            ? Math.round(
+                data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length,
+              )
             : 0;
 
         return {
@@ -447,8 +469,9 @@ export class CourseAnalyticsService {
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 4 - (d.getDay() || 7)); // Get Thursday (week starts on Monday)
     const yearStart = new Date(d.getFullYear(), 0, 1);
-    const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+    const weekNo = Math.ceil(
+      ((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
+    );
     return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
   }
 }
-

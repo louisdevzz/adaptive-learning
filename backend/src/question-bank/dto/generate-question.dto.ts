@@ -24,7 +24,11 @@ export class GenerateQuestionDto {
 
   @IsEnum(['multiple_choice', 'true_false', 'fill_in_blank', 'short_answer'])
   @IsNotEmpty()
-  questionType: 'multiple_choice' | 'true_false' | 'fill_in_blank' | 'short_answer';
+  questionType:
+    | 'multiple_choice'
+    | 'true_false'
+    | 'fill_in_blank'
+    | 'short_answer';
 
   @IsInt()
   @Min(1)
@@ -36,4 +40,3 @@ export class GenerateQuestionDto {
   @IsOptional()
   skillId?: string;
 }
-

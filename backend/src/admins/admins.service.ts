@@ -70,7 +70,12 @@ export class AdminsService {
     await this.findOne(id);
 
     // Update user info if provided
-    if (updateAdminDto.email || updateAdminDto.password || updateAdminDto.fullName || updateAdminDto.avatarUrl !== undefined) {
+    if (
+      updateAdminDto.email ||
+      updateAdminDto.password ||
+      updateAdminDto.fullName ||
+      updateAdminDto.avatarUrl !== undefined
+    ) {
       await this.usersService.updateUser(id, {
         email: updateAdminDto.email,
         password: updateAdminDto.password,
@@ -81,15 +86,14 @@ export class AdminsService {
 
     // Update admin info
     const adminUpdateData: any = {};
-    if (updateAdminDto.adminLevel) adminUpdateData.adminLevel = updateAdminDto.adminLevel;
-    if (updateAdminDto.permissions) adminUpdateData.permissions = updateAdminDto.permissions;
+    if (updateAdminDto.adminLevel)
+      adminUpdateData.adminLevel = updateAdminDto.adminLevel;
+    if (updateAdminDto.permissions)
+      adminUpdateData.permissions = updateAdminDto.permissions;
 
     if (Object.keys(adminUpdateData).length > 0) {
       adminUpdateData.updatedAt = new Date();
-      await db
-        .update(admins)
-        .set(adminUpdateData)
-        .where(eq(admins.id, id));
+      await db.update(admins).set(adminUpdateData).where(eq(admins.id, id));
     }
 
     return this.findOne(id);

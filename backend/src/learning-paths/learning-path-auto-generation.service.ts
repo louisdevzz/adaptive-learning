@@ -49,20 +49,24 @@ export class LearningPathAutoGenerationService {
   @Cron(CronExpression.EVERY_HOUR)
   async autoGeneratePathsForAllStudents() {
     if (this.isRunning) {
-      this.logger.warn('Previous scheduled run is still in progress, skipping...');
+      this.logger.warn(
+        'Previous scheduled run is still in progress, skipping...',
+      );
       return;
     }
 
     this.isRunning = true;
     this.logger.log('Starting scheduled learning path auto-generation...');
-    
+
     try {
       const activeStudents = await this.getActiveStudents();
-      this.logger.log(`Found ${activeStudents.length} active students to process`);
-      
+      this.logger.log(
+        `Found ${activeStudents.length} active students to process`,
+      );
+
       let successCount = 0;
       let errorCount = 0;
-      
+
       for (const student of activeStudents) {
         try {
           await this.analyzeAndUpdatePath(student.id);
@@ -75,7 +79,7 @@ export class LearningPathAutoGenerationService {
           errorCount++;
         }
       }
-      
+
       this.logger.log(
         `Scheduled learning path generation completed. Success: ${successCount}, Errors: ${errorCount}`,
       );
@@ -100,14 +104,23 @@ export class LearningPathAutoGenerationService {
     oldMasteryScore?: number;
   }) {
     const { studentId, kpId, newMasteryScore, oldMasteryScore } = payload;
-    this.logger.debug(`Progress update received for student ${studentId}, KP ${kpId}`);
-    
+    this.logger.debug(
+      `Progress update received for student ${studentId}, KP ${kpId}`,
+    );
+
     try {
       // Check if this is a significant change that warrants path update
-      const shouldUpdate = await this.shouldUpdatePath(studentId, kpId, newMasteryScore, oldMasteryScore);
-      
+      const shouldUpdate = await this.shouldUpdatePath(
+        studentId,
+        kpId,
+        newMasteryScore,
+        oldMasteryScore,
+      );
+
       if (shouldUpdate) {
-        this.logger.log(`Significant progress change detected for student ${studentId}, updating path...`);
+        this.logger.log(
+          `Significant progress change detected for student ${studentId}, updating path...`,
+        );
         await this.analyzeAndUpdatePath(studentId);
       }
     } catch (error) {
@@ -123,7 +136,9 @@ export class LearningPathAutoGenerationService {
    */
   async analyzeAndUpdatePath(studentId: string): Promise<void> {
     if (this.processingStudents.has(studentId)) {
-      this.logger.debug(`Skipping path generation for student ${studentId} - already in progress`);
+      this.logger.debug(
+        `Skipping path generation for student ${studentId} - already in progress`,
+      );
       return;
     }
 
@@ -131,34 +146,50 @@ export class LearningPathAutoGenerationService {
     try {
       // 1. Identify weak areas
       const weakAreas = await this.identifyWeakAreas(studentId);
-      
+
       if (weakAreas.length === 0) {
-        this.logger.debug(`Student ${studentId} has no weak areas, skipping path generation`);
+        this.logger.debug(
+          `Student ${studentId} has no weak areas, skipping path generation`,
+        );
         return;
       }
-      
-      this.logger.log(`Student ${studentId} has ${weakAreas.length} weak areas to address`);
-      
+
+      this.logger.log(
+        `Student ${studentId} has ${weakAreas.length} weak areas to address`,
+      );
+
       // 2. Expand with prerequisites
       const kpIds = weakAreas.map((wa) => wa.kpId);
-      const expandedKpIds = await this.prerequisiteService.expandWithPrerequisites(kpIds);
-      
+      const expandedKpIds =
+        await this.prerequisiteService.expandWithPrerequisites(kpIds);
+
       // 3. Limit to max items
       const limitedKpIds = expandedKpIds.slice(0, this.MAX_ITEMS_PER_PATH);
-      
+
       // 4. Get or create learning path
       const existingPath = await this.getActivePath(studentId);
-      
+
       if (existingPath) {
         // Check if significant changes are needed
         const currentItems = await this.getPathItems(existingPath.id);
-        const needsUpdate = this.detectSignificantChanges(currentItems, limitedKpIds);
-        
+        const needsUpdate = this.detectSignificantChanges(
+          currentItems,
+          limitedKpIds,
+        );
+
         if (needsUpdate) {
-          this.logger.log(`Updating existing learning path for student ${studentId}`);
-          await this.updateExistingPath(existingPath.id, studentId, limitedKpIds);
+          this.logger.log(
+            `Updating existing learning path for student ${studentId}`,
+          );
+          await this.updateExistingPath(
+            existingPath.id,
+            studentId,
+            limitedKpIds,
+          );
         } else {
-          this.logger.debug(`No significant changes needed for student ${studentId}`);
+          this.logger.debug(
+            `No significant changes needed for student ${studentId}`,
+          );
         }
       } else {
         this.logger.log(`Creating new learning path for student ${studentId}`);
@@ -188,7 +219,7 @@ export class LearningPathAutoGenerationService {
           lt(studentKpProgress.masteryScore, this.MASTERY_THRESHOLD),
         ),
       );
-    
+
     // Sort by mastery score (lowest first - most urgent)
     return weakProgress
       .map((wp) => ({
@@ -213,7 +244,7 @@ export class LearningPathAutoGenerationService {
         ),
       )
       .limit(1);
-    
+
     return result[0] || null;
   }
 
@@ -239,16 +270,18 @@ export class LearningPathAutoGenerationService {
     newKpIds: string[],
   ): boolean {
     // Filter only KP items
-    const currentKpItems = currentItems.filter((item) => item.itemType === 'kp');
-    
+    const currentKpItems = currentItems.filter(
+      (item) => item.itemType === 'kp',
+    );
+
     // Check if there are significant differences
     const currentKpIds = currentKpItems.map((item) => item.itemId);
-    
+
     // Calculate Jaccard similarity
     const intersection = currentKpIds.filter((id) => newKpIds.includes(id));
     const union = [...new Set([...currentKpIds, ...newKpIds])];
     const similarity = intersection.length / union.length;
-    
+
     // If similarity < 0.7 (70%), consider it significant change
     return similarity < 0.7;
   }
@@ -291,18 +324,21 @@ export class LearningPathAutoGenerationService {
   /**
    * Create new learning path for a student
    */
-  private async createNewPath(studentId: string, kpIds: string[]): Promise<void> {
+  private async createNewPath(
+    studentId: string,
+    kpIds: string[],
+  ): Promise<void> {
     const items: LearningPathItemInput[] = kpIds.map((kpId, index) => ({
       itemType: 'kp',
       itemId: kpId,
       orderIndex: index,
       status: 'not_started',
     }));
-    
+
     // Generate title and description
     const title = await this.generatePathTitle(studentId, kpIds);
     const description = await this.generatePathDescription(studentId, kpIds);
-    
+
     await db.transaction(async (tx) => {
       // Create learning path
       const [path] = await tx
@@ -315,7 +351,7 @@ export class LearningPathAutoGenerationService {
           status: 'active',
         })
         .returning();
-      
+
       // Create items
       if (items.length > 0) {
         await tx.insert(learningPathItems).values(
@@ -326,8 +362,10 @@ export class LearningPathAutoGenerationService {
         );
       }
     });
-    
-    this.logger.log(`Created new learning path for student ${studentId} with ${items.length} items`);
+
+    this.logger.log(
+      `Created new learning path for student ${studentId} with ${items.length} items`,
+    );
   }
 
   /**
@@ -340,25 +378,27 @@ export class LearningPathAutoGenerationService {
   ): Promise<void> {
     // Get existing items to preserve progress
     const existingItems = await this.getPathItems(pathId);
-    
+
     // Build new items, preserving status for existing KPs
     const newItems: LearningPathItemInput[] = kpIds.map((kpId, index) => {
       const existingItem = existingItems.find(
         (item) => item.itemType === 'kp' && item.itemId === kpId,
       );
-      
+
       return {
         itemType: 'kp',
         itemId: kpId,
         orderIndex: index,
-        status: (existingItem?.status as LearningPathItemInput['status']) || 'not_started',
+        status:
+          (existingItem?.status as LearningPathItemInput['status']) ||
+          'not_started',
       };
     });
-    
+
     // Generate updated title and description
     const title = await this.generatePathTitle(studentId, kpIds);
     const description = await this.generatePathDescription(studentId, kpIds);
-    
+
     await db.transaction(async (tx) => {
       // Update path metadata
       await tx
@@ -369,10 +409,12 @@ export class LearningPathAutoGenerationService {
           updatedAt: new Date(),
         })
         .where(eq(learningPath.id, pathId));
-      
+
       // Delete old items
-      await tx.delete(learningPathItems).where(eq(learningPathItems.learningPathId, pathId));
-      
+      await tx
+        .delete(learningPathItems)
+        .where(eq(learningPathItems.learningPathId, pathId));
+
       // Insert new items
       if (newItems.length > 0) {
         await tx.insert(learningPathItems).values(
@@ -383,39 +425,47 @@ export class LearningPathAutoGenerationService {
         );
       }
     });
-    
-    this.logger.log(`Updated learning path ${pathId} for student ${studentId} with ${newItems.length} items`);
+
+    this.logger.log(
+      `Updated learning path ${pathId} for student ${studentId} with ${newItems.length} items`,
+    );
   }
 
   /**
    * Generate a descriptive title for the learning path
    */
-  private async generatePathTitle(studentId: string, kpIds: string[]): Promise<string> {
+  private async generatePathTitle(
+    studentId: string,
+    kpIds: string[],
+  ): Promise<string> {
     if (kpIds.length === 0) {
       return 'Lộ trình học tập cá nhân hóa';
     }
-    
+
     // Get course info for the first few KPs
     const courseInfo = await this.getCourseInfoForKps(kpIds.slice(0, 3));
-    
+
     if (courseInfo.length > 0) {
       const subjects = [...new Set(courseInfo.map((c) => c.subject))];
       if (subjects.length === 1) {
         return `Ôn tập ${subjects[0]} - Lộ trình tự động`;
       }
     }
-    
+
     return 'Lộ trình cải thiện kiến thức';
   }
 
   /**
    * Generate a description for the learning path
    */
-  private async generatePathDescription(studentId: string, kpIds: string[]): Promise<string> {
+  private async generatePathDescription(
+    studentId: string,
+    kpIds: string[],
+  ): Promise<string> {
     if (kpIds.length === 0) {
       return 'Lộ trình học tập được tạo tự động dựa trên phân tích AI';
     }
-    
+
     const weakAreas = await db
       .select({
         count: count(),
@@ -428,12 +478,14 @@ export class LearningPathAutoGenerationService {
           inArray(studentKpProgress.kpId, kpIds),
         ),
       );
-    
+
     const avgMastery = Math.round(Number(weakAreas[0]?.avgMastery || 0));
-    
-    return `Lộ trình tự động với ${kpIds.length} mục tiêu. ` +
-           `Mức độ nắm vững hiện tại: ${avgMastery}%. ` +
-           `Được tối ưu theo thứ tự kiến thức tiên quyết.`;
+
+    return (
+      `Lộ trình tự động với ${kpIds.length} mục tiêu. ` +
+      `Mức độ nắm vững hiện tại: ${avgMastery}%. ` +
+      `Được tối ưu theo thứ tự kiến thức tiên quyết.`
+    );
   }
 
   /**
@@ -441,7 +493,7 @@ export class LearningPathAutoGenerationService {
    */
   private async getCourseInfoForKps(kpIds: string[]) {
     if (kpIds.length === 0) return [];
-    
+
     return await db
       .select({
         courseId: courses.id,
@@ -466,7 +518,7 @@ export class LearningPathAutoGenerationService {
       .from(classEnrollment)
       .where(eq(classEnrollment.status, 'active'))
       .groupBy(classEnrollment.studentId);
-    
+
     return enrolledStudents.map((es) => ({ id: es.studentId }));
   }
 }

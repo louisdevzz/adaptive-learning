@@ -19,7 +19,7 @@ async function bootstrap() {
   // Enable CORS with flexible origin handling
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
   const allowedOrigins = corsOrigin
-    ? corsOrigin.split(',').map(origin => origin.trim())
+    ? corsOrigin.split(',').map((origin) => origin.trim())
     : ['http://localhost:3000', 'http://localhost:5173'];
 
   app.enableCors({
@@ -61,7 +61,7 @@ async function bootstrap() {
 
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
-  
+
   logger.log(`🚀 Application is running on: http://localhost:${port}/api`);
   logger.log(`🔐 API Key protection is enabled. Use header: x-api-key`);
   logger.log(`📝 Request/Response logging is enabled`);

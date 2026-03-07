@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
 import {
@@ -50,73 +54,75 @@ export class StudentProgressService {
       throw new NotFoundException('Knowledge Point not found');
     }
 
-    return await db.transaction(async (tx) => {
-      // Check if progress exists
-      const existing = await tx
-        .select()
-        .from(studentKpProgress)
-        .where(
-          and(
-            eq(studentKpProgress.studentId, updateDto.studentId),
-            eq(studentKpProgress.kpId, updateDto.kpId)
+    return await db
+      .transaction(async (tx) => {
+        // Check if progress exists
+        const existing = await tx
+          .select()
+          .from(studentKpProgress)
+          .where(
+            and(
+              eq(studentKpProgress.studentId, updateDto.studentId),
+              eq(studentKpProgress.kpId, updateDto.kpId),
+            ),
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      let oldScore = 0;
-      let progress;
+        let oldScore = 0;
+        let progress;
 
-      if (existing.length > 0) {
-        oldScore = existing[0].masteryScore;
+        if (existing.length > 0) {
+          oldScore = existing[0].masteryScore;
 
-        // Update existing progress
-        [progress] = await tx
-          .update(studentKpProgress)
-          .set({
-            masteryScore: updateDto.masteryScore,
-            confidence: updateDto.confidence,
-            lastAttemptId: updateDto.lastAttemptId,
-            lastUpdated: new Date(),
-          })
-          .where(eq(studentKpProgress.id, existing[0].id))
-          .returning();
-      } else {
-        // Create new progress
-        [progress] = await tx
-          .insert(studentKpProgress)
-          .values({
-            studentId: updateDto.studentId,
-            kpId: updateDto.kpId,
-            masteryScore: updateDto.masteryScore,
-            confidence: updateDto.confidence,
-            lastAttemptId: updateDto.lastAttemptId,
-          })
-          .returning();
-      }
+          // Update existing progress
+          [progress] = await tx
+            .update(studentKpProgress)
+            .set({
+              masteryScore: updateDto.masteryScore,
+              confidence: updateDto.confidence,
+              lastAttemptId: updateDto.lastAttemptId,
+              lastUpdated: new Date(),
+            })
+            .where(eq(studentKpProgress.id, existing[0].id))
+            .returning();
+        } else {
+          // Create new progress
+          [progress] = await tx
+            .insert(studentKpProgress)
+            .values({
+              studentId: updateDto.studentId,
+              kpId: updateDto.kpId,
+              masteryScore: updateDto.masteryScore,
+              confidence: updateDto.confidence,
+              lastAttemptId: updateDto.lastAttemptId,
+            })
+            .returning();
+        }
 
-      // Create history record
-      await tx.insert(studentKpHistory).values({
-        studentId: updateDto.studentId,
-        kpId: updateDto.kpId,
-        oldScore,
-        newScore: updateDto.masteryScore,
-        confidence: updateDto.confidence,
-        source: 'assessment',
-        attemptId: updateDto.lastAttemptId,
+        // Create history record
+        await tx.insert(studentKpHistory).values({
+          studentId: updateDto.studentId,
+          kpId: updateDto.kpId,
+          oldScore,
+          newScore: updateDto.masteryScore,
+          confidence: updateDto.confidence,
+          source: 'assessment',
+          attemptId: updateDto.lastAttemptId,
+        });
+
+        return { progress, oldMasteryScore: oldScore };
+      })
+      .then(({ progress, oldMasteryScore }) => {
+        // Emit event after transaction commits
+        this.eventEmitter.emit('progress.updated', {
+          studentId: updateDto.studentId,
+          kpId: updateDto.kpId,
+          newMasteryScore: updateDto.masteryScore,
+          oldMasteryScore,
+          timestamp: new Date(),
+        });
+        return progress;
       });
-
-      return { progress, oldMasteryScore: oldScore };
-    }).then(({ progress, oldMasteryScore }) => {
-      // Emit event after transaction commits
-      this.eventEmitter.emit('progress.updated', {
-        studentId: updateDto.studentId,
-        kpId: updateDto.kpId,
-        newMasteryScore: updateDto.masteryScore,
-        oldMasteryScore,
-        timestamp: new Date(),
-      });
-      return progress;
-    });
   }
 
   async getStudentKpProgress(studentId: string, kpId: string) {
@@ -148,8 +154,8 @@ export class StudentProgressService {
       .where(
         and(
           eq(studentKpProgress.studentId, studentId),
-          eq(studentKpProgress.kpId, kpId)
-        )
+          eq(studentKpProgress.kpId, kpId),
+        ),
       )
       .limit(1);
 
@@ -175,9 +181,12 @@ export class StudentProgressService {
 
     // Get attempt stats for all KPs
     const kpIds = result.map((row) => row.progress.kpId);
-    
-    let attemptStatsMap: Map<string, { totalAttempts: number; correctAttempts: number; accuracyRate: number }> = new Map();
-    
+
+    const attemptStatsMap: Map<
+      string,
+      { totalAttempts: number; correctAttempts: number; accuracyRate: number }
+    > = new Map();
+
     if (kpIds.length > 0) {
       const attemptStats = await db
         .select({
@@ -189,8 +198,8 @@ export class StudentProgressService {
         .where(
           and(
             eq(questionAttempts.studentId, studentId),
-            inArray(questionAttempts.kpId, kpIds)
-          )
+            inArray(questionAttempts.kpId, kpIds),
+          ),
         )
         .groupBy(questionAttempts.kpId);
 
@@ -199,7 +208,9 @@ export class StudentProgressService {
           attemptStatsMap.set(stat.kpId, {
             totalAttempts: Number(stat.totalAttempts),
             correctAttempts: Number(stat.correctAttempts),
-            accuracyRate: Math.round((Number(stat.correctAttempts) / Number(stat.totalAttempts)) * 100),
+            accuracyRate: Math.round(
+              (Number(stat.correctAttempts) / Number(stat.totalAttempts)) * 100,
+            ),
           });
         }
       });
@@ -226,8 +237,8 @@ export class StudentProgressService {
       .where(
         and(
           eq(studentKpHistory.studentId, studentId),
-          eq(studentKpHistory.kpId, kpId)
-        )
+          eq(studentKpHistory.kpId, kpId),
+        ),
       )
       .orderBy(desc(studentKpHistory.timestamp));
 
@@ -243,8 +254,8 @@ export class StudentProgressService {
       .where(
         and(
           eq(studentMastery.studentId, studentId),
-          eq(studentMastery.courseId, courseId)
-        )
+          eq(studentMastery.courseId, courseId),
+        ),
       )
       .limit(1);
 
@@ -339,15 +350,24 @@ export class StudentProgressService {
 
     // Get correct answer (handle index format for multiple choice)
     let correctAnswer = question.correctAnswer;
-    if (question.questionType === 'multiple_choice' && question.options && Array.isArray(question.options)) {
+    if (
+      question.questionType === 'multiple_choice' &&
+      question.options &&
+      Array.isArray(question.options)
+    ) {
       const answerIndex = parseInt(question.correctAnswer);
-      if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= question.options.length) {
+      if (
+        !isNaN(answerIndex) &&
+        answerIndex >= 1 &&
+        answerIndex <= question.options.length
+      ) {
         correctAnswer = question.options[answerIndex - 1];
       }
     }
 
     // Check if answer is correct
-    const isCorrect = String(submitDto.selectedAnswer) === String(correctAnswer);
+    const isCorrect =
+      String(submitDto.selectedAnswer) === String(correctAnswer);
 
     const txResult = await db.transaction(async (tx) => {
       // Create question attempt
@@ -370,8 +390,8 @@ export class StudentProgressService {
         .where(
           and(
             eq(questionAttempts.studentId, submitDto.studentId),
-            eq(questionAttempts.kpId, submitDto.kpId)
-          )
+            eq(questionAttempts.kpId, submitDto.kpId),
+          ),
         )
         .orderBy(desc(questionAttempts.attemptTime));
 
@@ -380,7 +400,7 @@ export class StudentProgressService {
       // Otherwise: mastery = 0%
       const latestAttempt = allAttempts[0];
       const totalAttempts = allAttempts.length;
-      
+
       if (!latestAttempt) {
         throw new BadRequestException('Failed to create attempt');
       }
@@ -396,8 +416,8 @@ export class StudentProgressService {
         .where(
           and(
             eq(studentKpProgress.studentId, submitDto.studentId),
-            eq(studentKpProgress.kpId, submitDto.kpId)
-          )
+            eq(studentKpProgress.kpId, submitDto.kpId),
+          ),
         )
         .limit(1);
 
@@ -435,7 +455,13 @@ export class StudentProgressService {
         attemptId: attempt.id,
       });
 
-      return { attempt, isCorrect, masteryScore, confidence, oldMasteryScore: oldScore };
+      return {
+        attempt,
+        isCorrect,
+        masteryScore,
+        confidence,
+        oldMasteryScore: oldScore,
+      };
     });
 
     // Emit event after transaction commits to avoid seeing uncommitted data
@@ -485,17 +511,20 @@ export class StudentProgressService {
       .where(
         and(
           eq(questionAttempts.studentId, studentId),
-          eq(questionAttempts.kpId, kpId)
-        )
+          eq(questionAttempts.kpId, kpId),
+        ),
       )
       .orderBy(desc(questionAttempts.attemptTime));
 
     // Group by questionId and get the most recent attempt for each question
     const latestAttemptsByQuestion: Record<string, any> = {};
-    
+
     attempts.forEach((attempt) => {
-      if (!latestAttemptsByQuestion[attempt.questionId] || 
-          new Date(attempt.attemptTime) > new Date(latestAttemptsByQuestion[attempt.questionId].attemptTime)) {
+      if (
+        !latestAttemptsByQuestion[attempt.questionId] ||
+        new Date(attempt.attemptTime) >
+          new Date(latestAttemptsByQuestion[attempt.questionId].attemptTime)
+      ) {
         latestAttemptsByQuestion[attempt.questionId] = attempt;
       }
     });
@@ -550,8 +579,8 @@ export class StudentProgressService {
       .where(
         and(
           eq(studentKpProgress.studentId, submitDto.studentId),
-          eq(studentKpProgress.kpId, submitDto.kpId)
-        )
+          eq(studentKpProgress.kpId, submitDto.kpId),
+        ),
       )
       .limit(1);
 
@@ -566,16 +595,26 @@ export class StudentProgressService {
     if (existing.length > 0) {
       // Update existing score
       if (submitDto.isCorrect) {
-        masteryScore = Math.min(100, existing[0].masteryScore + scorePerQuestion);
+        masteryScore = Math.min(
+          100,
+          existing[0].masteryScore + scorePerQuestion,
+        );
       } else {
-        masteryScore = Math.max(0, existing[0].masteryScore - Math.round(scorePerQuestion / 2));
+        masteryScore = Math.max(
+          0,
+          existing[0].masteryScore - Math.round(scorePerQuestion / 2),
+        );
       }
     } else {
       // First attempt
       masteryScore = submitDto.isCorrect ? scorePerQuestion : 0;
     }
 
-    const confidence = Math.min(100, (existing.length > 0 ? existing[0].confidence ?? 0 : 0) + Math.round(100 / totalQuestions));
+    const confidence = Math.min(
+      100,
+      (existing.length > 0 ? (existing[0].confidence ?? 0) : 0) +
+        Math.round(100 / totalQuestions),
+    );
 
     // Update or create progress
     if (existing.length > 0) {
@@ -624,7 +663,11 @@ export class StudentProgressService {
 
   // ==================== TIME TRACKING ====================
 
-  async trackTimeOnTask(studentId: string, kpId: string, timeSpentSeconds: number) {
+  async trackTimeOnTask(
+    studentId: string,
+    kpId: string,
+    timeSpentSeconds: number,
+  ) {
     // Validate student exists
     const studentResult = await db
       .select()
@@ -670,16 +713,17 @@ export class StudentProgressService {
       .where(
         and(
           eq(questionAttempts.studentId, studentId),
-          eq(questionAttempts.kpId, kpId)
-        )
+          eq(questionAttempts.kpId, kpId),
+        ),
       )
       .orderBy(desc(questionAttempts.attemptTime));
 
     const totalAttempts = attempts.length;
-    const correctAttempts = attempts.filter(a => a.isCorrect).length;
-    const accuracyRate = totalAttempts > 0 
-      ? Math.round((correctAttempts / totalAttempts) * 100) 
-      : 0;
+    const correctAttempts = attempts.filter((a) => a.isCorrect).length;
+    const accuracyRate =
+      totalAttempts > 0
+        ? Math.round((correctAttempts / totalAttempts) * 100)
+        : 0;
 
     return {
       totalAttempts,
@@ -717,8 +761,8 @@ export class StudentProgressService {
         .innerJoin(sectionKpMap, eq(sectionKpMap.sectionId, sections.id))
         .where(eq(modules.courseId, courseId));
 
-      const kpIds = courseKps.map(k => k.kpId);
-      
+      const kpIds = courseKps.map((k) => k.kpId);
+
       if (kpIds.length > 0) {
         conditions.push(inArray(timeOnTask.kpId, kpIds));
       }
@@ -767,8 +811,8 @@ export class StudentProgressService {
       .where(
         and(
           eq(questionAttempts.studentId, studentId),
-          gte(questionAttempts.attemptTime, sevenDaysAgo)
-        )
+          gte(questionAttempts.attemptTime, sevenDaysAgo),
+        ),
       )
       .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
       .orderBy(sql`DATE(${questionAttempts.attemptTime})`);
@@ -783,26 +827,35 @@ export class StudentProgressService {
       .where(
         and(
           eq(timeOnTask.studentId, studentId),
-          gte(timeOnTask.computedAt, sevenDaysAgo)
-        )
+          gte(timeOnTask.computedAt, sevenDaysAgo),
+        ),
       )
       .groupBy(sql`DATE(${timeOnTask.computedAt})`)
       .orderBy(sql`DATE(${timeOnTask.computedAt})`);
 
     // Create maps for easy lookup
-    const attemptsMap = new Map(dailyAttempts.map(d => [d.date, Number(d.count)]));
-    const studyTimeMap = new Map(dailyStudyTime.map(d => [d.date, Number(d.totalMinutes)]));
+    const attemptsMap = new Map(
+      dailyAttempts.map((d) => [d.date, Number(d.count)]),
+    );
+    const studyTimeMap = new Map(
+      dailyStudyTime.map((d) => [d.date, Number(d.totalMinutes)]),
+    );
 
     // Generate last 7 days array
     const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    const result: Array<{ date: string; fullDate: string; attempts: number; timeSpent: number }> = [];
-    
+    const result: Array<{
+      date: string;
+      fullDate: string;
+      attempts: number;
+      timeSpent: number;
+    }> = [];
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
       const dayName = days[date.getDay()];
-      
+
       result.push({
         date: dayName,
         fullDate: dateStr,

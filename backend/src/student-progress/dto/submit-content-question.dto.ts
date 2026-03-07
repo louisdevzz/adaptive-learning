@@ -1,4 +1,12 @@
-import { IsUUID, IsNotEmpty, IsString, IsBoolean, IsOptional, IsInt, Min } from 'class-validator';
+import {
+  IsUUID,
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 export class SubmitContentQuestionDto {
   @IsUUID()

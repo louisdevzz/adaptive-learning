@@ -61,6 +61,19 @@ function LoginForm() {
     try {
       const response = await api.auth.login(email, password);
 
+      // Set cookie on frontend domain for Next.js middleware (cross-domain fix)
+      if (response?.accessToken) {
+        try {
+          await fetch("/api/auth/set-cookie", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: response.accessToken }),
+          });
+        } catch (cookieError) {
+          console.error("Failed to set frontend cookie:", cookieError);
+        }
+      }
+
       try {
         const fullProfile = await api.auth.getProfile();
         await mutate("/auth/me", fullProfile, { revalidate: false });
@@ -95,7 +108,20 @@ function LoginForm() {
       const user = result.user;
       const idToken = await user.getIdToken();
 
-      await api.auth.loginWithGoogle(idToken);
+      const response = await api.auth.loginWithGoogle(idToken);
+
+      // Set cookie on frontend domain for Next.js middleware (cross-domain fix)
+      if (response?.accessToken) {
+        try {
+          await fetch("/api/auth/set-cookie", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: response.accessToken }),
+          });
+        } catch (cookieError) {
+          console.error("Failed to set frontend cookie:", cookieError);
+        }
+      }
 
       try {
         const fullProfile = await api.auth.getProfile();

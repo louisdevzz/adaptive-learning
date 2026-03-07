@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and, inArray, SQL, or, desc } from 'drizzle-orm';
 import {
   db,
@@ -23,7 +27,10 @@ import { AssignToStudentDto } from './dto/assign-to-student.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
-import { CreateAssignmentAttemptDto, UpdateAssignmentAttemptDto } from './dto/create-assignment-attempt.dto';
+import {
+  CreateAssignmentAttemptDto,
+  UpdateAssignmentAttemptDto,
+} from './dto/create-assignment-attempt.dto';
 
 @Injectable()
 export class AssignmentsService {
@@ -42,8 +49,13 @@ export class AssignmentsService {
     }
 
     // Validate questions exist if provided
-    if (createAssignmentDto.questions && createAssignmentDto.questions.length > 0) {
-      const questionIds = createAssignmentDto.questions.map((q) => q.questionId);
+    if (
+      createAssignmentDto.questions &&
+      createAssignmentDto.questions.length > 0
+    ) {
+      const questionIds = createAssignmentDto.questions.map(
+        (q) => q.questionId,
+      );
       const existingQuestions = await db
         .select()
         .from(questionBank)
@@ -64,13 +76,18 @@ export class AssignmentsService {
           title: createAssignmentDto.title,
           description: createAssignmentDto.description,
           assignmentType: createAssignmentDto.assignmentType,
-          dueDate: createAssignmentDto.dueDate ? new Date(createAssignmentDto.dueDate) : null,
+          dueDate: createAssignmentDto.dueDate
+            ? new Date(createAssignmentDto.dueDate)
+            : null,
           isPublished: createAssignmentDto.isPublished ?? false,
         })
         .returning();
 
       // 2. Create assignment items (questions) if provided
-      if (createAssignmentDto.questions && createAssignmentDto.questions.length > 0) {
+      if (
+        createAssignmentDto.questions &&
+        createAssignmentDto.questions.length > 0
+      ) {
         const itemValues = createAssignmentDto.questions.map((question) => ({
           assignmentId: assignment.id,
           questionId: question.questionId,
@@ -90,7 +107,8 @@ export class AssignmentsService {
 
     const conditions: SQL[] = [];
     if (teacherId) conditions.push(eq(assignments.teacherId, teacherId));
-    if (isPublished !== undefined) conditions.push(eq(assignments.isPublished, isPublished));
+    if (isPublished !== undefined)
+      conditions.push(eq(assignments.isPublished, isPublished));
 
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as any;
@@ -155,7 +173,9 @@ export class AssignmentsService {
 
     // Validate questions if provided
     if (updateAssignmentDto.questions) {
-      const questionIds = updateAssignmentDto.questions.map((q) => q.questionId);
+      const questionIds = updateAssignmentDto.questions.map(
+        (q) => q.questionId,
+      );
       const existingQuestions = await db
         .select()
         .from(questionBank)
@@ -169,14 +189,21 @@ export class AssignmentsService {
     return await db.transaction(async (tx) => {
       // 1. Update the assignment
       const updateData: any = { updatedAt: new Date() };
-      if (updateAssignmentDto.teacherId) updateData.teacherId = updateAssignmentDto.teacherId;
-      if (updateAssignmentDto.title) updateData.title = updateAssignmentDto.title;
-      if (updateAssignmentDto.description) updateData.description = updateAssignmentDto.description;
-      if (updateAssignmentDto.assignmentType) updateData.assignmentType = updateAssignmentDto.assignmentType;
+      if (updateAssignmentDto.teacherId)
+        updateData.teacherId = updateAssignmentDto.teacherId;
+      if (updateAssignmentDto.title)
+        updateData.title = updateAssignmentDto.title;
+      if (updateAssignmentDto.description)
+        updateData.description = updateAssignmentDto.description;
+      if (updateAssignmentDto.assignmentType)
+        updateData.assignmentType = updateAssignmentDto.assignmentType;
       if (updateAssignmentDto.dueDate !== undefined) {
-        updateData.dueDate = updateAssignmentDto.dueDate ? new Date(updateAssignmentDto.dueDate) : null;
+        updateData.dueDate = updateAssignmentDto.dueDate
+          ? new Date(updateAssignmentDto.dueDate)
+          : null;
       }
-      if (updateAssignmentDto.isPublished !== undefined) updateData.isPublished = updateAssignmentDto.isPublished;
+      if (updateAssignmentDto.isPublished !== undefined)
+        updateData.isPublished = updateAssignmentDto.isPublished;
 
       const [updated] = await tx
         .update(assignments)
@@ -187,7 +214,9 @@ export class AssignmentsService {
       // 2. Update assignment items if provided
       if (updateAssignmentDto.questions !== undefined) {
         // Delete existing items
-        await tx.delete(assignmentItems).where(eq(assignmentItems.assignmentId, id));
+        await tx
+          .delete(assignmentItems)
+          .where(eq(assignmentItems.assignmentId, id));
 
         // Insert new items
         if (updateAssignmentDto.questions.length > 0) {
@@ -249,8 +278,8 @@ export class AssignmentsService {
       .where(
         and(
           eq(studentAssignments.studentId, studentId),
-          eq(studentAssignments.assignmentId, assignmentId)
-        )
+          eq(studentAssignments.assignmentId, assignmentId),
+        ),
       )
       .limit(1);
 
@@ -313,7 +342,9 @@ export class AssignmentsService {
       })
       .from(assignmentItems)
       .innerJoin(questionBank, eq(assignmentItems.questionId, questionBank.id))
-      .where(eq(assignmentItems.assignmentId, studentAssignment[0].assignmentId));
+      .where(
+        eq(assignmentItems.assignmentId, studentAssignment[0].assignmentId),
+      );
 
     return await db.transaction(async (tx) => {
       let totalScore = 0;
@@ -325,7 +356,8 @@ export class AssignmentsService {
         const item = items.find((i) => i.question.id === answer.questionId);
         if (!item) continue;
 
-        const isCorrect = String(answer.answer) === String(item.question.correctAnswer);
+        const isCorrect =
+          String(answer.answer) === String(item.question.correctAnswer);
         if (isCorrect) {
           totalScore += item.item.points;
           correctCount++;
@@ -356,7 +388,12 @@ export class AssignmentsService {
       const latestAttempt = await tx
         .select()
         .from(assignmentAttempts)
-        .where(eq(assignmentAttempts.studentAssignmentId, submitDto.studentAssignmentId))
+        .where(
+          eq(
+            assignmentAttempts.studentAssignmentId,
+            submitDto.studentAssignmentId,
+          ),
+        )
         .orderBy(desc(assignmentAttempts.startedAt))
         .limit(1);
 
@@ -371,7 +408,8 @@ export class AssignmentsService {
       }
 
       // Create result
-      const accuracy = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+      const accuracy =
+        maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
       const startTime = studentAssignment[0].startTime
         ? new Date(studentAssignment[0].startTime).getTime()
         : Date.now();
@@ -399,7 +437,10 @@ export class AssignmentsService {
         assignment: assignments,
       })
       .from(studentAssignments)
-      .innerJoin(assignments, eq(studentAssignments.assignmentId, assignments.id))
+      .innerJoin(
+        assignments,
+        eq(studentAssignments.assignmentId, assignments.id),
+      )
       .where(eq(studentAssignments.studentId, studentId));
 
     return result.map((row) => ({
@@ -417,7 +458,7 @@ export class AssignmentsService {
       .from(studentAssignments)
       .leftJoin(
         studentAssignmentResults,
-        eq(studentAssignments.id, studentAssignmentResults.studentAssignmentId)
+        eq(studentAssignments.id, studentAssignmentResults.studentAssignmentId),
       )
       .where(eq(studentAssignments.assignmentId, assignmentId));
 
@@ -448,13 +489,15 @@ export class AssignmentsService {
       .where(
         and(
           eq(sectionAssignments.assignmentId, assignDto.assignmentId),
-          eq(sectionAssignments.sectionId, assignDto.sectionId)
-        )
+          eq(sectionAssignments.sectionId, assignDto.sectionId),
+        ),
       )
       .limit(1);
 
     if (existing.length > 0) {
-      throw new BadRequestException('Assignment is already assigned to this section');
+      throw new BadRequestException(
+        'Assignment is already assigned to this section',
+      );
     }
 
     const [result] = await db
@@ -468,7 +511,10 @@ export class AssignmentsService {
 
     // If autoAssign is true, expand to students in section
     if (result.autoAssign) {
-      await this.expandSectionAssignmentToStudents(assignDto.assignmentId, assignDto.sectionId);
+      await this.expandSectionAssignmentToStudents(
+        assignDto.assignmentId,
+        assignDto.sectionId,
+      );
     }
 
     return result;
@@ -481,7 +527,10 @@ export class AssignmentsService {
         assignment: assignments,
       })
       .from(sectionAssignments)
-      .innerJoin(assignments, eq(sectionAssignments.assignmentId, assignments.id))
+      .innerJoin(
+        assignments,
+        eq(sectionAssignments.assignmentId, assignments.id),
+      )
       .where(eq(sectionAssignments.sectionId, sectionId));
 
     return result.map((row) => ({
@@ -496,8 +545,8 @@ export class AssignmentsService {
       .where(
         and(
           eq(sectionAssignments.sectionId, sectionId),
-          eq(sectionAssignments.assignmentId, assignmentId)
-        )
+          eq(sectionAssignments.assignmentId, assignmentId),
+        ),
       );
 
     return { message: 'Section assignment removed successfully' };
@@ -566,7 +615,9 @@ export class AssignmentsService {
   }
 
   async removeAssignmentTarget(targetId: string) {
-    await db.delete(assignmentTargets).where(eq(assignmentTargets.id, targetId));
+    await db
+      .delete(assignmentTargets)
+      .where(eq(assignmentTargets.id, targetId));
 
     return { message: 'Assignment target removed successfully' };
   }
@@ -596,11 +647,19 @@ export class AssignmentsService {
     return result;
   }
 
-  async updateAssignmentAttempt(attemptId: string, updateAttemptDto: UpdateAssignmentAttemptDto) {
+  async updateAssignmentAttempt(
+    attemptId: string,
+    updateAttemptDto: UpdateAssignmentAttemptDto,
+  ) {
     const updateData: any = {};
-    if (updateAttemptDto.attemptStatus) updateData.attemptStatus = updateAttemptDto.attemptStatus;
-    if (updateAttemptDto.endedAt) updateData.endedAt = new Date(updateAttemptDto.endedAt);
-    else if (updateAttemptDto.attemptStatus === 'submitted' || updateAttemptDto.attemptStatus === 'abandoned') {
+    if (updateAttemptDto.attemptStatus)
+      updateData.attemptStatus = updateAttemptDto.attemptStatus;
+    if (updateAttemptDto.endedAt)
+      updateData.endedAt = new Date(updateAttemptDto.endedAt);
+    else if (
+      updateAttemptDto.attemptStatus === 'submitted' ||
+      updateAttemptDto.attemptStatus === 'abandoned'
+    ) {
       updateData.endedAt = new Date();
     }
 
@@ -627,7 +686,10 @@ export class AssignmentsService {
 
   // ==================== HELPER METHODS ====================
 
-  private async expandSectionAssignmentToStudents(assignmentId: string, sectionId: string) {
+  private async expandSectionAssignmentToStudents(
+    assignmentId: string,
+    sectionId: string,
+  ) {
     // Get all students enrolled in classes that have access to this section
     // This is a simplified version - you may need to adjust based on your enrollment logic
     const studentsInSection = await db
@@ -646,12 +708,14 @@ export class AssignmentsService {
         .where(
           and(
             eq(studentAssignments.assignmentId, assignmentId),
-            inArray(studentAssignments.studentId, studentIds)
-          )
+            inArray(studentAssignments.studentId, studentIds),
+          ),
         );
 
       const existingStudentIds = new Set(existing.map((e) => e.studentId));
-      const newStudentIds = studentIds.filter((id) => !existingStudentIds.has(id));
+      const newStudentIds = studentIds.filter(
+        (id) => !existingStudentIds.has(id),
+      );
 
       if (newStudentIds.length > 0) {
         const studentAssignmentValues = newStudentIds.map((studentId) => ({
@@ -686,8 +750,8 @@ export class AssignmentsService {
         .where(
           and(
             eq(classEnrollment.classId, assignmentTarget.targetId),
-            eq(classEnrollment.status, 'active')
-          )
+            eq(classEnrollment.status, 'active'),
+          ),
         );
 
       studentIds = enrollments.map((e) => e.studentId);
@@ -708,12 +772,15 @@ export class AssignmentsService {
         .where(
           and(
             eq(sectionAssignments.assignmentId, assignmentId),
-            eq(sectionAssignments.autoAssign, true)
-          )
+            eq(sectionAssignments.autoAssign, true),
+          ),
         );
 
       for (const sectionAssign of sectionAssigns) {
-        await this.expandSectionAssignmentToStudents(assignmentId, sectionAssign.sectionId);
+        await this.expandSectionAssignmentToStudents(
+          assignmentId,
+          sectionAssign.sectionId,
+        );
       }
       return; // Already handled in expandSectionAssignmentToStudents
     }
@@ -726,12 +793,14 @@ export class AssignmentsService {
         .where(
           and(
             eq(studentAssignments.assignmentId, assignmentId),
-            inArray(studentAssignments.studentId, studentIds)
-          )
+            inArray(studentAssignments.studentId, studentIds),
+          ),
         );
 
       const existingStudentIds = new Set(existing.map((e) => e.studentId));
-      const newStudentIds = studentIds.filter((id) => !existingStudentIds.has(id));
+      const newStudentIds = studentIds.filter(
+        (id) => !existingStudentIds.has(id),
+      );
 
       if (newStudentIds.length > 0) {
         const studentAssignmentValues = newStudentIds.map((studentId) => ({

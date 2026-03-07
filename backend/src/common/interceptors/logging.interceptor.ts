@@ -20,7 +20,13 @@ export class LoggingInterceptor implements NestInterceptor {
     const startTime = Date.now();
 
     // Build request info string
-    const requestInfo = this.formatRequestInfo(method, url, query, params, body);
+    const requestInfo = this.formatRequestInfo(
+      method,
+      url,
+      query,
+      params,
+      body,
+    );
 
     // Only log request details in development or for non-GET requests
     if (process.env.NODE_ENV === 'development' || method !== 'GET') {
@@ -50,7 +56,7 @@ export class LoggingInterceptor implements NestInterceptor {
           const errorInfo = this.formatErrorInfo(error);
 
           this.logger.error(
-            `✗ ${method} ${url} ${statusCode} | ${duration}ms | ${errorInfo}`
+            `✗ ${method} ${url} ${statusCode} | ${duration}ms | ${errorInfo}`,
           );
         },
       }),
@@ -157,7 +163,13 @@ export class LoggingInterceptor implements NestInterceptor {
     const sanitized = { ...body };
 
     // Remove sensitive fields
-    const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'api_key'];
+    const sensitiveFields = [
+      'password',
+      'token',
+      'secret',
+      'apiKey',
+      'api_key',
+    ];
     sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '***REDACTED***';
@@ -167,4 +179,3 @@ export class LoggingInterceptor implements NestInterceptor {
     return sanitized;
   }
 }
-

@@ -1,4 +1,12 @@
-import { IsString, IsEnum, IsOptional, IsArray, IsUUID, IsEmail, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  IsUUID,
+  IsEmail,
+  MinLength,
+} from 'class-validator';
 import { RelationshipType } from './create-parent.dto';
 
 export class UpdateParentDto {

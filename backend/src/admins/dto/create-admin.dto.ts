@@ -1,4 +1,12 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsArray, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  IsEnum,
+  IsArray,
+  IsOptional,
+} from 'class-validator';
 
 export enum AdminLevel {
   SUPER = 'super',

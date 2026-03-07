@@ -22,4 +22,3 @@ export class CreateAssignmentTargetDto {
   @IsNotEmpty()
   assignedBy: string; // teacher_id or 'system'
 }
-

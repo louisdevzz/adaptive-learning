@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { eq } from 'drizzle-orm';
 import { UsersService } from '../users/users.service';
@@ -33,52 +38,74 @@ export class AuthService {
     // Create role-specific record based on role
     switch (createUserDto.role) {
       case 'student':
-        if (!createUserDto.studentCode || !createUserDto.gradeLevel || !createUserDto.schoolName ||
-            !createUserDto.dateOfBirth || !createUserDto.gender) {
+        if (
+          !createUserDto.studentCode ||
+          !createUserDto.gradeLevel ||
+          !createUserDto.schoolName ||
+          !createUserDto.dateOfBirth ||
+          !createUserDto.gender
+        ) {
           throw new BadRequestException('Missing required student fields');
         }
 
-        const [studentInfo] = await db.insert(students).values({
-          id: user.id,
-          studentCode: createUserDto.studentCode,
-          gradeLevel: createUserDto.gradeLevel,
-          schoolName: createUserDto.schoolName,
-          dateOfBirth: createUserDto.dateOfBirth,
-          gender: createUserDto.gender,
-        }).returning();
+        const [studentInfo] = await db
+          .insert(students)
+          .values({
+            id: user.id,
+            studentCode: createUserDto.studentCode,
+            gradeLevel: createUserDto.gradeLevel,
+            schoolName: createUserDto.schoolName,
+            dateOfBirth: createUserDto.dateOfBirth,
+            gender: createUserDto.gender,
+          })
+          .returning();
 
         info = studentInfo;
         break;
 
       case 'teacher':
-        if (!createUserDto.specialization || !createUserDto.experienceYears ||
-            !createUserDto.certifications || !createUserDto.phone) {
+        if (
+          !createUserDto.specialization ||
+          !createUserDto.experienceYears ||
+          !createUserDto.certifications ||
+          !createUserDto.phone
+        ) {
           throw new BadRequestException('Missing required teacher fields');
         }
 
-        const [teacherInfo] = await db.insert(teachers).values({
-          id: user.id,
-          specialization: createUserDto.specialization,
-          experienceYears: createUserDto.experienceYears,
-          certifications: createUserDto.certifications,
-          phone: createUserDto.phone,
-          bio: createUserDto.bio || null,
-        }).returning();
+        const [teacherInfo] = await db
+          .insert(teachers)
+          .values({
+            id: user.id,
+            specialization: createUserDto.specialization,
+            experienceYears: createUserDto.experienceYears,
+            certifications: createUserDto.certifications,
+            phone: createUserDto.phone,
+            bio: createUserDto.bio || null,
+          })
+          .returning();
 
         info = teacherInfo;
         break;
 
       case 'parent':
-        if (!createUserDto.parentPhone || !createUserDto.address || !createUserDto.relationshipType) {
+        if (
+          !createUserDto.parentPhone ||
+          !createUserDto.address ||
+          !createUserDto.relationshipType
+        ) {
           throw new BadRequestException('Missing required parent fields');
         }
 
-        const [parentInfo] = await db.insert(parents).values({
-          id: user.id,
-          phone: createUserDto.parentPhone,
-          address: createUserDto.address,
-          relationshipType: createUserDto.relationshipType,
-        }).returning();
+        const [parentInfo] = await db
+          .insert(parents)
+          .values({
+            id: user.id,
+            phone: createUserDto.parentPhone,
+            address: createUserDto.address,
+            relationshipType: createUserDto.relationshipType,
+          })
+          .returning();
 
         info = parentInfo;
         break;
@@ -88,11 +115,14 @@ export class AuthService {
           throw new BadRequestException('Missing required admin fields');
         }
 
-        const [adminInfo] = await db.insert(admins).values({
-          id: user.id,
-          adminLevel: createUserDto.adminLevel,
-          permissions: createUserDto.permissions,
-        }).returning();
+        const [adminInfo] = await db
+          .insert(admins)
+          .values({
+            id: user.id,
+            adminLevel: createUserDto.adminLevel,
+            permissions: createUserDto.permissions,
+          })
+          .returning();
 
         info = adminInfo;
         break;
@@ -129,11 +159,15 @@ export class AuthService {
     // Find user by email
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
-      this.logger.warn(`Login attempt failed: User not found for email ${loginDto.email}`);
+      this.logger.warn(
+        `Login attempt failed: User not found for email ${loginDto.email}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    this.logger.debug(`Login attempt for user: ${user.email}, role: ${user.role}, status: ${user.status}`);
+    this.logger.debug(
+      `Login attempt for user: ${user.email}, role: ${user.role}, status: ${user.status}`,
+    );
 
     // Validate password
     const isPasswordValid = await this.usersService.validatePassword(
@@ -142,13 +176,17 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      this.logger.warn(`Login attempt failed: Invalid password for email ${loginDto.email}`);
+      this.logger.warn(
+        `Login attempt failed: Invalid password for email ${loginDto.email}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if user is active
     if (!user.status) {
-      this.logger.warn(`Login attempt failed: Account inactive for email ${loginDto.email}`);
+      this.logger.warn(
+        `Login attempt failed: Account inactive for email ${loginDto.email}`,
+      );
       throw new UnauthorizedException('Account is inactive');
     }
 
@@ -156,7 +194,9 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
 
-    this.logger.log(`Login successful for user: ${user.email}, role: ${user.role}`);
+    this.logger.log(
+      `Login successful for user: ${user.email}, role: ${user.role}`,
+    );
 
     return {
       user: {
@@ -177,7 +217,8 @@ export class AuthService {
   async loginWithGoogle(idToken: string): Promise<AuthResponseDto> {
     try {
       // Verify Firebase ID token
-      const decodedToken = await this.firebaseAdminService.verifyIdToken(idToken);
+      const decodedToken =
+        await this.firebaseAdminService.verifyIdToken(idToken);
       const { email, name, picture, uid } = decodedToken;
 
       if (!email) {
@@ -220,7 +261,9 @@ export class AuthService {
 
       // Check if user is active
       if (!user.status) {
-        this.logger.warn(`Google login attempt failed: Account inactive for email ${email}`);
+        this.logger.warn(
+          `Google login attempt failed: Account inactive for email ${email}`,
+        );
         throw new UnauthorizedException('Account is inactive');
       }
 
@@ -228,7 +271,9 @@ export class AuthService {
       const payload = { sub: user.id, email: user.email, role: user.role };
       const accessToken = this.jwtService.sign(payload);
 
-      this.logger.log(`Google login successful for user: ${email}, role: ${user.role}`);
+      this.logger.log(
+        `Google login successful for user: ${email}, role: ${user.role}`,
+      );
 
       return {
         user: {
@@ -242,7 +287,10 @@ export class AuthService {
       };
     } catch (error) {
       this.logger.error('Google login error:', error);
-      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new UnauthorizedException('Invalid Google token');

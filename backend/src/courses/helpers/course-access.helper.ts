@@ -1,5 +1,13 @@
 import { eq, and, inArray } from 'drizzle-orm';
-import { db, courses, teacherCourseMap, modules, sections, knowledgePoint, sectionKpMap } from '../../../db';
+import {
+  db,
+  courses,
+  teacherCourseMap,
+  modules,
+  sections,
+  knowledgePoint,
+  sectionKpMap,
+} from '../../../db';
 
 /**
  * Check if a user has access to a course (for management purposes)
@@ -9,7 +17,11 @@ import { db, courses, teacherCourseMap, modules, sections, knowledgePoint, secti
  *   2. They are assigned to it
  * Note: Public courses are accessed via Explorer, not through this function
  */
-export async function hasCourseAccess(courseId: string, userId: string, userRole: string): Promise<boolean> {
+export async function hasCourseAccess(
+  courseId: string,
+  userId: string,
+  userRole: string,
+): Promise<boolean> {
   if (userRole === 'admin') {
     return true;
   }
@@ -43,8 +55,8 @@ export async function hasCourseAccess(courseId: string, userId: string, userRole
     .where(
       and(
         eq(teacherCourseMap.courseId, courseId),
-        eq(teacherCourseMap.teacherId, userId)
-      )
+        eq(teacherCourseMap.teacherId, userId),
+      ),
     )
     .limit(1);
 
@@ -56,7 +68,11 @@ export async function hasCourseAccess(courseId: string, userId: string, userRole
  * - Admin: always has write access
  * - Teacher: has write access if they created it OR are assigned to it (NOT for public courses they don't own)
  */
-export async function hasCourseWriteAccess(courseId: string, userId: string, userRole: string): Promise<boolean> {
+export async function hasCourseWriteAccess(
+  courseId: string,
+  userId: string,
+  userRole: string,
+): Promise<boolean> {
   if (userRole === 'admin') {
     return true;
   }
@@ -90,8 +106,8 @@ export async function hasCourseWriteAccess(courseId: string, userId: string, use
     .where(
       and(
         eq(teacherCourseMap.courseId, courseId),
-        eq(teacherCourseMap.teacherId, userId)
-      )
+        eq(teacherCourseMap.teacherId, userId),
+      ),
     )
     .limit(1);
 
@@ -104,7 +120,10 @@ export async function hasCourseWriteAccess(courseId: string, userId: string, use
  * - Teacher: course IDs they created OR are assigned to
  * Note: Public courses are accessed via Explorer, not included here
  */
-export async function getAccessibleCourseIds(userId: string, userRole: string): Promise<string[]> {
+export async function getAccessibleCourseIds(
+  userId: string,
+  userRole: string,
+): Promise<string[]> {
   if (userRole === 'admin') {
     const allCourses = await db.select({ id: courses.id }).from(courses);
     return allCourses.map((c) => c.id);
@@ -138,7 +157,10 @@ export async function getAccessibleCourseIds(userId: string, userRole: string): 
  * - Admin: all module IDs
  * - Teacher: module IDs from courses they have access to
  */
-export async function getAccessibleModuleIds(userId: string, userRole: string): Promise<string[]> {
+export async function getAccessibleModuleIds(
+  userId: string,
+  userRole: string,
+): Promise<string[]> {
   const accessibleCourseIds = await getAccessibleCourseIds(userId, userRole);
 
   if (accessibleCourseIds.length === 0) {
@@ -158,7 +180,10 @@ export async function getAccessibleModuleIds(userId: string, userRole: string): 
  * - Admin: all section IDs
  * - Teacher: section IDs from modules they have access to
  */
-export async function getAccessibleSectionIds(userId: string, userRole: string): Promise<string[]> {
+export async function getAccessibleSectionIds(
+  userId: string,
+  userRole: string,
+): Promise<string[]> {
   const accessibleModuleIds = await getAccessibleModuleIds(userId, userRole);
 
   if (accessibleModuleIds.length === 0) {
@@ -178,9 +203,14 @@ export async function getAccessibleSectionIds(userId: string, userRole: string):
  * - Admin: all KP IDs
  * - Teacher: KP IDs they created OR from sections they have access to
  */
-export async function getAccessibleKnowledgePointIds(userId: string, userRole: string): Promise<string[]> {
+export async function getAccessibleKnowledgePointIds(
+  userId: string,
+  userRole: string,
+): Promise<string[]> {
   if (userRole === 'admin') {
-    const allKps = await db.select({ id: knowledgePoint.id }).from(knowledgePoint);
+    const allKps = await db
+      .select({ id: knowledgePoint.id })
+      .from(knowledgePoint);
     return allKps.map((kp) => kp.id);
   }
 
@@ -209,4 +239,3 @@ export async function getAccessibleKnowledgePointIds(userId: string, userRole: s
 
   return Array.from(kpIds);
 }
-

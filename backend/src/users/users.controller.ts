@@ -53,7 +53,10 @@ export class UsersController {
   }
 
   @Patch(':id/status')
-  async updateStatus(@Param('id') id: string, @Body() updateUserStatusDto: { status: boolean }) {
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() updateUserStatusDto: { status: boolean },
+  ) {
     return this.usersService.updateUserStatus(id, updateUserStatusDto);
   }
 

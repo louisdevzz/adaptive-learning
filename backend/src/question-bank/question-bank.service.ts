@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and, SQL } from 'drizzle-orm';
 import {
   db,
@@ -71,8 +75,10 @@ export class QuestionBankService {
     let query = db.select().from(questionBank);
 
     const conditions: SQL[] = [];
-    if (questionType) conditions.push(eq(questionBank.questionType, questionType as any));
-    if (isActive !== undefined) conditions.push(eq(questionBank.isActive, isActive));
+    if (questionType)
+      conditions.push(eq(questionBank.questionType, questionType as any));
+    if (isActive !== undefined)
+      conditions.push(eq(questionBank.isActive, isActive));
 
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as any;
@@ -129,11 +135,16 @@ export class QuestionBankService {
     return await db.transaction(async (tx) => {
       // 1. Update the question
       const questionUpdateData: any = { updatedAt: new Date() };
-      if (updateQuestionDto.questionText) questionUpdateData.questionText = updateQuestionDto.questionText;
-      if (updateQuestionDto.options) questionUpdateData.options = updateQuestionDto.options;
-      if (updateQuestionDto.correctAnswer) questionUpdateData.correctAnswer = updateQuestionDto.correctAnswer;
-      if (updateQuestionDto.questionType) questionUpdateData.questionType = updateQuestionDto.questionType;
-      if (updateQuestionDto.isActive !== undefined) questionUpdateData.isActive = updateQuestionDto.isActive;
+      if (updateQuestionDto.questionText)
+        questionUpdateData.questionText = updateQuestionDto.questionText;
+      if (updateQuestionDto.options)
+        questionUpdateData.options = updateQuestionDto.options;
+      if (updateQuestionDto.correctAnswer)
+        questionUpdateData.correctAnswer = updateQuestionDto.correctAnswer;
+      if (updateQuestionDto.questionType)
+        questionUpdateData.questionType = updateQuestionDto.questionType;
+      if (updateQuestionDto.isActive !== undefined)
+        questionUpdateData.isActive = updateQuestionDto.isActive;
 
       const [updated] = await tx
         .update(questionBank)
@@ -144,11 +155,18 @@ export class QuestionBankService {
       // 2. Update metadata if provided
       if (updateQuestionDto.metadata) {
         const metadataUpdateData: any = {};
-        if (updateQuestionDto.metadata.difficulty) metadataUpdateData.difficulty = updateQuestionDto.metadata.difficulty;
-        if (updateQuestionDto.metadata.discrimination) metadataUpdateData.discrimination = updateQuestionDto.metadata.discrimination;
-        if (updateQuestionDto.metadata.skillId) metadataUpdateData.skillId = updateQuestionDto.metadata.skillId;
-        if (updateQuestionDto.metadata.tags) metadataUpdateData.tags = updateQuestionDto.metadata.tags;
-        if (updateQuestionDto.metadata.estimatedTime) metadataUpdateData.estimatedTime = updateQuestionDto.metadata.estimatedTime;
+        if (updateQuestionDto.metadata.difficulty)
+          metadataUpdateData.difficulty = updateQuestionDto.metadata.difficulty;
+        if (updateQuestionDto.metadata.discrimination)
+          metadataUpdateData.discrimination =
+            updateQuestionDto.metadata.discrimination;
+        if (updateQuestionDto.metadata.skillId)
+          metadataUpdateData.skillId = updateQuestionDto.metadata.skillId;
+        if (updateQuestionDto.metadata.tags)
+          metadataUpdateData.tags = updateQuestionDto.metadata.tags;
+        if (updateQuestionDto.metadata.estimatedTime)
+          metadataUpdateData.estimatedTime =
+            updateQuestionDto.metadata.estimatedTime;
 
         await tx
           .update(questionMetadata)
@@ -192,8 +210,8 @@ export class QuestionBankService {
       .where(
         and(
           eq(kpExercises.kpId, assignDto.kpId),
-          eq(kpExercises.questionId, assignDto.questionId)
-        )
+          eq(kpExercises.questionId, assignDto.questionId),
+        ),
       )
       .limit(1);
 
@@ -217,10 +235,7 @@ export class QuestionBankService {
     const result = await db
       .delete(kpExercises)
       .where(
-        and(
-          eq(kpExercises.kpId, kpId),
-          eq(kpExercises.questionId, questionId)
-        )
+        and(eq(kpExercises.kpId, kpId), eq(kpExercises.questionId, questionId)),
       )
       .returning();
 
@@ -294,12 +309,14 @@ export class QuestionBankService {
       short_answer: 'Trả lời ngắn',
     };
 
-    const difficultyLabel = difficultyLabels[generateDto.difficulty] || 'Trung bình';
-    const questionTypeLabel = questionTypeLabels[generateDto.questionType] || 'Trắc nghiệm';
+    const difficultyLabel =
+      difficultyLabels[generateDto.difficulty] || 'Trung bình';
+    const questionTypeLabel =
+      questionTypeLabels[generateDto.questionType] || 'Trắc nghiệm';
 
     // Build prompt based on question type
     let prompt = '';
-    
+
     if (generateDto.questionType === 'multiple_choice') {
       prompt = `Tạo một câu hỏi trắc nghiệm về chủ đề "${generateDto.knowledgePointTitle}"${generateDto.knowledgePointDescription ? ` với mô tả: ${generateDto.knowledgePointDescription}` : ''}.
 
@@ -418,7 +435,7 @@ Trả về kết quả dưới dạng JSON với cấu trúc sau:
         }
       } catch (parseError) {
         throw new BadRequestException(
-          `Failed to parse AI response. Response: ${content.substring(0, 200)}`
+          `Failed to parse AI response. Response: ${content.substring(0, 200)}`,
         );
       }
 
@@ -429,25 +446,32 @@ Trả về kết quả dưới dạng JSON với cấu trúc sau:
 
       // Ensure options is an array
       if (!Array.isArray(questionData.options)) {
-        questionData.options = generateDto.questionType === 'multiple_choice' 
-          ? [] 
-          : generateDto.questionType === 'true_false'
-          ? ['Đúng', 'Sai']
-          : [];
+        questionData.options =
+          generateDto.questionType === 'multiple_choice'
+            ? []
+            : generateDto.questionType === 'true_false'
+              ? ['Đúng', 'Sai']
+              : [];
       }
 
       // Validate estimatedTime and discrimination
-      const estimatedTime = questionData.estimatedTime 
-        ? Math.max(30, Math.min(600, parseInt(questionData.estimatedTime) || 60))
+      const estimatedTime = questionData.estimatedTime
+        ? Math.max(
+            30,
+            Math.min(600, parseInt(questionData.estimatedTime) || 60),
+          )
         : 60;
-      
+
       // Calculate discrimination based on difficulty (higher difficulty = higher discrimination potential)
       // Range: 0.2-0.39 (avg), 0.4-0.69 (good), 0.7-1.0 (excellent)
       let discrimination = questionData.discrimination;
       if (!discrimination || discrimination < 0.2 || discrimination > 1.0) {
         // Estimate based on difficulty: higher difficulty questions tend to have better discrimination
         const baseDiscrimination = 0.3 + (generateDto.difficulty - 1) * 0.15;
-        discrimination = Math.min(0.9, Math.max(0.2, baseDiscrimination + (Math.random() * 0.2 - 0.1)));
+        discrimination = Math.min(
+          0.9,
+          Math.max(0.2, baseDiscrimination + (Math.random() * 0.2 - 0.1)),
+        );
       }
       discrimination = Math.max(0.2, Math.min(1.0, parseFloat(discrimination)));
 
@@ -456,7 +480,11 @@ Trả về kết quả dưới dạng JSON với cấu trúc sau:
       if (generateDto.questionType === 'multiple_choice') {
         // If correctAnswer is a number (1-4), convert to the actual option text
         const answerIndex = parseInt(correctAnswer);
-        if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= questionData.options.length) {
+        if (
+          !isNaN(answerIndex) &&
+          answerIndex >= 1 &&
+          answerIndex <= questionData.options.length
+        ) {
           correctAnswer = questionData.options[answerIndex - 1];
         }
       }
@@ -476,7 +504,7 @@ Trả về kết quả dưới dạng JSON với cấu trúc sau:
       }
       console.error('AI question generation error:', error);
       throw new BadRequestException(
-        `Failed to generate question: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to generate question: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

@@ -26,7 +26,10 @@ export class QuestionBankController {
 
   @Post()
   @Roles('admin', 'teacher')
-  create(@Body() createQuestionDto: CreateQuestionDto, @CurrentUser() user: ICurrentUser) {
+  create(
+    @Body() createQuestionDto: CreateQuestionDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
     return this.questionBankService.create(createQuestionDto, user.userId);
   }
 
@@ -54,7 +57,10 @@ export class QuestionBankController {
 
   @Patch(':id')
   @Roles('admin', 'teacher')
-  update(@Param('id') id: string, @Body() updateQuestionDto: UpdateQuestionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateQuestionDto: UpdateQuestionDto,
+  ) {
     return this.questionBankService.update(id, updateQuestionDto);
   }
 

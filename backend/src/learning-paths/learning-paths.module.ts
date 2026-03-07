@@ -11,6 +11,10 @@ import { LearningPathAutoGenerationService } from './learning-path-auto-generati
     PrerequisiteService,
     LearningPathAutoGenerationService,
   ],
-  exports: [LearningPathsService, PrerequisiteService, LearningPathAutoGenerationService],
+  exports: [
+    LearningPathsService,
+    PrerequisiteService,
+    LearningPathAutoGenerationService,
+  ],
 })
 export class LearningPathsModule {}

@@ -113,7 +113,8 @@ export class KnowledgePointsService {
               questionText: question.questionText,
               options: question.options || [],
               correctAnswer: question.correctAnswer || '',
-              questionType: question.type === 'game' ? 'multiple_choice' : question.type,
+              questionType:
+                question.type === 'game' ? 'multiple_choice' : question.type,
               createdBy: userId ?? null,
             })
             .returning();
@@ -370,7 +371,8 @@ export class KnowledgePointsService {
                 questionText: question.questionText,
                 options: question.options || [],
                 correctAnswer: question.correctAnswer || '',
-                questionType: question.type === 'game' ? 'multiple_choice' : question.type,
+                questionType:
+                  question.type === 'game' ? 'multiple_choice' : question.type,
                 createdBy: userId ?? null,
               })
               .returning();
@@ -590,7 +592,7 @@ export class KnowledgePointsService {
 
   async generateContent(generateDto: GenerateContentDto) {
     // Build prompt for visualization based on theory content
-    let prompt = `Create an interactive visualization/game for the topic "${generateDto.topic}".
+    const prompt = `Create an interactive visualization/game for the topic "${generateDto.topic}".
 
     Theory Content:
     ${generateDto.theoryContent || generateDto.description || 'No theory content provided'}

@@ -13,4 +13,3 @@ export class AssignToSectionDto {
   @IsOptional()
   autoAssign?: boolean;
 }
-

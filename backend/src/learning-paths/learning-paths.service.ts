@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { eq, and, SQL } from 'drizzle-orm';
 import {
   db,
@@ -142,7 +146,7 @@ export class LearningPathsService {
           ...item,
           ...details,
         };
-      })
+      }),
     );
 
     return {
@@ -192,7 +196,9 @@ export class LearningPathsService {
       // 2. Update items if provided
       if (updateDto.items !== undefined) {
         // Delete existing items
-        await tx.delete(learningPathItems).where(eq(learningPathItems.learningPathId, id));
+        await tx
+          .delete(learningPathItems)
+          .where(eq(learningPathItems.learningPathId, id));
 
         // Insert new items
         if (updateDto.items.length > 0) {
@@ -222,7 +228,11 @@ export class LearningPathsService {
 
   // ==================== LEARNING PATH ITEMS ====================
 
-  async updateItemStatus(pathId: string, itemId: string, status: 'not_started' | 'in_progress' | 'completed') {
+  async updateItemStatus(
+    pathId: string,
+    itemId: string,
+    status: 'not_started' | 'in_progress' | 'completed',
+  ) {
     await this.findOne(pathId);
 
     const [updated] = await db
@@ -231,8 +241,8 @@ export class LearningPathsService {
       .where(
         and(
           eq(learningPathItems.learningPathId, pathId),
-          eq(learningPathItems.id, itemId)
-        )
+          eq(learningPathItems.id, itemId),
+        ),
       )
       .returning();
 

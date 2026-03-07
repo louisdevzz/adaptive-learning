@@ -32,11 +32,10 @@ export function middleware(request: NextRequest) {
   if (isPublicRoute) {
     // If logged in and trying to access login/signup, redirect to dashboard
     if (accessToken && (pathname === '/login' || pathname === '/signup')) {
-      // Only redirect if not already coming from a redirect parameter
       const redirectParam = request.nextUrl.searchParams.get('redirect');
-      if (!redirectParam) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
+      // Redirect to the intended destination or dashboard
+      const destination = redirectParam || '/dashboard';
+      return NextResponse.redirect(new URL(destination, request.url));
     }
     return NextResponse.next();
   }
