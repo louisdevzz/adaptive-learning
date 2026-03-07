@@ -213,7 +213,7 @@ export default function ChildrenProgressPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#0d121b] dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#010101] dark:text-white flex items-center gap-2">
               <GraduationCap className="w-8 h-8 text-primary" />
               Tiến độ học tập của con
             </h1>
@@ -253,8 +253,8 @@ export default function ChildrenProgressPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardBody className="flex flex-row items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#F0F8FF] dark:bg-blue-900/20 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-[#0085FF]" />
+                  <div className="w-12 h-12 rounded-xl bg-[#6244F4/10] dark:bg-blue-900/20 flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-[#6244F4]" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Tổng khóa học</p>
@@ -363,7 +363,7 @@ export default function ChildrenProgressPage() {
                             <XAxis dataKey="date" />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="attempts" fill="#0085FF" name="Số lần làm bài" />
+                            <Bar dataKey="attempts" fill="#6244F4" name="Số lần làm bài" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -389,7 +389,7 @@ export default function ChildrenProgressPage() {
                               course.status === 'completed' 
                                 ? 'bg-green-100 text-green-600' 
                                 : course.status === 'in_progress'
-                                ? 'bg-[#E8F4FF] text-[#0085FF]'
+                                ? 'bg-[#6244F4/10] text-[#6244F4]'
                                 : 'bg-gray-100 text-gray-400'
                             }`}>
                               <BookMarked className="w-6 h-6" />
@@ -407,7 +407,7 @@ export default function ChildrenProgressPage() {
                             <div className="text-right">
                               <span className={`text-lg font-bold ${
                                 course.progress >= 70 ? 'text-green-600' : 
-                                course.progress >= 40 ? 'text-[#0085FF]' : 'text-orange-600'
+                                course.progress >= 40 ? 'text-[#6244F4]' : 'text-orange-600'
                               }`}>
                                 {course.progress}%
                               </span>
@@ -457,7 +457,7 @@ export default function ChildrenProgressPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#F0F8FF]0" />
+                        <div className="w-3 h-3 rounded-full bg-[#6244F4/10]0" />
                         <span className="text-sm">Đang học</span>
                       </div>
                       <span className="font-semibold">{selectedChildData.inProgressCourses}</span>
@@ -476,7 +476,7 @@ export default function ChildrenProgressPage() {
                 <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
                   <CardBody>
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-[#0085FF] mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-[#6244F4] mt-0.5" />
                       <div>
                         <h4 className="font-medium text-blue-900 dark:text-blue-200">
                           Lờ khuyên cho phụ huynh

@@ -72,7 +72,7 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleColors: Record<UserRole, string> = {
   admin: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  teacher: "bg-[#E8F4FF] text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  teacher: "bg-[#6244F4/10] text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   student: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   parent: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
 };
@@ -139,18 +139,18 @@ export function UserTable({
 }: UserTableProps) {
   const renderFilters = () => {
     return (
-      <div className="bg-white dark:bg-[#1a2231] p-4 rounded-xl border border-[#e7ebf3] dark:border-[#2a3447] shadow-sm flex flex-col gap-4">
+      <div className="bg-white dark:bg-[#1a2231] p-4 rounded-xl border border-[#E5E5E5] dark:border-[#2a3447] shadow-sm flex flex-col gap-4">
         <div className="flex flex-col md:flex-row gap-3 items-center w-full">
           <div className="relative flex-1 w-full md:max-w-xs">
             <Input
               placeholder="Tìm kiếm theo tên, email, ID..."
               value={searchQuery}
               onValueChange={onSearchChange}
-              startContent={<Search className="size-5 text-[#4c669a]" />}
+              startContent={<Search className="size-5 text-[#666666]" />}
               className="w-full"
               classNames={{
                 input: "text-sm",
-                inputWrapper: "border-[#e7ebf3] dark:border-[#2a3447]",
+                inputWrapper: "border-[#E5E5E5] dark:border-[#2a3447]",
               }}
             />
           </div>
@@ -159,7 +159,7 @@ export function UserTable({
               <DropdownTrigger>
                 <Button
                   variant="bordered"
-                  className="w-full justify-between border-[#e7ebf3] dark:border-[#2a3447]"
+                  className="w-full justify-between border-[#E5E5E5] dark:border-[#2a3447]"
                   endContent={<ChevronDown className="size-4" />}
                 >
                   {roleFilter ? roleLabels[roleFilter] : "Tất cả vai trò"}
@@ -186,7 +186,7 @@ export function UserTable({
               <DropdownTrigger>
                 <Button
                   variant="bordered"
-                  className="w-full justify-between border-[#e7ebf3] dark:border-[#2a3447]"
+                  className="w-full justify-between border-[#E5E5E5] dark:border-[#2a3447]"
                   endContent={<ChevronDown className="size-4" />}
                 >
                   {statusFilter ? statusLabels[statusFilter] : "Tất cả trạng thái"}
@@ -209,7 +209,7 @@ export function UserTable({
           </div>
           <Button
             variant="bordered"
-            className="border-[#e7ebf3] dark:border-[#2a3447] text-[#4c669a] dark:text-gray-400 w-full md:w-auto"
+            className="border-[#E5E5E5] dark:border-[#2a3447] text-[#666666] dark:text-gray-400 w-full md:w-auto"
             startContent={<Filter className="size-4" />}
           >
             Bộ lọc khác
@@ -218,15 +218,15 @@ export function UserTable({
 
         {/* Bulk Actions */}
         {selectedCount > 0 && (
-          <div className="flex items-center gap-3 w-full justify-between md:justify-start pt-2 border-t border-[#e7ebf3] dark:border-[#2a3447]">
-            <span className="text-sm font-medium text-[#0d121b] dark:text-white">
+          <div className="flex items-center gap-3 w-full justify-between md:justify-start pt-2 border-t border-[#E5E5E5] dark:border-[#2a3447]">
+            <span className="text-sm font-medium text-[#010101] dark:text-white">
               Đã chọn {selectedCount} người dùng
             </span>
             <div className="flex items-center gap-2">
               <Button
                 variant="light"
                 size="sm"
-                className="text-[#4c669a] dark:text-gray-400"
+                className="text-[#666666] dark:text-gray-400"
                 startContent={<Ban className="size-4" />}
               >
                 Vô hiệu hóa
@@ -234,7 +234,7 @@ export function UserTable({
               <Button
                 variant="light"
                 size="sm"
-                className="text-[#4c669a] dark:text-gray-400"
+                className="text-[#666666] dark:text-gray-400"
                 startContent={<UserCog className="size-4" />}
               >
                 Chỉnh sửa vai trò
@@ -248,11 +248,11 @@ export function UserTable({
               >
                 Xóa
               </Button>
-              <div className="h-8 w-px bg-[#e7ebf3] dark:bg-[#2a3447] mx-2 hidden md:block" />
+              <div className="h-8 w-px bg-[#E5E5E5] dark:bg-[#2a3447] mx-2 hidden md:block" />
               <Button
                 variant="light"
                 size="sm"
-                className="text-[#4c669a] dark:text-gray-400"
+                className="text-[#666666] dark:text-gray-400"
                 startContent={<RefreshCw className="size-4" />}
                 onPress={onClearSelection}
               >
@@ -293,15 +293,15 @@ export function UserTable({
                 className="rounded-full shrink-0"
               />
             ) : (
-              <div className="size-10 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center font-bold text-sm shrink-0 border border-transparent dark:border-[#0085FF]/20">
+              <div className="size-10 rounded-full bg-[#6244F4]/10 text-[#6244F4] flex items-center justify-center font-bold text-sm shrink-0 border border-transparent dark:border-[#6244F4]/20">
                 {getInitials(user.fullName)}
               </div>
             )}
             <div className="flex flex-col">
-              <span className="font-semibold text-[#0d121b] dark:text-white">
+              <span className="font-semibold text-[#010101] dark:text-white">
                 {user.fullName}
               </span>
-              <span className="text-[#4c669a] dark:text-gray-500 text-xs">
+              <span className="text-[#666666] dark:text-gray-500 text-xs">
                 {user.email}
               </span>
             </div>
@@ -321,15 +321,15 @@ export function UserTable({
                 isActive ? "bg-success" : "bg-gray-300 dark:bg-gray-600"
               }`}
             />
-            <span className="text-[#0d121b] dark:text-gray-300">
+            <span className="text-[#010101] dark:text-gray-300">
               {statusLabels[user.status]}
             </span>
           </div>
         </td>
-        <td className="px-6 py-4 text-[#4c669a] dark:text-gray-400">
+        <td className="px-6 py-4 text-[#666666] dark:text-gray-400">
           {formatRelativeTime(user.lastLogin)}
         </td>
-        <td className="px-6 py-4 text-[#4c669a] dark:text-gray-400">
+        <td className="px-6 py-4 text-[#666666] dark:text-gray-400">
           {formatDate(user.createdAt)}
         </td>
         <td className="px-6 py-4 text-right">
@@ -338,7 +338,7 @@ export function UserTable({
               isIconOnly
               variant="light"
               size="sm"
-              className="text-[#4c669a] hover:text-[#0085FF] hover:bg-[#F0F8FF] dark:hover:bg-blue-900/20"
+              className="text-[#666666] hover:text-[#6244F4] hover:bg-[#6244F4/10] dark:hover:bg-blue-900/20"
               onPress={() => onEdit(user)}
             >
               <Edit className="size-4" />
@@ -347,7 +347,7 @@ export function UserTable({
               isIconOnly
               variant="light"
               size="sm"
-              className="text-[#4c669a] hover:text-danger hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="text-[#666666] hover:text-danger hover:bg-red-50 dark:hover:bg-red-900/20"
               onPress={() => onDelete(user.id)}
             >
               <Trash2 className="size-4" />
@@ -356,7 +356,7 @@ export function UserTable({
               isIconOnly
               variant="light"
               size="sm"
-              className="text-[#4c669a] hover:text-[#0d121b] hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="text-[#666666] hover:text-[#010101] hover:bg-gray-50 dark:hover:bg-gray-700"
               as={Link}
               href={`/dashboard/users/${user.id}`}
             >
@@ -375,14 +375,14 @@ export function UserTable({
     const end = Math.min(currentPage * 10, totalUsers);
 
     return (
-      <div className="px-6 py-4 border-t border-[#e7ebf3] dark:border-[#2a3447] flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30">
-        <span className="text-sm text-[#4c669a] dark:text-gray-400">
+      <div className="px-6 py-4 border-t border-[#E5E5E5] dark:border-[#2a3447] flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30">
+        <span className="text-sm text-[#666666] dark:text-gray-400">
           Hiển thị{" "}
-          <span className="font-semibold text-[#0d121b] dark:text-white">
+          <span className="font-semibold text-[#010101] dark:text-white">
             {start}-{end}
           </span>{" "}
           trong{" "}
-          <span className="font-semibold text-[#0d121b] dark:text-white">
+          <span className="font-semibold text-[#010101] dark:text-white">
             {totalUsers}
           </span>{" "}
           kết quả
@@ -394,7 +394,7 @@ export function UserTable({
             size="sm"
             isDisabled={currentPage === 1}
             onPress={() => onPageChange(currentPage - 1)}
-            className="border border-[#e7ebf3] dark:border-[#2a3447]"
+            className="border border-[#E5E5E5] dark:border-[#2a3447]"
           >
             <ChevronLeft className="size-4" />
           </Button>
@@ -417,8 +417,8 @@ export function UserTable({
                 size="sm"
                 className={`min-w-[32px] h-8 ${
                   currentPage === pageNum
-                    ? "bg-[#0085FF] text-white"
-                    : "text-[#4c669a] dark:text-gray-400"
+                    ? "bg-[#6244F4] text-white"
+                    : "text-[#666666] dark:text-gray-400"
                 }`}
                 onPress={() => onPageChange(pageNum)}
               >
@@ -427,13 +427,13 @@ export function UserTable({
             );
           })}
           {totalPages > 5 && currentPage < totalPages - 2 && (
-            <span className="text-[#4c669a] px-1">...</span>
+            <span className="text-[#666666] px-1">...</span>
           )}
           {totalPages > 5 && (
             <Button
               variant="light"
               size="sm"
-              className="min-w-[32px] h-8 text-[#4c669a] dark:text-gray-400"
+              className="min-w-[32px] h-8 text-[#666666] dark:text-gray-400"
               onPress={() => onPageChange(totalPages)}
             >
               {totalPages}
@@ -445,7 +445,7 @@ export function UserTable({
             size="sm"
             isDisabled={currentPage === totalPages}
             onPress={() => onPageChange(currentPage + 1)}
-            className="border border-[#e7ebf3] dark:border-[#2a3447]"
+            className="border border-[#E5E5E5] dark:border-[#2a3447]"
           >
             <ChevronRight className="size-4" />
           </Button>
@@ -460,10 +460,10 @@ export function UserTable({
       {renderFilters()}
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#1a2231] border border-[#e7ebf3] dark:border-[#2a3447] rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-[#1a2231] border border-[#E5E5E5] dark:border-[#2a3447] rounded-xl shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-[#4c669a] dark:text-gray-400 font-semibold border-b border-[#e7ebf3] dark:border-[#2a3447]">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-[#666666] dark:text-gray-400 font-semibold border-b border-[#E5E5E5] dark:border-[#2a3447]">
               <tr>
                 <th className="px-6 py-4 w-12">
                   <Checkbox
@@ -487,11 +487,11 @@ export function UserTable({
                 <th className="px-6 py-4 text-right">Hành động</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e7ebf3] dark:divide-[#2a3447] text-sm">
+            <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#2a3447] text-sm">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center">
-                    <p className="text-[#4c669a] dark:text-gray-400">
+                    <p className="text-[#666666] dark:text-gray-400">
                       Đang tải...
                     </p>
                   </td>
@@ -499,7 +499,7 @@ export function UserTable({
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center">
-                    <p className="text-[#4c669a] dark:text-gray-400">
+                    <p className="text-[#666666] dark:text-gray-400">
                       Không tìm thấy người dùng nào
                     </p>
                   </td>

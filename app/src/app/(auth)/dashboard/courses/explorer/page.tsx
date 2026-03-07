@@ -332,7 +332,7 @@ export default function CoursesExplorerPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+            <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
               Khám phá khóa học
             </h1>
             <p className="text-[#717680] dark:text-gray-400 mt-1">
@@ -354,8 +354,8 @@ export default function CoursesExplorerPage() {
             title="Môn học"
             value={stats.subjects.toString()}
             subtitle="Đa dạng lĩnh vực"
-            icon={<Tag className="w-6 h-6 text-[#0085FF]" />}
-            color="bg-[#F0F8FF]"
+            icon={<Tag className="w-6 h-6 text-[#6244F4]" />}
+            color="bg-[#6244F4/10]"
           />
           <StatCard
             title="Khối lớp"
@@ -564,7 +564,7 @@ export default function CoursesExplorerPage() {
                               <Globe className="w-3 h-3" />
                               Công khai
                             </span>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#F0F8FF] text-[#0066CC] border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#6244F4/10] text-[#0066CC] border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
                               <GraduationCap className="w-3 h-3" />
                               Khối {selectedCourse.gradeLevel}
                             </span>

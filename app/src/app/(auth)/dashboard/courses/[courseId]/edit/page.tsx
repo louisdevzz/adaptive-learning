@@ -478,7 +478,7 @@ export default function CourseEditPage() {
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+                <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
                   {course.title}
                 </h1>
                 <span
@@ -524,8 +524,8 @@ export default function CourseEditPage() {
           <StatCard
             title="Chương"
             value={modules.length.toString()}
-            icon={<Layers className="w-5 h-5 text-[#0085FF]" />}
-            color="bg-[#F0F8FF] dark:bg-blue-900/20"
+            icon={<Layers className="w-5 h-5 text-[#6244F4]" />}
+            color="bg-[#6244F4/10] dark:bg-blue-900/20"
           />
           <StatCard
             title="Bài học"
@@ -754,7 +754,7 @@ export default function CourseEditPage() {
           </aside>
 
           {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto bg-white dark:bg-[#0d121b] p-6">
+          <main className="flex-1 overflow-y-auto bg-white dark:bg-[#010101] p-6">
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Tabs */}
               <div className="border-b border-[#e9eaeb] dark:border-gray-800">
@@ -849,9 +849,9 @@ export default function CourseEditPage() {
                                   {section.knowledgePoints.map((kp) => (
                                     <span
                                       key={kp.id}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F0F8FF] dark:bg-blue-900/20 text-[#0066CC] dark:text-blue-300 text-xs font-medium"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#6244F4/10] dark:bg-blue-900/20 text-[#0066CC] dark:text-blue-300 text-xs font-medium"
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-[#F0F8FF]0"></span>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#6244F4/10]0"></span>
                                       {kp.title}
                                     </span>
                                   ))}
@@ -907,7 +907,7 @@ export default function CourseEditPage() {
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-3">
-                        <span className="text-xs px-2 py-1 bg-[#E8F4FF] dark:bg-blue-900/30 text-[#0066CC] dark:text-blue-300 rounded-full font-medium">
+                        <span className="text-xs px-2 py-1 bg-[#6244F4/10] dark:bg-blue-900/30 text-[#0066CC] dark:text-blue-300 rounded-full font-medium">
                           Mức độ: {selectedKp.difficultyLevel}/5
                         </span>
                       </div>

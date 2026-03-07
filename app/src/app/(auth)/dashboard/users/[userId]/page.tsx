@@ -69,7 +69,7 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleColors: Record<UserRole, string> = {
   admin: "bg-purple-50 text-purple-700 border-purple-200",
-  teacher: "bg-[#F0F8FF] text-[#0066CC] border-blue-200",
+  teacher: "bg-[#6244F4/10] text-[#0066CC] border-blue-200",
   student: "bg-green-50 text-green-700 border-green-200",
   parent: "bg-orange-50 text-orange-700 border-orange-200",
 };
@@ -720,7 +720,7 @@ export default function UserDetailPage() {
             </Button>
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+                <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
                   {user.fullName}
                 </h1>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${roleColors[userRole]}`}>
@@ -827,8 +827,8 @@ export default function UserDetailPage() {
               <StatCard
                 title="Khóa học"
                 value="5"
-                icon={<School className="w-5 h-5 text-[#0085FF]" />}
-                color="bg-[#F0F8FF] dark:bg-blue-900/20"
+                icon={<School className="w-5 h-5 text-[#6244F4]" />}
+                color="bg-[#6244F4/10] dark:bg-blue-900/20"
               />
               <StatCard
                 title="Tiến độ"
@@ -894,7 +894,7 @@ export default function UserDetailPage() {
                         activity.type === "login"
                           ? "bg-green-50 text-green-600"
                           : activity.type === "update"
-                          ? "bg-[#F0F8FF] text-[#0085FF]"
+                          ? "bg-[#6244F4/10] text-[#6244F4]"
                           : "bg-purple-50 text-purple-600"
                       }`}>
                         <History className="w-4 h-4" />

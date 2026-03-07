@@ -243,7 +243,7 @@ export default function ProgressPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#F0F8FF] text-[#0085FF] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-[#6244F4/10] text-[#6244F4] flex items-center justify-center">
                 <Target className="w-5 h-5" />
               </div>
               <div>
@@ -352,7 +352,7 @@ export default function ProgressPage() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Bar dataKey="attempts" fill="#0085FF" radius={[4, 4, 0, 0]} name="Số lần thử" />
+                    <Bar dataKey="attempts" fill="#6244F4" radius={[4, 4, 0, 0]} name="Số lần thử" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -408,8 +408,8 @@ export default function ProgressPage() {
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#E8F4FF] flex items-center justify-center">
-                    <GraduationCap className="w-6 h-6 text-[#0085FF]" />
+                  <div className="w-12 h-12 rounded-full bg-[#6244F4/10] flex items-center justify-center">
+                    <GraduationCap className="w-6 h-6 text-[#6244F4]" />
                   </div>
                   <div>
                     <p className="font-semibold">{overallStats.masteredKps} KP</p>
@@ -447,8 +447,8 @@ export default function ProgressPage() {
                       <Radar
                         name="Mastery"
                         dataKey="mastery"
-                        stroke="#0085FF"
-                        fill="#0085FF"
+                        stroke="#6244F4"
+                        fill="#6244F4"
                         fillOpacity={0.3}
                       />
                       <Tooltip />
@@ -584,7 +584,7 @@ export default function ProgressPage() {
                             kp.masteryScore >= 70
                               ? "bg-green-100 text-green-600"
                               : kp.masteryScore >= 50
-                              ? "bg-[#E8F4FF] text-[#0085FF]"
+                              ? "bg-[#6244F4/10] text-[#6244F4]"
                               : "bg-orange-100 text-orange-600"
                           }`}
                         >
@@ -700,8 +700,8 @@ export default function ProgressPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {insights?.recommendations.map((rec, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-4 bg-[#F0F8FF] rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-[#F0F8FF]0 text-white flex items-center justify-center font-bold shrink-0">
+                  <div key={idx} className="flex items-start gap-3 p-4 bg-[#6244F4/10] rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-[#6244F4/10]0 text-white flex items-center justify-center font-bold shrink-0">
                       {idx + 1}
                     </div>
                     <p className="text-gray-700">{rec}</p>

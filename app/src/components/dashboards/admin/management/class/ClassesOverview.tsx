@@ -109,18 +109,18 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Filters */}
-      <div className="bg-white dark:bg-[#1a2231] p-4 rounded-xl border border-[#e7ebf3] dark:border-[#2a3447] shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white dark:bg-[#1a2231] p-4 rounded-xl border border-[#E5E5E5] dark:border-[#2a3447] shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex flex-1 w-full md:w-auto gap-3 items-center">
           <div className="relative flex-1 max-w-md w-full">
             <Input
               placeholder="Tìm kiếm theo tên học sinh..."
               value={searchQuery}
               onValueChange={setSearchQuery}
-              startContent={<Search className="size-5 text-[#4c669a]" />}
+              startContent={<Search className="size-5 text-[#666666]" />}
               className="w-full"
               classNames={{
                 input: "text-sm",
-                inputWrapper: "border-[#e7ebf3] dark:border-[#2a3447]",
+                inputWrapper: "border-[#E5E5E5] dark:border-[#2a3447]",
               }}
             />
           </div>
@@ -128,7 +128,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
             <DropdownTrigger>
               <Button
                 variant="bordered"
-                className="min-w-[160px] justify-between border-[#e7ebf3] dark:border-[#2a3447]"
+                className="min-w-[160px] justify-between border-[#E5E5E5] dark:border-[#2a3447]"
                 endContent={<ChevronDown className="size-4" />}
               >
                 {selectedClassFilter || "Tất cả Lớp"}
@@ -158,25 +158,25 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
       </div>
 
       {/* Classes Grid */}
-      <div className="bg-white dark:bg-[#1a2231] border border-[#e7ebf3] dark:border-[#2a3447] rounded-xl shadow-sm overflow-hidden flex flex-col flex-1 p-6">
+      <div className="bg-white dark:bg-[#1a2231] border border-[#E5E5E5] dark:border-[#2a3447] rounded-xl shadow-sm overflow-hidden flex flex-col flex-1 p-6">
         {loading || loadingStudents ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-[#4c669a] dark:text-gray-400">Đang tải...</p>
+            <p className="text-[#666666] dark:text-gray-400">Đang tải...</p>
           </div>
         ) : (
           <div className="space-y-8">
             {paginatedClasses.map((classItem) => (
               <div key={classItem.id} className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-[#0d121b] dark:text-white">
+                  <h3 className="text-lg font-semibold text-[#010101] dark:text-white">
                     {classItem.className}{" "}
-                    <span className="text-[#4c669a] text-sm font-normal">
+                    <span className="text-[#666666] text-sm font-normal">
                       ({classItem.students.length} Học sinh)
                     </span>
                   </h3>
                   <Link
                     href={`/dashboard/classes/${classItem.id}`}
-                    className="text-sm text-[#0085FF] hover:underline font-medium"
+                    className="text-sm text-[#6244F4] hover:underline font-medium"
                   >
                     Xem tất cả
                   </Link>
@@ -189,23 +189,23 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                     return (
                       <div
                         key={enrollment.enrollmentId}
-                        className="bg-[#f8f9fcc6] dark:bg-[#101622] border border-[#e7ebf3] dark:border-[#2a3447] rounded-lg p-4 flex flex-col items-center text-center hover:shadow-sm transition-shadow"
+                        className="bg-[#f8f9fcc6] dark:bg-[#101622] border border-[#E5E5E5] dark:border-[#2a3447] rounded-lg p-4 flex flex-col items-center text-center hover:shadow-sm transition-shadow"
                       >
                         {student.avatarUrl ? (
                           <Avatar
                             src={student.avatarUrl}
                             size="lg"
-                            className="size-20 rounded-full mb-3 border-2 border-[#0085FF]/20 dark:border-[#0085FF]/50"
+                            className="size-20 rounded-full mb-3 border-2 border-[#6244F4]/20 dark:border-[#6244F4]/50"
                           />
                         ) : (
                           <div className="size-20 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 flex items-center justify-center font-bold text-xl border-2 border-green-500/20 dark:border-green-500/30 mb-3">
                             {getInitials(student.fullName)}
                           </div>
                         )}
-                        <p className="font-semibold text-[#0d121b] dark:text-white text-lg">
+                        <p className="font-semibold text-[#010101] dark:text-white text-lg">
                           {student.fullName}
                         </p>
-                        <p className="text-[#4c669a] dark:text-gray-400 text-sm mb-2">
+                        <p className="text-[#666666] dark:text-gray-400 text-sm mb-2">
                           {student.email}
                         </p>
                         <div className="flex items-center gap-1.5 mb-4">
@@ -216,7 +216,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                                 : "bg-gray-300 dark:bg-gray-600"
                             }`}
                           />
-                          <span className="text-[#4c669a] dark:text-gray-300 text-sm">
+                          <span className="text-[#666666] dark:text-gray-300 text-sm">
                             {isActive ? "Active" : "Offline"}
                           </span>
                         </div>
@@ -224,7 +224,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                           <Button
                             variant="light"
                             size="sm"
-                            className="bg-[#0085FF]/10 hover:bg-[#0085FF]/20 text-[#0085FF]"
+                            className="bg-[#6244F4]/10 hover:bg-[#6244F4]/20 text-[#6244F4]"
                             startContent={<TrendingUp className="size-4" />}
                             onPress={() =>
                               router.push(
@@ -237,7 +237,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                           <Button
                             variant="light"
                             size="sm"
-                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#4c669a] dark:text-gray-400"
+                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#666666] dark:text-gray-400"
                             startContent={<MessageSquare className="size-4" />}
                             onPress={() =>
                               router.push(`/dashboard/students/${student.id}`)
@@ -257,15 +257,15 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-[#e7ebf3] dark:border-[#2a3447] flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-xl mt-6">
-            <span className="text-sm text-[#4c669a] dark:text-gray-400">
+          <div className="px-6 py-4 border-t border-[#E5E5E5] dark:border-[#2a3447] flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-xl mt-6">
+            <span className="text-sm text-[#666666] dark:text-gray-400">
               Hiển thị{" "}
-              <span className="font-semibold text-[#0d121b] dark:text-white">
+              <span className="font-semibold text-[#010101] dark:text-white">
                 {(currentPage - 1) * itemsPerPage + 1}-
                 {Math.min(currentPage * itemsPerPage, filteredClasses.length)}
               </span>{" "}
               trong{" "}
-              <span className="font-semibold text-[#0d121b] dark:text-white">
+              <span className="font-semibold text-[#010101] dark:text-white">
                 {filteredClasses.length}
               </span>{" "}
               lớp học
@@ -277,7 +277,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                 size="sm"
                 isDisabled={currentPage === 1}
                 onPress={() => setCurrentPage(currentPage - 1)}
-                className="border border-[#e7ebf3] dark:border-[#2a3447]"
+                className="border border-[#E5E5E5] dark:border-[#2a3447]"
               >
                 <ChevronLeft className="size-4" />
               </Button>
@@ -300,8 +300,8 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                     size="sm"
                     className={`min-w-[32px] h-8 ${
                       currentPage === pageNum
-                        ? "bg-[#0085FF] text-white"
-                        : "text-[#4c669a] dark:text-gray-400"
+                        ? "bg-[#6244F4] text-white"
+                        : "text-[#666666] dark:text-gray-400"
                     }`}
                     // @ts-ignore
                     onPress={() => setCurrentPage(pageNum)}
@@ -316,7 +316,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                 size="sm"
                 isDisabled={currentPage === totalPages}
                 onPress={() => setCurrentPage(currentPage + 1)}
-                className="border border-[#e7ebf3] dark:border-[#2a3447]"
+                className="border border-[#E5E5E5] dark:border-[#2a3447]"
               >
                 <ChevronRight className="size-4" />
               </Button>

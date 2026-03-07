@@ -199,7 +199,7 @@ export default function StudentProgressPage() {
       case "completed":
         return "bg-green-500";
       case "in_progress":
-        return "bg-[#F0F8FF]0";
+        return "bg-[#6244F4/10]0";
       default:
         return "bg-gray-300";
     }
@@ -290,7 +290,7 @@ export default function StudentProgressPage() {
               <span className="text-primary font-medium">Tiến độ</span>
             </nav>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#1a202c] border border-[#e7ebf3] dark:border-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#1a202c] border border-[#E5E5E5] dark:border-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
             <Download className="w-4 h-4" />
             Xuất báo cáo
           </button>
@@ -298,7 +298,7 @@ export default function StudentProgressPage() {
 
         {/* Page Title */}
         <div>
-          <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+          <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
             Tiến độ học tập - {studentName}
           </h1>
           <p className="text-gray-500 mt-1">
@@ -341,8 +341,8 @@ export default function StudentProgressPage() {
             change={`${stats.currentStreak} ngày liên tục`}
             changeType="up"
             icon={<Clock className="w-5 h-5" />}
-            iconBg="bg-[#F0F8FF] dark:bg-blue-900/20"
-            iconColor="text-[#0085FF]"
+            iconBg="bg-[#6244F4/10] dark:bg-blue-900/20"
+            iconColor="text-[#6244F4]"
           />
         </div>
 
@@ -350,7 +350,7 @@ export default function StudentProgressPage() {
           {/* Left Column - Course List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[#0d121b] dark:text-white">
+              <h2 className="text-lg font-semibold text-[#010101] dark:text-white">
                 Khóa học
               </h2>
               <span className="text-sm text-gray-500">{courses.length} khóa</span>
@@ -364,7 +364,7 @@ export default function StudentProgressPage() {
                   className={`w-full text-left p-4 rounded-xl border transition-all ${
                     selectedCourse === course.courseId
                       ? "bg-primary/5 border-primary dark:bg-primary/10 dark:border-primary"
-                      : "bg-white dark:bg-[#1a202c] border-[#e7ebf3] dark:border-gray-700 hover:shadow-md"
+                      : "bg-white dark:bg-[#1a202c] border-[#E5E5E5] dark:border-gray-700 hover:shadow-md"
                   }`}
                 >
                   <div className="flex gap-3">
@@ -382,7 +382,7 @@ export default function StudentProgressPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-[#0d121b] dark:text-white truncate">
+                      <h3 className="font-semibold text-sm text-[#010101] dark:text-white truncate">
                         {course.courseTitle}
                       </h3>
                       <p className="text-xs text-gray-500 mt-0.5">
@@ -407,7 +407,7 @@ export default function StudentProgressPage() {
                         course.status === "completed"
                           ? "bg-green-50 text-green-600"
                           : course.status === "in_progress"
-                          ? "bg-[#F0F8FF] text-[#0085FF]"
+                          ? "bg-[#6244F4/10] text-[#6244F4]"
                           : "bg-gray-100 text-gray-500"
                       }`}
                     >
@@ -427,10 +427,10 @@ export default function StudentProgressPage() {
             {selectedCourseData ? (
               <>
                 {/* Course Overview */}
-                <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-6">
+                <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 p-6">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h2 className="text-lg font-semibold text-[#0d121b] dark:text-white">
+                      <h2 className="text-lg font-semibold text-[#010101] dark:text-white">
                         {selectedCourseData.courseTitle}
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
@@ -448,19 +448,19 @@ export default function StudentProgressPage() {
                   {/* Progress Overview */}
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-[#0d121b] dark:text-white">
+                      <div className="text-2xl font-bold text-[#010101] dark:text-white">
                         {selectedCourseData.progress}%
                       </div>
                       <p className="text-xs text-gray-500 mt-1">Tiến độ</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-[#0d121b] dark:text-white">
+                      <div className="text-2xl font-bold text-[#010101] dark:text-white">
                         {selectedCourseData.completedKps}/{selectedCourseData.totalKps}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">KP hoàn thành</p>
                     </div>
                     <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-[#0d121b] dark:text-white">
+                      <div className="text-2xl font-bold text-[#010101] dark:text-white">
                         {formatTime(selectedCourseData.timeSpent)}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">Thời gian</p>
@@ -469,9 +469,9 @@ export default function StudentProgressPage() {
                 </div>
 
                 {/* Modules & Sections */}
-                <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 overflow-hidden">
+                <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 overflow-hidden">
                   <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <h3 className="font-semibold text-[#0d121b] dark:text-white">
+                    <h3 className="font-semibold text-[#010101] dark:text-white">
                       Chi tiết theo module
                     </h3>
                   </div>
@@ -488,7 +488,7 @@ export default function StudentProgressPage() {
                             ) : (
                               <ChevronDown className="w-4 h-4 text-gray-400" />
                             )}
-                            <span className="font-medium text-sm text-[#0d121b] dark:text-white">
+                            <span className="font-medium text-sm text-[#010101] dark:text-white">
                               {module.title}
                             </span>
                           </div>
@@ -536,7 +536,7 @@ export default function StudentProgressPage() {
                                             kp.status
                                           )}`}
                                         />
-                                        <span className="text-sm text-[#0d121b] dark:text-white">
+                                        <span className="text-sm text-[#010101] dark:text-white">
                                           {kp.title}
                                         </span>
                                       </div>
@@ -577,7 +577,7 @@ export default function StudentProgressPage() {
                 </div>
               </>
             ) : (
-              <div className="text-center py-12 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700">
+              <div className="text-center py-12 bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700">
                 <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">Chọn một khóa học để xem chi tiết</p>
               </div>
@@ -588,10 +588,10 @@ export default function StudentProgressPage() {
         {/* Bottom Section - Charts & Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Mastery Trend */}
-          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="font-semibold text-[#0d121b] dark:text-white">
+                <h3 className="font-semibold text-[#010101] dark:text-white">
                   Xu hướng Mastery
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -621,10 +621,10 @@ export default function StudentProgressPage() {
           </div>
 
           {/* Skills Breakdown */}
-          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="font-semibold text-[#0d121b] dark:text-white">
+                <h3 className="font-semibold text-[#010101] dark:text-white">
                   Phân tích kỹ năng
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -637,7 +637,7 @@ export default function StudentProgressPage() {
               {skillBreakdown.map((skill, index) => (
                 <div key={index}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-[#0d121b] dark:text-white">
+                    <span className="text-sm font-medium text-[#010101] dark:text-white">
                       {skill.skill}
                     </span>
                     <div className="flex items-center gap-2">

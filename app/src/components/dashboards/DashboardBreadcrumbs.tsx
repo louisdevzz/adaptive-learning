@@ -17,8 +17,8 @@ export function DashboardBreadcrumbs({ items }: DashboardBreadcrumbsProps) {
       size="sm"
       separator="/"
       itemClasses={{
-        item: "text-[#4c669a] text-sm font-normal",
-        separator: "text-gray-300",
+        item: "text-[#666666] text-sm font-normal",
+        separator: "text-[#E5E5E5]",
       }}
       classNames={{
         list: "gap-2",

@@ -254,7 +254,7 @@ export default function LayoutDashboard({
   }, [pathname, entityNames]);
 
   return (
-    <div className="flex min-h-screen bg-[#f8f9fb]">
+    <div className="flex min-h-screen bg-[#fafafa]">
       {/* Sidebar */}
       <SidebarNavigation
         isCollapsed={sidebarCollapsed}
@@ -264,12 +264,12 @@ export default function LayoutDashboard({
       {/* Main content — offset by sidebar width on desktop */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[64px]" : "lg:ml-[250px]"}`}>
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-[#e7ebf3] px-6 py-3 flex items-center justify-between gap-4 lg:mt-0 mt-[57px]">
+        <header className="sticky top-0 z-30 bg-white border-b border-[#E5E5E5] px-6 py-3 flex items-center justify-between gap-4 lg:mt-0 mt-[57px]">
           {/* Search */}
-          <div className="flex items-center bg-[#f0f2f5] rounded-lg px-3 py-2 w-full max-w-sm focus-within:ring-2 focus-within:ring-[#0085FF]/20 transition-all">
-            <Search className="w-4 h-4 text-[#4c669a] shrink-0" />
+          <div className="flex items-center bg-[#f5f5f5] rounded-lg px-3 py-2 w-full max-w-sm focus-within:ring-2 focus-within:ring-[#6244F4]/20 transition-all">
+            <Search className="w-4 h-4 text-[#666666] shrink-0" />
             <input
-              className="bg-transparent border-none text-sm w-full focus:ring-0 text-[#0d121b] placeholder:text-[#4c669a] ml-2 outline-none"
+              className="bg-transparent border-none text-sm w-full focus:ring-0 text-[#010101] placeholder:text-[#666666] ml-2 outline-none"
               placeholder="Tìm kiếm..."
               type="text"
             />
@@ -278,11 +278,11 @@ export default function LayoutDashboard({
           {/* Right actions */}
           <div className="flex items-center gap-2 shrink-0">
             <button
-              className="relative p-2 text-[#0d121b] hover:bg-gray-100 rounded-full transition-colors"
+              className="relative p-2 text-[#010101] hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border border-white"></span>
+              <span className="absolute top-1.5 right-1.5 size-2 bg-[#D7F654] rounded-full border border-white"></span>
             </button>
           </div>
         </header>

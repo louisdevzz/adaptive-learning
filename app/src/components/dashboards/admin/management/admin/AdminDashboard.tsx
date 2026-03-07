@@ -200,8 +200,8 @@ export function AdminDashboard() {
       icon: (
         <HugeiconsIcon icon={UserGroupIcon} size={24} className="w-6 h-6" />
       ),
-      iconBg: "bg-[#F0F8FF] dark:bg-blue-900/20",
-      iconColor: "text-[#0085FF]",
+      iconBg: "bg-[#6244F4]/10 dark:bg-[#6244F4]/20",
+      iconColor: "text-[#6244F4]",
     },
     {
       title: "Giáo viên hoạt động",
@@ -215,8 +215,8 @@ export function AdminDashboard() {
           className="w-6 h-6"
         />
       ),
-      iconBg: "bg-purple-50 dark:bg-purple-900/20",
-      iconColor: "text-purple-600",
+      iconBg: "bg-[#D7F654]/20 dark:bg-[#D7F654]/30",
+      iconColor: "text-[#010101]",
     },
     {
       title: "Khóa học Active",
@@ -249,8 +249,8 @@ export function AdminDashboard() {
     return (
       <div className="flex items-center justify-center h-96 w-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0085FF] mx-auto"></div>
-          <p className="mt-4 text-sm text-[#4c669a]">Đang tải dữ liệu...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6244F4] mx-auto"></div>
+          <p className="mt-4 text-sm text-[#666666]">Đang tải dữ liệu...</p>
         </div>
       </div>
     );
@@ -276,20 +276,20 @@ export function AdminDashboard() {
 
       {/* Learning Health Section */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-        <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-[#0d121b] dark:text-white">
+              <h3 className="text-lg font-bold text-[#010101] dark:text-white">
                 Sức khỏe học tập
               </h3>
-              <p className="text-xs text-[#4c669a] mt-1">
+              <p className="text-xs text-[#666666] mt-1">
                 Số lượng Knowledge Point (KP) hoàn thành theo ngày
               </p>
             </div>
             <Button
               variant="light"
               size="sm"
-              className="text-[#0085FF] text-sm font-medium hover:underline"
+              className="text-[#6244F4] text-sm font-medium hover:underline"
             >
               Chi tiết báo cáo
             </Button>
@@ -304,7 +304,7 @@ export function AdminDashboard() {
                 />
               ))}
             </div>
-            <div className="absolute bottom-[-24px] left-0 w-full flex justify-between text-xs text-[#4c669a] px-2">
+            <div className="absolute bottom-[-24px] left-0 w-full flex justify-between text-xs text-[#666666] px-2">
               <span>Thứ 2</span>
               <span>Thứ 3</span>
               <span>Thứ 4</span>
@@ -319,34 +319,34 @@ export function AdminDashboard() {
         {/* Sidebar Widgets */}
         <div className="flex flex-col gap-4">
           {/* Learning Density Heatmap */}
-          <div className="bg-white dark:bg-[#1a202c] p-5 rounded-xl border border-[#e7ebf3] dark:border-gray-700 flex-1">
-            <h4 className="text-sm font-bold text-[#0d121b] dark:text-white mb-3">
+          <div className="bg-white dark:bg-[#1a202c] p-5 rounded-xl border border-[#E5E5E5] dark:border-gray-700 flex-1">
+            <h4 className="text-sm font-bold text-[#010101] dark:text-white mb-3">
               Mật độ học tập (Heatmap)
             </h4>
             <div className="grid grid-cols-7 gap-1 h-24">
-              <div className="bg-[#E8F4FF] rounded-sm"></div>
+              <div className="bg-[#6244F4/10] rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
-              <div className="bg-[#0085FF] rounded-sm"></div>
+              <div className="bg-[#6244F4] rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
-              <div className="bg-[#E8F4FF] rounded-sm"></div>
+              <div className="bg-[#6244F4/10] rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
-              <div className="bg-[#0085FF] rounded-sm"></div>
+              <div className="bg-[#6244F4] rounded-sm"></div>
               <div className="bg-blue-800 rounded-sm"></div>
-              <div className="bg-[#0085FF] rounded-sm"></div>
+              <div className="bg-[#6244F4] rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-blue-300 rounded-sm"></div>
               <div className="bg-blue-600 rounded-sm"></div>
-              <div className="bg-[#F0F8FF]0 rounded-sm"></div>
+              <div className="bg-[#6244F4/10]0 rounded-sm"></div>
               <div className="bg-blue-400 rounded-sm"></div>
               <div className="bg-blue-300 rounded-sm"></div>
-              <div className="bg-[#E8F4FF] rounded-sm"></div>
+              <div className="bg-[#6244F4/10] rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
             </div>
-            <div className="flex justify-between text-[10px] text-[#4c669a] mt-1">
+            <div className="flex justify-between text-[10px] text-[#666666] mt-1">
               <span>Ít</span>
               <span>Nhiều</span>
             </div>
@@ -365,16 +365,16 @@ export function AdminDashboard() {
                   Cảnh báo
                 </span>
               </div>
-              <p className="text-2xl font-bold text-[#0d121b] dark:text-white">
+              <p className="text-2xl font-bold text-[#010101] dark:text-white">
                 {stats.dropoutRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-[#4c669a]">Tỷ lệ bỏ học tăng</p>
+              <p className="text-xs text-[#666666]">Tỷ lệ bỏ học tăng</p>
             </div>
-            <div className="bg-white dark:bg-[#1a202c] p-4 rounded-xl border border-[#e7ebf3] dark:border-gray-700">
-              <p className="text-xs text-[#4c669a] mb-1">
+            <div className="bg-white dark:bg-[#1a202c] p-4 rounded-xl border border-[#E5E5E5] dark:border-gray-700">
+              <p className="text-xs text-[#666666] mb-1">
                 Thời gian học TB/ngày
               </p>
-              <p className="text-2xl font-bold text-[#0d121b] dark:text-white">
+              <p className="text-2xl font-bold text-[#010101] dark:text-white">
                 {stats.avgStudyTimeMinutes}m
               </p>
               <span className="text-xs text-green-600 flex items-center gap-1">
@@ -389,11 +389,11 @@ export function AdminDashboard() {
       {/* Content & Course Performance Section */}
       <section className="space-y-4 w-full">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#0d121b] dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[#010101] dark:text-white flex items-center gap-2">
             <HugeiconsIcon
               icon={Analytics01Icon}
               size={20}
-              className="text-[#0085FF]"
+              className="text-[#6244F4]"
             />
             Hiệu suất Nội dung & Khóa học
           </h2>
@@ -401,14 +401,14 @@ export function AdminDashboard() {
             <Button
               variant="light"
               size="sm"
-              className="text-xs font-medium text-[#0085FF] bg-[#F0F8FF] hover:bg-[#E8F4FF] dark:bg-blue-900/20"
+              className="text-xs font-medium text-[#6244F4] bg-[#6244F4/10] hover:bg-[#6244F4/10] dark:bg-blue-900/20"
             >
               Cải thiện nội dung
             </Button>
             <Button
               variant="light"
               size="sm"
-              className="text-xs font-medium text-[#4c669a] bg-gray-100 hover:bg-gray-200 dark:bg-gray-800"
+              className="text-xs font-medium text-[#666666] bg-gray-100 hover:bg-gray-200 dark:bg-gray-800"
             >
               Xem chi tiết
             </Button>
@@ -416,8 +416,8 @@ export function AdminDashboard() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Top 5 Effective Courses */}
-          <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700">
-            <h3 className="text-sm font-bold text-[#0d121b] dark:text-white mb-4">
+          <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700">
+            <h3 className="text-sm font-bold text-[#010101] dark:text-white mb-4">
               Top 5 Khóa học hiệu quả
             </h3>
             <div className="space-y-4">
@@ -441,19 +441,19 @@ export function AdminDashboard() {
           </div>
 
           {/* Difficult KPs */}
-          <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-4 border-b border-[#e7ebf3] dark:border-gray-700 pb-2">
+          <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4 border-b border-[#E5E5E5] dark:border-gray-700 pb-2">
               <Button
                 variant="light"
                 size="sm"
-                className="text-sm font-bold text-[#0085FF] border-b-2 border-[#0085FF] -mb-2.5 pb-2 px-0"
+                className="text-sm font-bold text-[#6244F4] border-b-2 border-[#6244F4] -mb-2.5 pb-2 px-0"
               >
                 KP Khó (Fail nhiều)
               </Button>
               <Button
                 variant="light"
                 size="sm"
-                className="text-sm font-medium text-[#4c669a] px-2 hover:text-[#0085FF] transition-colors"
+                className="text-sm font-medium text-[#666666] px-2 hover:text-[#6244F4] transition-colors"
               >
                 Tỷ lệ bỏ cao
               </Button>
@@ -465,7 +465,7 @@ export function AdminDashboard() {
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-[#0d121b] dark:text-white">
+                    <p className="text-xs font-medium text-[#010101] dark:text-white">
                       {kp.name}
                     </p>
                     <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-1">
@@ -484,13 +484,13 @@ export function AdminDashboard() {
           </div>
 
           {/* Game KP Completion */}
-          <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700">
-            <h3 className="text-sm font-bold text-[#0d121b] dark:text-white mb-4">
+          <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700">
+            <h3 className="text-sm font-bold text-[#010101] dark:text-white mb-4">
               Game KP Hoàn thành cao nhất
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="text-[#4c669a] font-medium border-b border-gray-100 dark:border-gray-700">
+                <thead className="text-[#666666] font-medium border-b border-gray-100 dark:border-gray-700">
                   <tr>
                     <th className="pb-2">Tên Game KP</th>
                     <th className="pb-2 text-right">Hoàn thành</th>
@@ -500,13 +500,13 @@ export function AdminDashboard() {
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                   {gameCompletions.map((game, index) => (
                     <tr key={index}>
-                      <td className="py-2 font-medium text-[#0d121b] dark:text-white">
+                      <td className="py-2 font-medium text-[#010101] dark:text-white">
                         {game.name}
                       </td>
                       <td className="py-2 text-right text-green-600 font-bold">
                         {game.completion}%
                       </td>
-                      <td className="py-2 text-right text-[#0d121b] dark:text-white">
+                      <td className="py-2 text-right text-[#010101] dark:text-white">
                         {game.rating}/5
                       </td>
                     </tr>
@@ -519,9 +519,9 @@ export function AdminDashboard() {
       </section>
 
       {/* Student & Class Insights Section */}
-      <section className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 w-full">
+      <section className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700 w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <h2 className="text-lg font-bold text-[#0d121b] dark:text-white">
+          <h2 className="text-lg font-bold text-[#010101] dark:text-white">
             Insights Học sinh & Lớp học
           </h2>
           <div className="flex items-center gap-2">
@@ -538,14 +538,14 @@ export function AdminDashboard() {
                 <Button
                   variant="bordered"
                   size="sm"
-                  className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg py-1.5 px-2 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white h-auto min-w-[180px] justify-between"
+                  className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg py-1.5 px-2 bg-white dark:bg-gray-800 text-[#010101] dark:text-white h-auto min-w-[180px] justify-between"
                   endContent={<ChevronDown className="size-3" />}
                 >
                   <HugeiconsIcon icon={Calendar01Icon} size={16} />
                   {selectedTimeRange}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[320px] p-0 bg-white dark:bg-[#1a202c] border border-[#e7ebf3] dark:border-gray-700 rounded-lg shadow-lg">
+              <PopoverContent className="w-[320px] p-0 bg-white dark:bg-[#1a202c] border border-[#E5E5E5] dark:border-gray-700 rounded-lg shadow-lg">
                 <div className="p-2">
                   <div className="space-y-1 mb-2">
                     {presetRanges.map((preset) => (
@@ -560,8 +560,8 @@ export function AdminDashboard() {
                             ? ""
                             : preset.key !== "custom" &&
                                 selectedTimeRange === preset.label
-                              ? "bg-[#F0F8FF] dark:bg-blue-900/20 text-[#0085FF] font-medium"
-                              : "text-[#0d121b] dark:text-white"
+                              ? "bg-[#6244F4/10] dark:bg-blue-900/20 text-[#6244F4] font-medium"
+                              : "text-[#010101] dark:text-white"
                         }`}
                       >
                         {preset.label}
@@ -575,18 +575,18 @@ export function AdminDashboard() {
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                       <div className="flex flex-col gap-2">
                         <div>
-                          <label className="text-xs text-[#4c669a] mb-1 block">
+                          <label className="text-xs text-[#666666] mb-1 block">
                             Từ ngày
                           </label>
                           <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0085FF]"
+                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#010101] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6244F4]"
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-[#4c669a] mb-1 block">
+                          <label className="text-xs text-[#666666] mb-1 block">
                             Đến ngày
                           </label>
                           <input
@@ -594,12 +594,12 @@ export function AdminDashboard() {
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                             min={startDate}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0085FF]"
+                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#010101] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6244F4]"
                           />
                         </div>
                         <Button
                           size="sm"
-                          className="w-full bg-[#0085FF] text-white text-xs mt-1"
+                          className="w-full bg-[#6244F4] text-white text-xs mt-1"
                           onPress={handleCustomDateApply}
                           isDisabled={!startDate || !endDate}
                         >
@@ -616,7 +616,7 @@ export function AdminDashboard() {
                 <Button
                   variant="bordered"
                   size="sm"
-                  className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg py-1.5 px-2 bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white h-auto min-w-[120px] justify-between"
+                  className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg py-1.5 px-2 bg-white dark:bg-gray-800 text-[#010101] dark:text-white h-auto min-w-[120px] justify-between"
                   endContent={<ChevronDown className="size-3" />}
                 >
                   {selectedGrade}
@@ -631,7 +631,7 @@ export function AdminDashboard() {
                   setSelectedGrade(selected);
                 }}
                 classNames={{
-                  base: "bg-white dark:bg-[#1a202c] border border-[#e7ebf3] dark:border-gray-700 rounded-lg shadow-lg",
+                  base: "bg-white dark:bg-[#1a202c] border border-[#E5E5E5] dark:border-gray-700 rounded-lg shadow-lg",
                 }}
                 items={[
                   { key: "Tất cả lớp", label: "Tất cả lớp" },
@@ -653,14 +653,14 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Class Distribution Chart */}
           <div className="lg:col-span-3">
-            <h3 className="text-sm font-semibold text-[#4c669a] mb-4">
+            <h3 className="text-sm font-semibold text-[#666666] mb-4">
               Phân bố học sinh theo lớp
             </h3>
             <div className="h-48 flex items-end justify-between gap-2 px-2 border-b border-gray-200 dark:border-gray-700 pb-2">
               {classDistribution.map((cls, index) => (
                 <div
                   key={index}
-                  className="w-full bg-[#0085FF] rounded-t hover:bg-blue-600 transition-colors relative group"
+                  className="w-full bg-[#6244F4] rounded-t hover:bg-blue-600 transition-colors relative group"
                   style={{ height: `${(cls.value / maxDistribution) * 100}%` }}
                 >
                   <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 text-[10px] hidden group-hover:block bg-black text-white px-1 rounded">
@@ -669,7 +669,7 @@ export function AdminDashboard() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between text-xs text-[#4c669a] mt-2 px-2">
+            <div className="flex justify-between text-xs text-[#666666] mt-2 px-2">
               {classDistribution.map((cls, index) => (
                 <span key={index}>{cls.name}</span>
               ))}
@@ -677,7 +677,7 @@ export function AdminDashboard() {
           </div>
           {/* Teacher Highlights */}
           <div className="border-l border-gray-100 dark:border-gray-700 pl-0 lg:pl-6">
-            <h3 className="text-sm font-semibold text-[#4c669a] mb-4">
+            <h3 className="text-sm font-semibold text-[#666666] mb-4">
               Giáo viên tiêu biểu
             </h3>
             <div className="space-y-4">
@@ -692,23 +692,23 @@ export function AdminDashboard() {
                       />
                     ) : (
                       <div
-                        className={`size-8 rounded-full ${index === 0 ? "bg-[#E8F4FF] text-[#0085FF]" : "bg-purple-100 text-purple-600"} flex items-center justify-center font-bold text-xs`}
+                        className={`size-8 rounded-full ${index === 0 ? "bg-[#6244F4/10] text-[#6244F4]" : "bg-purple-100 text-purple-600"} flex items-center justify-center font-bold text-xs`}
                       >
                         {teacher.initials}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate text-[#0d121b] dark:text-white">
+                      <p className="text-xs font-medium truncate text-[#010101] dark:text-white">
                         {teacher.name}
                       </p>
-                      <p className="text-[10px] text-[#4c669a]">
+                      <p className="text-[10px] text-[#666666]">
                         {teacher.className} - {teacher.activityLevel}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-[#4c669a]">
+                <p className="text-xs text-[#666666]">
                   Không có dữ liệu giáo viên
                 </p>
               )}
@@ -727,7 +727,7 @@ export function AdminDashboard() {
                     </div>
                   ))
                 ) : (
-                  <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs text-[#4c669a]">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs text-[#666666]">
                     Tất cả các lớp đang tiến triển tốt
                   </div>
                 )}
@@ -739,63 +739,63 @@ export function AdminDashboard() {
 
       {/* Admin Command Center */}
       <section className="space-y-4 w-full pb-12">
-        <h2 className="text-lg font-bold text-[#0d121b] dark:text-white flex items-center gap-2">
+        <h2 className="text-lg font-bold text-[#010101] dark:text-white flex items-center gap-2">
           <HugeiconsIcon
             icon={Analytics01Icon}
             size={20}
-            className="text-[#0085FF]"
+            className="text-[#6244F4]"
           />
           Admin Command Center
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link href="/dashboard/users">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700 hover:border-[#6244F4] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#6244F4]/10 text-[#6244F4] flex items-center justify-center mb-4 group-hover:bg-[#6244F4] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={UserGroupIcon} size={32} />
               </div>
-              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+              <h3 className="text-base font-semibold text-[#010101] dark:text-white">
                 Quản lý Học sinh
               </h3>
-              <p className="text-xs text-[#4c669a] mt-1">
+              <p className="text-xs text-[#666666] mt-1">
                 Thêm, sửa, xóa học sinh
               </p>
             </div>
           </Link>
           <Link href="/dashboard/courses">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700 hover:border-[#6244F4] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#6244F4]/10 text-[#6244F4] flex items-center justify-center mb-4 group-hover:bg-[#6244F4] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={Book04Icon} size={32} />
               </div>
-              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+              <h3 className="text-base font-semibold text-[#010101] dark:text-white">
                 Quản lý Khoá học
               </h3>
-              <p className="text-xs text-[#4c669a] mt-1">
+              <p className="text-xs text-[#666666] mt-1">
                 Thêm, sửa, xóa khóa học
               </p>
             </div>
           </Link>
           <Link href="/dashboard/courses/create">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700 hover:border-[#6244F4] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#6244F4]/10 text-[#6244F4] flex items-center justify-center mb-4 group-hover:bg-[#6244F4] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={AddCircleIcon} size={32} />
               </div>
-              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+              <h3 className="text-base font-semibold text-[#010101] dark:text-white">
                 Tạo Khóa học mới
               </h3>
-              <p className="text-xs text-[#4c669a] mt-1">
+              <p className="text-xs text-[#666666] mt-1">
                 Thiết lập khóa học và nội dung
               </p>
             </div>
           </Link>
           <Link href="/dashboard/reports">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#E5E5E5] dark:border-gray-700 hover:border-[#6244F4] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#6244F4]/10 text-[#6244F4] flex items-center justify-center mb-4 group-hover:bg-[#6244F4] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={Analytics01Icon} size={32} />
               </div>
-              <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
+              <h3 className="text-base font-semibold text-[#010101] dark:text-white">
                 Xem tất cả Báo cáo
               </h3>
-              <p className="text-xs text-[#4c669a] mt-1">
+              <p className="text-xs text-[#666666] mt-1">
                 Phân tích dữ liệu chi tiết
               </p>
             </div>

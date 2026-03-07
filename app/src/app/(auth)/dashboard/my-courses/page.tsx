@@ -195,7 +195,7 @@ export default function MyCoursesPage() {
                 <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Tổng khóa học</p>
                 <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.total}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-[#F0F8FF] text-[#0085FF] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-[#6244F4/10] text-[#6244F4] flex items-center justify-center">
                 <BookOpen className="w-6 h-6" />
               </div>
             </div>
@@ -533,8 +533,8 @@ export default function MyCoursesPage() {
 
                       {/* Course Info */}
                       <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-[#F0F8FF] rounded-xl p-4 text-center">
-                          <Target className="w-6 h-6 text-[#0085FF] mx-auto mb-2" />
+                        <div className="bg-[#6244F4/10] rounded-xl p-4 text-center">
+                          <Target className="w-6 h-6 text-[#6244F4] mx-auto mb-2" />
                           <p className="text-lg font-bold">{selectedCourse?.masteredKps}/{selectedCourse?.totalKps}</p>
                           <p className="text-xs text-gray-500">Điểm kiến thức</p>
                         </div>

@@ -111,7 +111,7 @@ function UserCard({
 
   const roleConfig = {
     admin: { icon: Shield, label: "Quản trị viên", color: "bg-purple-50 text-purple-700 border-purple-200" },
-    teacher: { icon: GraduationCap, label: "Giáo viên", color: "bg-[#F0F8FF] text-[#0066CC] border-blue-200" },
+    teacher: { icon: GraduationCap, label: "Giáo viên", color: "bg-[#6244F4/10] text-[#0066CC] border-blue-200" },
     student: { icon: User, label: "Học sinh", color: "bg-green-50 text-green-700 border-green-200" },
     parent: { icon: UsersRound, label: "Phụ huynh", color: "bg-orange-50 text-orange-700 border-orange-200" },
   };
@@ -216,7 +216,7 @@ function UserListRow({
 }) {
   const roleConfig = {
     admin: { icon: Shield, label: "Admin", color: "bg-purple-50 text-purple-700" },
-    teacher: { icon: GraduationCap, label: "Giáo viên", color: "bg-[#F0F8FF] text-[#0066CC]" },
+    teacher: { icon: GraduationCap, label: "Giáo viên", color: "bg-[#6244F4/10] text-[#0066CC]" },
     student: { icon: User, label: "Học sinh", color: "bg-green-50 text-green-700" },
     parent: { icon: UsersRound, label: "Phụ huynh", color: "bg-orange-50 text-orange-700" },
   };
@@ -509,7 +509,7 @@ export default function UsersPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+            <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
               Quản lý người dùng
             </h1>
             <p className="text-[#717680] dark:text-gray-400 mt-1">
@@ -532,8 +532,8 @@ export default function UsersPage() {
             title="Tổng người dùng"
             value={stats.total.toLocaleString()}
             subtitle={`${stats.byRole.student} học sinh, ${stats.byRole.teacher} giáo viên`}
-            icon={<Users className="w-6 h-6 text-[#0085FF]" />}
-            color="bg-[#F0F8FF] dark:bg-blue-900/20"
+            icon={<Users className="w-6 h-6 text-[#6244F4]" />}
+            color="bg-[#6244F4/10] dark:bg-blue-900/20"
           />
           <StatCard
             title="Đang hoạt động"
@@ -566,7 +566,7 @@ export default function UsersPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { role: "admin" as UserRole, label: "Quản trị viên", count: stats.byRole.admin, icon: Shield, color: "bg-purple-50 text-purple-600" },
-              { role: "teacher" as UserRole, label: "Giáo viên", count: stats.byRole.teacher, icon: GraduationCap, color: "bg-[#F0F8FF] text-[#0085FF]" },
+              { role: "teacher" as UserRole, label: "Giáo viên", count: stats.byRole.teacher, icon: GraduationCap, color: "bg-[#6244F4/10] text-[#6244F4]" },
               { role: "student" as UserRole, label: "Học sinh", count: stats.byRole.student, icon: User, color: "bg-green-50 text-green-600" },
               { role: "parent" as UserRole, label: "Phụ huynh", count: stats.byRole.parent, icon: UsersRound, color: "bg-orange-50 text-orange-600" },
             ].map((item) => (

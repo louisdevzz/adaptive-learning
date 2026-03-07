@@ -115,7 +115,7 @@ function ProgressRing({ progress, size = 40, strokeWidth = 4 }: { progress: numb
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="transform -rotate-90">
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={strokeWidth} className="text-gray-200" />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="text-[#0085FF] transition-all duration-500" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="text-[#6244F4] transition-all duration-500" />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-xs font-bold text-[#181d27]">{progress}%</span>
@@ -404,7 +404,7 @@ export default function CoursePage() {
     return (
       <LayoutDashboard>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0085FF]" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6244F4]" />
         </div>
       </LayoutDashboard>
     );
@@ -432,27 +432,27 @@ export default function CoursePage() {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
           {/* ── Course header ── */}
-          <div className="bg-white rounded-2xl border border-[#e7ebf3] p-5">
+          <div className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               {/* Back + title */}
               <div className="flex items-start gap-3 min-w-0">
                 <button
                   onClick={() => router.back()}
-                  className="mt-1 p-1.5 rounded-lg hover:bg-gray-100 text-[#4c669a] transition-colors shrink-0"
+                  className="mt-1 p-1.5 rounded-lg hover:bg-gray-100 text-[#666666] transition-colors shrink-0"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h1 className="text-xl font-bold text-[#0d121b] leading-tight truncate">
+                    <h1 className="text-xl font-bold text-[#010101] leading-tight truncate">
                       {course.title}
                     </h1>
-                    <span className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full bg-[#E8F4FF] text-[#0085FF]">
+                    <span className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full bg-[#6244F4/10] text-[#6244F4]">
                       {course.subject}
                     </span>
                   </div>
                   {/* Stats row */}
-                  <div className="flex items-center gap-4 text-sm text-[#4c669a] flex-wrap">
+                  <div className="flex items-center gap-4 text-sm text-[#666666] flex-wrap">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-4 h-4" />
                       {totalKps} bài học
@@ -466,8 +466,8 @@ export default function CoursePage() {
                       Khối {course.gradeLevel}
                     </span>
                     {completedKps > 0 && (
-                      <span className="flex items-center gap-1 text-[#0085FF] font-medium">
-                        <Star className="w-4 h-4 fill-[#0085FF]" />
+                      <span className="flex items-center gap-1 text-[#6244F4] font-medium">
+                        <Star className="w-4 h-4 fill-[#6244F4]" />
                         {completedKps}/{totalKps} hoàn thành
                       </span>
                     )}
@@ -479,12 +479,12 @@ export default function CoursePage() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => currentKp && toggleBookmark(currentKp.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#e7ebf3] text-sm text-[#4c669a] hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E5E5E5] text-sm text-[#666666] hover:bg-gray-50 transition-colors"
                 >
-                  <Bookmark className={`w-4 h-4 ${currentKp && bookmarkedKps.has(currentKp.id) ? "fill-[#0085FF] text-[#0085FF]" : ""}`} />
+                  <Bookmark className={`w-4 h-4 ${currentKp && bookmarkedKps.has(currentKp.id) ? "fill-[#6244F4] text-[#6244F4]" : ""}`} />
                   Lưu
                 </button>
-                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#e7ebf3] text-sm text-[#4c669a] hover:bg-gray-50 transition-colors">
+                <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#E5E5E5] text-sm text-[#666666] hover:bg-gray-50 transition-colors">
                   <Share2 className="w-4 h-4" />
                   Chia sẻ
                 </button>
@@ -497,36 +497,36 @@ export default function CoursePage() {
                 <Progress
                   value={overallProgress}
                   size="sm"
-                  classNames={{ base: "flex-1", indicator: "bg-[#0085FF]", track: "bg-[#E8F4FF]" }}
+                  classNames={{ base: "flex-1", indicator: "bg-[#6244F4]", track: "bg-[#6244F4/10]" }}
                 />
-                <span className="text-xs font-semibold text-[#0085FF] shrink-0">{overallProgress}%</span>
+                <span className="text-xs font-semibold text-[#6244F4] shrink-0">{overallProgress}%</span>
               </div>
             )}
           </div>
 
           {/* ── KP navigation (prev / current title / next) ── */}
           {currentKp && (
-            <div className="bg-white rounded-2xl border border-[#e7ebf3] px-5 py-3 flex items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] px-5 py-3 flex items-center justify-between gap-4">
               <button
                 onClick={handlePrevious}
                 disabled={currentIndex === 0}
-                className="flex items-center gap-1.5 text-sm text-[#4c669a] hover:text-[#0085FF] disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-[#666666] hover:text-[#6244F4] disabled:opacity-40 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Trước
               </button>
 
               <div className="flex-1 text-center min-w-0">
-                <p className="text-xs text-[#4c669a] mb-0.5">
+                <p className="text-xs text-[#666666] mb-0.5">
                   Bài {currentIndex + 1} / {totalKps}
                 </p>
-                <h2 className="font-semibold text-[#0d121b] text-sm truncate">{currentKp.title}</h2>
+                <h2 className="font-semibold text-[#010101] text-sm truncate">{currentKp.title}</h2>
               </div>
 
               <button
                 onClick={handleNext}
                 disabled={currentIndex >= allKnowledgePoints.length - 1}
-                className="flex items-center gap-1.5 text-sm text-[#4c669a] hover:text-[#0085FF] disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-[#666666] hover:text-[#6244F4] disabled:opacity-40 transition-colors"
               >
                 Tiếp
                 <ChevronRight className="w-4 h-4" />
@@ -536,17 +536,17 @@ export default function CoursePage() {
 
           {/* ── Media player (Slide / Video tabs) ── */}
           {currentKp && (currentKp.content?.slideUrl || currentKp.content?.youtubeUrl) && (
-            <div className="bg-white rounded-2xl border border-[#e7ebf3] overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden">
               {/* Tab header */}
-              <div className="flex items-center justify-between border-b border-[#e7ebf3] px-5">
+              <div className="flex items-center justify-between border-b border-[#E5E5E5] px-5">
                 <div className="flex">
                   {currentKp.content?.slideUrl && (
                     <button
                       onClick={() => setMediaTab("slide")}
                       className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors -mb-px cursor-pointer ${
                         mediaTab === "slide"
-                          ? "border-[#0085FF] text-[#0085FF]"
-                          : "border-transparent text-[#4c669a] hover:text-[#0d121b]"
+                          ? "border-[#6244F4] text-[#6244F4]"
+                          : "border-transparent text-[#666666] hover:text-[#010101]"
                       }`}
                     >
                       <FileText className="w-4 h-4" />
@@ -558,8 +558,8 @@ export default function CoursePage() {
                       onClick={() => setMediaTab("video")}
                       className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors -mb-px cursor-pointer ${
                         mediaTab === "video"
-                          ? "border-[#0085FF] text-[#0085FF]"
-                          : "border-transparent text-[#4c669a] hover:text-[#0d121b]"
+                          ? "border-[#6244F4] text-[#6244F4]"
+                          : "border-transparent text-[#666666] hover:text-[#010101]"
                       }`}
                     >
                       <Video className="w-4 h-4" />
@@ -577,7 +577,7 @@ export default function CoursePage() {
                   ) : /\.(pptx?|docx?)$/i.test(currentKp.content.slideFileName || "") ? (
                     <iframe
                       src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(currentKp.content.slideUrl)}`}
-                      className="w-full h-[500px] rounded-xl border border-[#e7ebf3]"
+                      className="w-full h-[500px] rounded-xl border border-[#E5E5E5]"
                       title="Document Preview"
                     />
                   ) : (
@@ -585,12 +585,12 @@ export default function CoursePage() {
                       href={currentKp.content.slideUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 bg-[#f8f9fb] rounded-xl hover:bg-[#E8F4FF] transition-colors group"
+                      className="flex items-center gap-3 p-4 bg-[#f8f9fb] rounded-xl hover:bg-[#6244F4/10] transition-colors group"
                     >
-                      <FileText className="w-8 h-8 text-[#0085FF]" />
+                      <FileText className="w-8 h-8 text-[#6244F4]" />
                       <div>
-                        <p className="text-sm font-medium text-[#0d121b]">{currentKp.content.slideFileName || "Tài liệu bài giảng"}</p>
-                        <p className="text-xs text-[#4c669a]">Nhấn để tải xuống</p>
+                        <p className="text-sm font-medium text-[#010101]">{currentKp.content.slideFileName || "Tài liệu bài giảng"}</p>
+                        <p className="text-xs text-[#666666]">Nhấn để tải xuống</p>
                       </div>
                     </a>
                   )}
@@ -613,7 +613,7 @@ export default function CoursePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-sm text-[#4c669a]">Không thể tải video</div>
+                  <div className="p-4 text-center text-sm text-[#666666]">Không thể tải video</div>
                 );
               })()}
             </div>
@@ -621,9 +621,9 @@ export default function CoursePage() {
 
           {/* ── Tabs ── */}
           {currentKp && (
-            <div className="bg-white rounded-2xl border border-[#e7ebf3] overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden">
               {/* Tab bar */}
-              <div className="flex border-b border-[#e7ebf3] px-5">
+              <div className="flex border-b border-[#E5E5E5] px-5">
                 {[
                   { key: "overview" as TabKey, label: "Tổng quan", icon: <BookOpen className="w-4 h-4" /> },
                   { key: "questions" as TabKey, label: `Câu hỏi${questions.length > 0 ? ` (${questions.length})` : ""}`, icon: <MessageSquare className="w-4 h-4" /> },
@@ -634,8 +634,8 @@ export default function CoursePage() {
                     onClick={() => setActiveTab(tab.key)}
                     className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors -mb-px cursor-pointer ${
                       activeTab === tab.key
-                        ? "border-[#0085FF] text-[#0085FF]"
-                        : "border-transparent text-[#4c669a] hover:text-[#0d121b]"
+                        ? "border-[#6244F4] text-[#6244F4]"
+                        : "border-transparent text-[#666666] hover:text-[#010101]"
                     }`}
                   >
                     {tab.icon}
@@ -655,7 +655,7 @@ export default function CoursePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           {kpProgress[currentKp.id] && (
-                            <span className="flex items-center gap-1.5 px-3 py-1 bg-[#E8F4FF] text-[#0085FF] rounded-lg text-sm font-semibold">
+                            <span className="flex items-center gap-1.5 px-3 py-1 bg-[#6244F4/10] text-[#6244F4] rounded-lg text-sm font-semibold">
                               <Target className="w-4 h-4" />
                               {kpProgress[currentKp.id].masteryScore}% nắm vững
                             </span>
@@ -665,7 +665,7 @@ export default function CoursePage() {
                           </span>
                         </div>
                         {currentKp.description && (
-                          <p className="text-sm text-[#4c669a] leading-relaxed">{currentKp.description}</p>
+                          <p className="text-sm text-[#666666] leading-relaxed">{currentKp.description}</p>
                         )}
                       </div>
                     </div>
@@ -673,23 +673,23 @@ export default function CoursePage() {
                     {/* About course */}
                     {course.description && (
                       <div>
-                        <h3 className="font-semibold text-[#0d121b] mb-2">Giới thiệu khóa học</h3>
-                        <p className="text-sm text-[#4c669a] leading-relaxed">{course.description}</p>
+                        <h3 className="font-semibold text-[#010101] mb-2">Giới thiệu khóa học</h3>
+                        <p className="text-sm text-[#666666] leading-relaxed">{course.description}</p>
                       </div>
                     )}
 
                     {/* What you'll learn */}
                     <div>
-                      <h3 className="font-semibold text-[#0d121b] mb-3">Những gì bạn sẽ học</h3>
+                      <h3 className="font-semibold text-[#010101] mb-3">Những gì bạn sẽ học</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {allKnowledgePoints.slice(0, 8).map(({ kp }) => (
                           <div key={kp.id} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-[#0085FF] shrink-0 mt-0.5" />
-                            <span className="text-sm text-[#4c669a]">{kp.title}</span>
+                            <CheckCircle2 className="w-4 h-4 text-[#6244F4] shrink-0 mt-0.5" />
+                            <span className="text-sm text-[#666666]">{kp.title}</span>
                           </div>
                         ))}
                         {allKnowledgePoints.length > 8 && (
-                          <div className="flex items-center gap-2 text-sm text-[#0085FF]">
+                          <div className="flex items-center gap-2 text-sm text-[#6244F4]">
                             <span>+ {allKnowledgePoints.length - 8} bài học khác</span>
                           </div>
                         )}
@@ -699,22 +699,22 @@ export default function CoursePage() {
                     {/* Content indicators */}
                     <div className="flex flex-wrap gap-2">
                       {currentKp.content?.youtubeUrl && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-[#4c669a] bg-[#f8f9fb] border border-[#e7ebf3] px-3 py-1.5 rounded-lg">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-[#666666] bg-[#f8f9fb] border border-[#E5E5E5] px-3 py-1.5 rounded-lg">
                           <Video className="w-3.5 h-3.5" /> Video bài giảng
                         </span>
                       )}
                       {currentKp.content?.slideUrl && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-[#4c669a] bg-[#f8f9fb] border border-[#e7ebf3] px-3 py-1.5 rounded-lg">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-[#666666] bg-[#f8f9fb] border border-[#E5E5E5] px-3 py-1.5 rounded-lg">
                           <FileText className="w-3.5 h-3.5" /> Slide bài giảng
                         </span>
                       )}
                       {currentKp.resources?.length > 0 && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-[#4c669a] bg-[#f8f9fb] border border-[#e7ebf3] px-3 py-1.5 rounded-lg">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-[#666666] bg-[#f8f9fb] border border-[#E5E5E5] px-3 py-1.5 rounded-lg">
                           <BookOpen className="w-3.5 h-3.5" /> {currentKp.resources.length} tài liệu
                         </span>
                       )}
                       {questions.length > 0 && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-[#4c669a] bg-[#f8f9fb] border border-[#e7ebf3] px-3 py-1.5 rounded-lg">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-[#666666] bg-[#f8f9fb] border border-[#E5E5E5] px-3 py-1.5 rounded-lg">
                           <HelpCircle className="w-3.5 h-3.5" /> {questions.length} câu hỏi
                         </span>
                       )}
@@ -726,10 +726,10 @@ export default function CoursePage() {
                 {activeTab === "questions" && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <HelpCircle className="w-5 h-5 text-[#0085FF]" />
-                      <h3 className="font-semibold text-[#0d121b]">Câu hỏi luyện tập</h3>
+                      <HelpCircle className="w-5 h-5 text-[#6244F4]" />
+                      <h3 className="font-semibold text-[#010101]">Câu hỏi luyện tập</h3>
                       {questions.length > 0 && (
-                        <span className="text-xs text-[#4c669a] bg-[#f8f9fb] px-2.5 py-1 rounded-full border border-[#e7ebf3]">
+                        <span className="text-xs text-[#666666] bg-[#f8f9fb] px-2.5 py-1 rounded-full border border-[#E5E5E5]">
                           {questions.length} câu
                         </span>
                       )}
@@ -737,12 +737,12 @@ export default function CoursePage() {
 
                     {loadingQuestions ? (
                       <div className="flex justify-center py-10">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0085FF]" />
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6244F4]" />
                       </div>
                     ) : questions.length === 0 ? (
                       <div className="flex flex-col items-center py-10 text-center">
                         <HelpCircle className="w-12 h-12 text-gray-200 mb-3" />
-                        <p className="text-[#4c669a] text-sm">Chưa có câu hỏi luyện tập cho bài học này</p>
+                        <p className="text-[#666666] text-sm">Chưa có câu hỏi luyện tập cho bài học này</p>
                       </div>
                     ) : (
                       <div className="space-y-5">
@@ -754,12 +754,12 @@ export default function CoursePage() {
                           const canInteract = !isSubmitted || isRetrying;
 
                           return (
-                            <div key={question.id} className="bg-[#f8f9fb] rounded-xl p-5 border border-[#e7ebf3]">
+                            <div key={question.id} className="bg-[#f8f9fb] rounded-xl p-5 border border-[#E5E5E5]">
                               {/* Question header */}
                               <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-2.5">
-                                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[#0085FF] text-white font-semibold text-xs">{index + 1}</span>
-                                  <span className="text-xs text-[#0085FF] bg-[#E8F4FF] px-2 py-0.5 rounded-full font-medium">{getQuestionTypeLabel(question.questionType)}</span>
+                                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[#6244F4] text-white font-semibold text-xs">{index + 1}</span>
+                                  <span className="text-xs text-[#6244F4] bg-[#6244F4/10] px-2 py-0.5 rounded-full font-medium">{getQuestionTypeLabel(question.questionType)}</span>
                                 </div>
                                 {isSubmitted && (
                                   isCorrect
@@ -768,7 +768,7 @@ export default function CoursePage() {
                                 )}
                               </div>
 
-                              <p className="text-sm font-medium text-[#0d121b] mb-4">{question.questionText}</p>
+                              <p className="text-sm font-medium text-[#010101] mb-4">{question.questionText}</p>
 
                               {/* Multiple choice */}
                               {question.questionType === "multiple_choice" && question.options && (
@@ -780,9 +780,9 @@ export default function CoursePage() {
                                     const isCorrectOption = option === correctAnswerText;
                                     let cls = "w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm ";
                                     if (isSubmitted && !isRetrying) {
-                                      cls += isCorrectOption ? "bg-green-50 border-green-400 text-green-700" : isSelected && !isCorrect ? "bg-red-50 border-red-400 text-red-700" : "bg-white border-gray-200 text-[#4c669a]";
+                                      cls += isCorrectOption ? "bg-green-50 border-green-400 text-green-700" : isSelected && !isCorrect ? "bg-red-50 border-red-400 text-red-700" : "bg-white border-gray-200 text-[#666666]";
                                     } else {
-                                      cls += isSelected ? "bg-[#E8F4FF] border-[#0085FF] text-[#0085FF]" : "bg-white border-gray-200 hover:border-[#0085FF]/40 text-[#4c669a]";
+                                      cls += isSelected ? "bg-[#6244F4/10] border-[#6244F4] text-[#6244F4]" : "bg-white border-gray-200 hover:border-[#6244F4]/40 text-[#666666]";
                                     }
                                     return (
                                       <button key={optIdx} onClick={() => canInteract && handleAnswerSelect(question.id, option)} disabled={!canInteract} className={cls}>
@@ -807,9 +807,9 @@ export default function CoursePage() {
                                     const isCorrectOption = option === correctAnswerText;
                                     let cls = "py-3 rounded-xl border-2 text-sm font-medium text-center transition-all ";
                                     if (isSubmitted && !isRetrying) {
-                                      cls += isCorrectOption ? "bg-green-50 border-green-400 text-green-700" : isSelected && !isCorrect ? "bg-red-50 border-red-400 text-red-700" : "bg-white border-gray-200 text-[#4c669a]";
+                                      cls += isCorrectOption ? "bg-green-50 border-green-400 text-green-700" : isSelected && !isCorrect ? "bg-red-50 border-red-400 text-red-700" : "bg-white border-gray-200 text-[#666666]";
                                     } else {
-                                      cls += isSelected ? "bg-[#E8F4FF] border-[#0085FF] text-[#0085FF]" : "bg-white border-gray-200 hover:border-[#0085FF]/40 text-[#4c669a]";
+                                      cls += isSelected ? "bg-[#6244F4/10] border-[#6244F4] text-[#6244F4]" : "bg-white border-gray-200 hover:border-[#6244F4]/40 text-[#666666]";
                                     }
                                     return (
                                       <button key={option} onClick={() => canInteract && handleAnswerSelect(question.id, option)} disabled={!canInteract} className={cls}>{option}</button>
@@ -821,12 +821,12 @@ export default function CoursePage() {
                               {/* Submit / retry */}
                               <div className="flex gap-2">
                                 {canInteract && selectedAnswer && (
-                                  <button onClick={() => handleSubmitAnswer(question.id)} className="px-4 py-2 rounded-xl bg-[#0085FF] text-white text-sm font-semibold hover:bg-[#0066CC] transition-colors">
+                                  <button onClick={() => handleSubmitAnswer(question.id)} className="px-4 py-2 rounded-xl bg-[#6244F4] text-white text-sm font-semibold hover:bg-[#0066CC] transition-colors">
                                     {isRetrying ? "Nộp lại" : "Nộp bài"}
                                   </button>
                                 )}
                                 {isSubmitted && !isCorrect && !isRetrying && (
-                                  <button onClick={() => handleRetryQuestion(question.id)} className="px-4 py-2 rounded-xl border-2 border-[#0085FF] text-[#0085FF] text-sm font-semibold hover:bg-[#E8F4FF] transition-colors">
+                                  <button onClick={() => handleRetryQuestion(question.id)} className="px-4 py-2 rounded-xl border-2 border-[#6244F4] text-[#6244F4] text-sm font-semibold hover:bg-[#6244F4/10] transition-colors">
                                     Làm lại
                                   </button>
                                 )}
@@ -853,26 +853,26 @@ export default function CoursePage() {
                 {activeTab === "resources" && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <Library className="w-5 h-5 text-[#0085FF]" />
-                      <h3 className="font-semibold text-[#0d121b]">Tài liệu tham khảo</h3>
+                      <Library className="w-5 h-5 text-[#6244F4]" />
+                      <h3 className="font-semibold text-[#010101]">Tài liệu tham khảo</h3>
                     </div>
                     {!currentKp.resources || currentKp.resources.length === 0 ? (
                       <div className="flex flex-col items-center py-10 text-center">
                         <Library className="w-12 h-12 text-gray-200 mb-3" />
-                        <p className="text-[#4c669a] text-sm">Chưa có tài liệu cho bài học này</p>
+                        <p className="text-[#666666] text-sm">Chưa có tài liệu cho bài học này</p>
                       </div>
                     ) : (
                       currentKp.resources.map((resource) => (
                         <a key={resource.id} href={resource.url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-4 p-4 bg-[#f8f9fb] rounded-xl border border-[#e7ebf3] hover:border-[#0085FF]/30 hover:bg-[#E8F4FF]/30 transition-all group">
+                          className="flex items-center gap-4 p-4 bg-[#f8f9fb] rounded-xl border border-[#E5E5E5] hover:border-[#6244F4]/30 hover:bg-[#6244F4/10]/30 transition-all group">
                           <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shadow-sm shrink-0">
                             {resource.resourceType === "video" ? "🎥" : resource.resourceType === "article" ? "📄" : resource.resourceType === "interactive" ? "🎮" : resource.resourceType === "quiz" ? "📝" : "📎"}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#0d121b] group-hover:text-[#0085FF] transition-colors truncate">{resource.title}</p>
-                            {resource.description && <p className="text-xs text-[#4c669a] mt-0.5 truncate">{resource.description}</p>}
+                            <p className="text-sm font-medium text-[#010101] group-hover:text-[#6244F4] transition-colors truncate">{resource.title}</p>
+                            {resource.description && <p className="text-xs text-[#666666] mt-0.5 truncate">{resource.description}</p>}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-[#4c669a] group-hover:text-[#0085FF] shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-[#666666] group-hover:text-[#6244F4] shrink-0" />
                         </a>
                       ))
                     )}
@@ -884,9 +884,9 @@ export default function CoursePage() {
 
           {/* Empty state */}
           {!currentKp && (
-            <div className="bg-white rounded-2xl border border-[#e7ebf3] flex flex-col items-center justify-center py-20">
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] flex flex-col items-center justify-center py-20">
               <BookOpen className="w-16 h-16 text-gray-200 mb-4" />
-              <p className="text-[#4c669a]">Chọn một bài học từ danh sách bên phải để bắt đầu</p>
+              <p className="text-[#666666]">Chọn một bài học từ danh sách bên phải để bắt đầu</p>
             </div>
           )}
         </div>
@@ -897,10 +897,10 @@ export default function CoursePage() {
         <div className="w-full lg:w-[360px] shrink-0 flex flex-col gap-4">
 
           {/* Course content list */}
-          <div className="bg-white rounded-2xl border border-[#e7ebf3] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#e7ebf3] flex items-center justify-between">
-              <h3 className="font-bold text-[#0d121b] flex items-center gap-2">
-                <LayoutList className="w-4 h-4 text-[#0085FF]" />
+          <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E5E5E5] flex items-center justify-between">
+              <h3 className="font-bold text-[#010101] flex items-center gap-2">
+                <LayoutList className="w-4 h-4 text-[#6244F4]" />
                 Nội dung khóa học
               </h3>
               {overallProgress > 0 && (
@@ -917,7 +917,7 @@ export default function CoursePage() {
                   acc + s.knowledgePoints.filter((kp) => (kpProgress[kp.id]?.masteryScore || 0) >= 80).length, 0);
 
                 return (
-                  <div key={module.id} className="border-b border-[#e7ebf3] last:border-0">
+                  <div key={module.id} className="border-b border-[#E5E5E5] last:border-0">
                     {/* Module header */}
                     <button
                       onClick={() => {
@@ -928,18 +928,18 @@ export default function CoursePage() {
                       }}
                       className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#f8f9fb] transition-colors text-left"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-[#E8F4FF] flex items-center justify-center text-xs font-bold text-[#0085FF] shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-[#6244F4/10] flex items-center justify-center text-xs font-bold text-[#6244F4] shrink-0">
                         {String(modIndex + 1).padStart(2, "0")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#0d121b] truncate">{module.title}</p>
-                        <p className="text-xs text-[#4c669a]">
+                        <p className="text-sm font-semibold text-[#010101] truncate">{module.title}</p>
+                        <p className="text-xs text-[#666666]">
                           {moduleCompleted}/{moduleKpCount} bài · {getModuleDuration(module)}
                         </p>
                       </div>
                       {expandedModules.has(module.id)
-                        ? <ChevronUp className="w-4 h-4 text-[#4c669a] shrink-0" />
-                        : <ChevronDown className="w-4 h-4 text-[#4c669a] shrink-0" />}
+                        ? <ChevronUp className="w-4 h-4 text-[#666666] shrink-0" />
+                        : <ChevronDown className="w-4 h-4 text-[#666666] shrink-0" />}
                     </button>
 
                     {/* Sections */}
@@ -955,13 +955,13 @@ export default function CoursePage() {
                                 else newExpanded.add(section.id);
                                 setExpandedSections(newExpanded);
                               }}
-                              className="w-full flex items-center gap-2.5 px-5 py-2.5 hover:bg-[#E8F4FF]/30 transition-colors text-left border-t border-[#e7ebf3]/60"
+                              className="w-full flex items-center gap-2.5 px-5 py-2.5 hover:bg-[#6244F4/10]/30 transition-colors text-left border-t border-[#E5E5E5]/60"
                             >
-                              <BookOpen className="w-3.5 h-3.5 text-[#0085FF] shrink-0" />
-                              <span className="flex-1 text-xs font-semibold text-[#0d121b] truncate">{section.title}</span>
+                              <BookOpen className="w-3.5 h-3.5 text-[#6244F4] shrink-0" />
+                              <span className="flex-1 text-xs font-semibold text-[#010101] truncate">{section.title}</span>
                               {expandedSections.has(section.id)
-                                ? <ChevronUp className="w-3 h-3 text-[#4c669a] shrink-0" />
-                                : <ChevronDown className="w-3 h-3 text-[#4c669a] shrink-0" />}
+                                ? <ChevronUp className="w-3 h-3 text-[#666666] shrink-0" />
+                                : <ChevronDown className="w-3 h-3 text-[#666666] shrink-0" />}
                             </button>
 
                             {/* KPs */}
@@ -981,7 +981,7 @@ export default function CoursePage() {
                                       disabled={locked}
                                       className={`w-full flex items-center gap-3 pl-8 pr-5 py-2.5 transition-all text-left ${
                                         locked ? "opacity-50 cursor-not-allowed" :
-                                        isSelected ? "bg-[#E8F4FF]" : "hover:bg-white"
+                                        isSelected ? "bg-[#6244F4/10]" : "hover:bg-white"
                                       }`}
                                     >
                                       {/* Status icon */}
@@ -991,7 +991,7 @@ export default function CoursePage() {
                                         ) : status === "completed" ? (
                                           <CheckCircle2 className="w-4 h-4 text-green-500" />
                                         ) : isSelected ? (
-                                          <div className="w-4 h-4 rounded-full bg-[#0085FF] flex items-center justify-center">
+                                          <div className="w-4 h-4 rounded-full bg-[#6244F4] flex items-center justify-center">
                                             <Play className="w-2.5 h-2.5 text-white fill-white" />
                                           </div>
                                         ) : (
@@ -1000,9 +1000,9 @@ export default function CoursePage() {
                                       </div>
                                       <span className={`flex-1 text-xs truncate ${
                                         locked ? "text-gray-400" :
-                                        isSelected ? "font-semibold text-[#0085FF]" :
+                                        isSelected ? "font-semibold text-[#6244F4]" :
                                         status === "completed" ? "text-[#535862] font-medium" :
-                                        "text-[#4c669a]"
+                                        "text-[#666666]"
                                       }`}>
                                         {kp.title}
                                       </span>
@@ -1010,10 +1010,10 @@ export default function CoursePage() {
                                       <div className="shrink-0 flex items-center gap-1.5">
                                         {status === "completed" && <Trophy className="w-3 h-3 text-yellow-500" />}
                                         {progress && status !== "completed" && (
-                                          <span className="text-xs font-medium text-[#0085FF]">{progress.masteryScore}%</span>
+                                          <span className="text-xs font-medium text-[#6244F4]">{progress.masteryScore}%</span>
                                         )}
-                                        {kp.content?.youtubeUrl && <Video className="w-3 h-3 text-[#4c669a]" />}
-                                        {kp.content?.slideUrl && <FileText className="w-3 h-3 text-[#4c669a]" />}
+                                        {kp.content?.youtubeUrl && <Video className="w-3 h-3 text-[#666666]" />}
+                                        {kp.content?.slideUrl && <FileText className="w-3 h-3 text-[#666666]" />}
                                       </div>
                                     </button>
                                   );
@@ -1031,33 +1031,33 @@ export default function CoursePage() {
           </div>
 
           {/* Study stats card */}
-          <div className="bg-white rounded-2xl border border-[#e7ebf3] p-5">
-            <h3 className="font-bold text-[#0d121b] mb-4 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-[#0085FF]" />
+          <div className="bg-white rounded-2xl border border-[#E5E5E5] p-5">
+            <h3 className="font-bold text-[#010101] mb-4 flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-[#6244F4]" />
               Thống kê học tập
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#4c669a]">Hoàn thành</span>
-                <span className="font-semibold text-[#0d121b]">{completedKps} / {totalKps} bài</span>
+                <span className="text-[#666666]">Hoàn thành</span>
+                <span className="font-semibold text-[#010101]">{completedKps} / {totalKps} bài</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#4c669a]">Thời gian học</span>
-                <span className="font-semibold text-[#0d121b]">
+                <span className="text-[#666666]">Thời gian học</span>
+                <span className="font-semibold text-[#010101]">
                   {totalStudyTime >= 3600
                     ? `${Math.floor(totalStudyTime / 3600)}h ${Math.floor((totalStudyTime % 3600) / 60)}min`
                     : `${Math.floor(totalStudyTime / 60)} min`}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#4c669a]">Tiến độ</span>
-                <span className="font-semibold text-[#0085FF]">{overallProgress}%</span>
+                <span className="text-[#666666]">Tiến độ</span>
+                <span className="font-semibold text-[#6244F4]">{overallProgress}%</span>
               </div>
               {overallProgress > 0 && (
                 <Progress
                   value={overallProgress}
                   size="sm"
-                  classNames={{ indicator: "bg-[#0085FF]", track: "bg-[#E8F4FF]" }}
+                  classNames={{ indicator: "bg-[#6244F4]", track: "bg-[#6244F4/10]" }}
                 />
               )}
             </div>

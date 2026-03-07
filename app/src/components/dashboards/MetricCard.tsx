@@ -24,8 +24,8 @@ export function MetricCard({
   change,
   changeType = "up",
   icon,
-  iconBg = "bg-[#F0F8FF] dark:bg-blue-900/20",
-  iconColor = "text-[#0085FF]",
+  iconBg = "bg-[#6244F4]/10 dark:bg-[#6244F4]/20",
+  iconColor = "text-[#6244F4]",
   changeColor,
 }: MetricCardProps) {
   const showChange = change && changeType;
@@ -81,7 +81,7 @@ export function MetricCard({
   };
 
   return (
-    <div className="bg-white dark:bg-[#1a202c] p-5 rounded-xl border border-[#e7ebf3] dark:border-gray-700 transition-all cursor-pointer group">
+    <div className="bg-white dark:bg-[#1a202c] p-5 rounded-xl border border-[#E5E5E5] dark:border-gray-700 transition-all cursor-pointer group">
       <div className="flex justify-between items-start mb-2">
         {icon && (
           <div
@@ -101,10 +101,10 @@ export function MetricCard({
         )}
       </div>
       <div className="mt-2">
-        <h3 className="text-3xl font-bold text-[#0d121b] dark:text-white">
+        <h3 className="text-3xl font-bold text-[#010101] dark:text-white">
           {value}
         </h3>
-        <p className="text-[#4c669a] dark:text-gray-400 text-sm font-medium flex items-center gap-1">
+        <p className="text-[#666666] dark:text-gray-400 text-sm font-medium flex items-center gap-1">
           {title}
         </p>
       </div>

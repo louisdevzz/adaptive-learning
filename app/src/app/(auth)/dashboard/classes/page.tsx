@@ -611,7 +611,7 @@ export default function ClassesPage() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+            <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
               Quản lý lớp học
             </h1>
             <p className="text-[#717680] dark:text-gray-400 mt-1">
@@ -635,8 +635,8 @@ export default function ClassesPage() {
             title="Tổng lớp học"
             value={classes.length.toString()}
             subtitle="Lớp đang hoạt động"
-            icon={<School className="w-6 h-6 text-[#0085FF]" />}
-            color="bg-[#F0F8FF] dark:bg-blue-900/20"
+            icon={<School className="w-6 h-6 text-[#6244F4]" />}
+            color="bg-[#6244F4/10] dark:bg-blue-900/20"
           />
           <StatCard
             title="Tổng học sinh"

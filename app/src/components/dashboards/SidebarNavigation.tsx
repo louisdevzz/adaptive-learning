@@ -126,10 +126,10 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
       {children}
       {isCollapsed && (
         <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50
-          bg-[#0d121b] text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap
+          bg-[#010101] text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap
           opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 shadow-lg">
           {label}
-          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#0d121b]" />
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#010101]" />
         </div>
       )}
     </div>
@@ -140,10 +140,10 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* Logo */}
-      <div className={`shrink-0 flex items-center border-b border-[#e7ebf3] ${collapsed ? "justify-center px-3 py-4" : "px-5 py-4"}`}>
+      <div className={`shrink-0 flex items-center border-b border-[#E5E5E5] ${collapsed ? "justify-center px-3 py-4" : "px-5 py-4"}`}>
         <Link href="/" className="flex items-center gap-2 min-w-0">
           {collapsed ? (
-            <div className="w-8 h-8 rounded-lg bg-[#0085FF] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[#6244F4] flex items-center justify-center shrink-0">
               <span className="text-white font-bold text-sm">A</span>
             </div>
           ) : (
@@ -154,7 +154,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
 
       {/* User profile */}
       {user && (
-        <div className={`shrink-0 py-3 ${collapsed ? "px-2" : "px-3"} border-b border-[#e7ebf3]`}>
+        <div className={`shrink-0 py-3 ${collapsed ? "px-2" : "px-3"} border-b border-[#E5E5E5]`}>
           {collapsed ? (
             <Tooltip label={`${user.fullName} · ${roleLabel}`}>
               <Dropdown placement="right-start">
@@ -169,10 +169,10 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
                     />
                   </button>
                 </DropdownTrigger>
-                <DropdownMenu aria-label="User menu" classNames={{ base: "bg-white border border-[#e7ebf3] rounded-xl shadow-lg min-w-[200px]" }}>
-                  <DropdownItem key="settings" startContent={<Settings className="w-4 h-4 text-[#4c669a]" />} as={Link} href="/dashboard/settings" className="cursor-pointer text-[#0d121b]">Cài đặt</DropdownItem>
-                  <DropdownItem key="help" startContent={<HelpCircle className="w-4 h-4 text-[#4c669a]" />} className="cursor-pointer text-[#0d121b]">Hỗ trợ</DropdownItem>
-                  <DropdownItem key="logout" startContent={<LogOut className="w-4 h-4 text-[#b42318]" />} onPress={logout} className="cursor-pointer text-[#b42318]">Đăng xuất</DropdownItem>
+                <DropdownMenu aria-label="User menu" classNames={{ base: "bg-white border border-[#E5E5E5] rounded-xl shadow-lg min-w-[200px]" }}>
+                  <DropdownItem key="settings" startContent={<Settings className="w-4 h-4 text-[#6244F4]" />} as={Link} href="/dashboard/settings" className="cursor-pointer text-[#010101]">Cài đặt</DropdownItem>
+                  <DropdownItem key="help" startContent={<HelpCircle className="w-4 h-4 text-[#6244F4]" />} className="cursor-pointer text-[#010101]">Hỗ trợ</DropdownItem>
+                  <DropdownItem key="logout" startContent={<LogOut className="w-4 h-4 text-red-500" />} onPress={logout} className="cursor-pointer text-red-500">Đăng xuất</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </Tooltip>
@@ -188,16 +188,16 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
                     color="secondary"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#0d121b] truncate">{user.fullName}</p>
-                    <p className="text-xs text-[#4c669a] truncate">{roleLabel}</p>
+                    <p className="text-sm font-semibold text-[#010101] truncate">{user.fullName}</p>
+                    <p className="text-xs text-[#666666] truncate">{roleLabel}</p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-[#4c669a] shrink-0" />
+                  <ChevronDown className="w-4 h-4 text-[#666666] shrink-0" />
                 </button>
               </DropdownTrigger>
-              <DropdownMenu aria-label="User menu" classNames={{ base: "bg-white border border-[#e7ebf3] rounded-xl shadow-lg min-w-[200px]" }}>
-                <DropdownItem key="settings" startContent={<Settings className="w-4 h-4 text-[#4c669a]" />} as={Link} href="/dashboard/settings" className="cursor-pointer text-[#0d121b]">Cài đặt</DropdownItem>
-                <DropdownItem key="help" startContent={<HelpCircle className="w-4 h-4 text-[#4c669a]" />} className="cursor-pointer text-[#0d121b]">Hỗ trợ</DropdownItem>
-                <DropdownItem key="logout" startContent={<LogOut className="w-4 h-4 text-[#b42318]" />} onPress={logout} className="cursor-pointer text-[#b42318]">Đăng xuất</DropdownItem>
+              <DropdownMenu aria-label="User menu" classNames={{ base: "bg-white border border-[#E5E5E5] rounded-xl shadow-lg min-w-[200px]" }}>
+                <DropdownItem key="settings" startContent={<Settings className="w-4 h-4 text-[#6244F4]" />} as={Link} href="/dashboard/settings" className="cursor-pointer text-[#010101]">Cài đặt</DropdownItem>
+                <DropdownItem key="help" startContent={<HelpCircle className="w-4 h-4 text-[#6244F4]" />} className="cursor-pointer text-[#010101]">Hỗ trợ</DropdownItem>
+                <DropdownItem key="logout" startContent={<LogOut className="w-4 h-4 text-red-500" />} onPress={logout} className="cursor-pointer text-red-500">Đăng xuất</DropdownItem>
               </DropdownMenu>
             </Dropdown>
           )}
@@ -218,7 +218,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
                 <Tooltip key={item.label} label={item.label}>
                   <Link
                     href={item.submenu[0].href}
-                    className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${active ? "bg-[#E8F4FF] text-[#0085FF]" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}
+                    className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${active ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}
                   >
                     <Icon className="w-5 h-5 shrink-0" />
                   </Link>
@@ -229,20 +229,20 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
               <div key={item.label}>
                 <button
                   onClick={() => toggleSubmenu(item.label)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${active ? "bg-[#E8F4FF] text-[#0085FF]" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${active ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}
                 >
                   <Icon className="w-5 h-5 shrink-0" />
                   <span className="flex-1 text-left">{item.label}</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                 </button>
                 {isExpanded && (
-                  <div className="mt-0.5 ml-4 pl-3 border-l-2 border-[#e7ebf3] space-y-0.5">
+                  <div className="mt-0.5 ml-4 pl-3 border-l-2 border-[#E5E5E5] space-y-0.5">
                     {item.submenu.map((sub) => {
                       const SubIcon = sub.icon;
                       const subActive = pathname === sub.href || pathname?.startsWith(sub.href + "/");
                       return (
                         <Link key={sub.label} href={sub.href} onClick={() => setMobileOpen(false)}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${subActive ? "bg-[#E8F4FF] text-[#0085FF] font-medium" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}>
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${subActive ? "bg-[#6244F4]/10 text-[#6244F4] font-medium" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
                           <SubIcon className="w-4 h-4 shrink-0" />
                           <span>{sub.label}</span>
                         </Link>
@@ -258,7 +258,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
             return (
               <Tooltip key={item.label} label={item.label}>
                 <Link href={item.href} onClick={() => setMobileOpen(false)}
-                  className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${active ? "bg-[#E8F4FF] text-[#0085FF]" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}>
+                  className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${active ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
                   <Icon className="w-5 h-5 shrink-0" />
                 </Link>
               </Tooltip>
@@ -267,7 +267,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
 
           return (
             <Link key={item.label} href={item.href} onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? "bg-[#E8F4FF] text-[#0085FF]" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}>
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
               <Icon className="w-5 h-5 shrink-0" />
               <span>{item.label}</span>
             </Link>
@@ -276,17 +276,17 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
       </nav>
 
       {/* Bottom: Settings, Support, Collapse toggle */}
-      <div className={`shrink-0 border-t border-[#e7ebf3] pt-2 pb-3 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}>
+      <div className={`shrink-0 border-t border-[#E5E5E5] pt-2 pb-3 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}>
         {collapsed ? (
           <>
             <Tooltip label="Cài đặt">
               <Link href="/dashboard/settings"
-                className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${pathname === "/dashboard/settings" ? "bg-[#E8F4FF] text-[#0085FF]" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}>
+                className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${pathname === "/dashboard/settings" ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
                 <Settings className="w-5 h-5 shrink-0" />
               </Link>
             </Tooltip>
             <Tooltip label="Hỗ trợ">
-              <button className="w-full flex justify-center items-center p-2.5 rounded-xl text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b] transition-all cursor-pointer">
+              <button className="w-full flex justify-center items-center p-2.5 rounded-xl text-[#666666] hover:bg-gray-50 hover:text-[#010101] transition-all cursor-pointer">
                 <HelpCircle className="w-5 h-5 shrink-0" />
               </button>
             </Tooltip>
@@ -294,11 +294,11 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
         ) : (
           <>
             <Link href="/dashboard/settings"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === "/dashboard/settings" ? "bg-[#E8F4FF] text-[#0085FF]" : "text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b]"}`}>
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === "/dashboard/settings" ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
               <Settings className="w-5 h-5 shrink-0" />
               <span>Cài đặt</span>
             </Link>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#4c669a] hover:bg-gray-50 hover:text-[#0d121b] transition-all cursor-pointer">
+            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#666666] hover:bg-gray-50 hover:text-[#010101] transition-all cursor-pointer">
               <HelpCircle className="w-5 h-5 shrink-0" />
               <span>Hỗ trợ</span>
             </button>
@@ -309,7 +309,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
         <Tooltip label={collapsed ? "Mở rộng" : "Thu gọn"}>
           <button
             onClick={onToggleCollapse}
-            className={`w-full flex items-center rounded-xl text-sm font-medium text-[#4c669a] hover:bg-gray-50 hover:text-[#0085FF] transition-all cursor-pointer mt-1 ${collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"}`}
+            className={`w-full flex items-center rounded-xl text-sm font-medium text-[#666666] hover:bg-gray-50 hover:text-[#6244F4] transition-all cursor-pointer mt-1 ${collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"}`}
           >
             {collapsed
               ? <ChevronsRight className="w-5 h-5 shrink-0" />
@@ -325,22 +325,22 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
     <>
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white border-r border-[#e7ebf3] z-40 transition-all duration-300 ${isCollapsed ? "w-[64px]" : "w-[250px]"}`}
+        className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white border-r border-[#E5E5E5] z-40 transition-all duration-300 ${isCollapsed ? "w-[64px]" : "w-[250px]"}`}
       >
         <SidebarContent collapsed={isCollapsed} />
       </aside>
 
       {/* Mobile: top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#e7ebf3] flex items-center justify-between px-4 py-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E5E5] flex items-center justify-between px-4 py-3">
         <Link href="/">
           <img src="/logo-text.png" alt="Adapt" className="w-24 object-contain" />
         </Link>
         <div className="flex items-center gap-3">
-          <button className="relative p-2 text-[#0d121b] hover:bg-gray-100 rounded-full transition-colors">
+          <button className="relative p-2 text-[#010101] hover:bg-gray-100 rounded-full transition-colors">
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border border-white" />
+            <span className="absolute top-1.5 right-1.5 size-2 bg-[#D7F654] rounded-full border border-white" />
           </button>
-          <button onClick={() => setMobileOpen(true)} className="p-2 text-[#0d121b] hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={() => setMobileOpen(true)} className="p-2 text-[#010101] hover:bg-gray-100 rounded-lg transition-colors">
             <Menu className="w-5 h-5" />
           </button>
         </div>
@@ -351,7 +351,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <aside className="relative w-[260px] h-full bg-white flex flex-col shadow-xl">
-            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 text-[#4c669a] transition-colors">
+            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 text-[#666666] transition-colors">
               <X className="w-4 h-4" />
             </button>
             {/* Mobile always shows expanded */}

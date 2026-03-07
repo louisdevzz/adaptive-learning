@@ -49,7 +49,7 @@ const roleOptions = [
     value: "teacher",
     label: "Giáo viên",
     icon: GraduationCap,
-    color: "bg-[#F0F8FF] text-[#0085FF] border-blue-200",
+    color: "bg-[#6244F4/10] text-[#6244F4] border-blue-200",
   },
   {
     value: "student",
@@ -838,7 +838,7 @@ export default function CreateUserPage() {
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+            <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
               Tạo người dùng mới
             </h1>
             <p className="text-[#717680] dark:text-gray-400 text-sm">

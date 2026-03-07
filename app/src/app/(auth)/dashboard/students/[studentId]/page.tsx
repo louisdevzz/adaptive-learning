@@ -249,7 +249,7 @@ export default function StudentDetailPage() {
         </div>
 
         {/* Profile Header */}
-        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 p-6">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Avatar */}
             <div className="flex-shrink-0">
@@ -270,7 +270,7 @@ export default function StudentDetailPage() {
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-[#0d121b] dark:text-white">
+                  <h1 className="text-2xl font-bold text-[#010101] dark:text-white">
                     {student.fullName}
                   </h1>
                   <p className="text-gray-500 mt-1">
@@ -290,7 +290,7 @@ export default function StudentDetailPage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#F0F8FF] dark:bg-blue-900/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[#6244F4/10] dark:bg-blue-900/20 flex items-center justify-center">
                     <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
@@ -351,8 +351,8 @@ export default function StudentDetailPage() {
             change="Đang học"
             changeType="up"
             icon={<BookOpen className="w-5 h-5" />}
-            iconBg="bg-[#F0F8FF] dark:bg-blue-900/20"
-            iconColor="text-[#0085FF]"
+            iconBg="bg-[#6244F4/10] dark:bg-blue-900/20"
+            iconColor="text-[#6244F4]"
           />
           <MetricCard
             title="Điểm nắm vững TB"
@@ -396,7 +396,7 @@ export default function StudentDetailPage() {
           {/* Courses Section */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[#0d121b] dark:text-white">
+              <h2 className="text-lg font-semibold text-[#010101] dark:text-white">
                 Khóa học đang học
               </h2>
               <Link
@@ -412,7 +412,7 @@ export default function StudentDetailPage() {
                 courses.map((course, index) => (
                   <div
                     key={course.courseId || `course-${index}`}
-                    className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                    className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex gap-4">
                       <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0 overflow-hidden">
@@ -429,7 +429,7 @@ export default function StudentDetailPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#0d121b] dark:text-white truncate">
+                        <h3 className="font-semibold text-[#010101] dark:text-white truncate">
                           {course.courseTitle}
                         </h3>
                         <div className="flex items-center gap-4 mt-2">
@@ -467,7 +467,7 @@ export default function StudentDetailPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700">
+                <div className="text-center py-12 bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700">
                   <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">Học sinh chưa tham gia khóa học nào</p>
                 </div>
@@ -477,11 +477,11 @@ export default function StudentDetailPage() {
 
           {/* Recent Activity */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#0d121b] dark:text-white">
+            <h2 className="text-lg font-semibold text-[#010101] dark:text-white">
               Hoạt động gần đây
             </h2>
 
-            <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-4">
+            <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 p-4">
               <div className="space-y-4">
                 {activities.length > 0 ? (
                   activities.map((activity, index) => (
@@ -492,7 +492,7 @@ export default function StudentDetailPage() {
                             ? "bg-green-50 text-green-600"
                             : activity.type === "mastery"
                             ? "bg-yellow-50 text-yellow-600"
-                            : "bg-[#F0F8FF] text-[#0085FF]"
+                            : "bg-[#6244F4/10] text-[#6244F4]"
                         }`}
                       >
                         {activity.type === "completed" ? (
@@ -504,7 +504,7 @@ export default function StudentDetailPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#0d121b] dark:text-white">
+                        <p className="text-sm font-medium text-[#010101] dark:text-white">
                           {activity.title}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">

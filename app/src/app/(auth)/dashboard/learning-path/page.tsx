@@ -223,7 +223,7 @@ export default function LearningPathPage() {
                 <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">Tổng lộ trình</p>
                 <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">{stats.total}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-[#F0F8FF] text-[#0085FF] flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-[#6244F4/10] text-[#6244F4] flex items-center justify-center">
                 <Route className="w-6 h-6" />
               </div>
             </div>
@@ -469,7 +469,7 @@ export default function LearningPathPage() {
                                     item.status === "completed"
                                       ? "bg-green-50/50 border-green-200"
                                       : item.status === "in_progress"
-                                      ? "bg-[#F0F8FF]/50 border-blue-200"
+                                      ? "bg-[#6244F4/10]/50 border-blue-200"
                                       : "bg-gray-50 border-gray-200"
                                   }`}
                                 >
@@ -478,7 +478,7 @@ export default function LearningPathPage() {
                                       item.status === "completed"
                                         ? "bg-green-500 text-white"
                                         : item.status === "in_progress"
-                                        ? "bg-[#F0F8FF]0 text-white"
+                                        ? "bg-[#6244F4/10]0 text-white"
                                         : "bg-gray-200 text-gray-500"
                                     }`}
                                   >
