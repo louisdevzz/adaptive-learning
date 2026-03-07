@@ -49,7 +49,7 @@ const roleOptions = [
     value: "teacher",
     label: "Giáo viên",
     icon: GraduationCap,
-    color: "bg-blue-50 text-blue-600 border-blue-200",
+    color: "bg-[#F0F8FF] text-[#0085FF] border-blue-200",
   },
   {
     value: "student",

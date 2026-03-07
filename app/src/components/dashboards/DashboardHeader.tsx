@@ -49,7 +49,7 @@ export function DashboardHeader() {
           size="sm"
           variant="light"
           isIconOnly
-          className="p-1.5 text-[#4c669a] hover:text-[#135bec]"
+          className="p-1.5 text-[#4c669a] hover:text-[#0085FF]"
         >
           <Calendar className="w-4 h-4" />
         </Button>

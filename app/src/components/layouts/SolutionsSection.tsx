@@ -19,14 +19,14 @@ const solutions = [
     ],
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDiZG_xB06bAH6HER24cy2ClH4krNCBOpmVqh2BI5pOQNSexc9m7HL5nubLLNxkKMx5rBGnB4wSa7kJ629rnJlQe_YB63oO-T7zU-NyQ0HgwqpWdNZ5NCN6J4wyhZF2kjNDKmQ__gGWFAGmTl4Su_yPg1CRhbDoyWo5o8rAZk9qIFUfdrA8skcsxMu9muWhQXhsa5rBb4APeKP42RtLWTMGvn4C_ouTZD5EnmclLn2GR996Sc3ZE5gcDucU_ekkoviaN96WNOKRHpo",
-    gradient: "from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30",
+    gradient: "from-blue-100 to-cyan-100 dark:from-[#0085FF]/15 dark:to-cyan-900/30",
     order: "reverse",
   },
   {
     badge: {
       icon: GraduationCap,
       text: "Giáo viên",
-      color: "purple",
+      color: "blue",
     },
     title: "Dạy thông minh, giảm tải áp lực",
     description:
@@ -38,7 +38,7 @@ const solutions = [
     ],
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBa63h99_enzqAHBqiqf7cPNyK6przwIDUz6Lc579M3ctU601omX9_R_lcPqYfYyaISAF9BPzfqkfngiEZUpXKabtvfhbAJYf95m1e-E9DyUyVd3QGuHyQqu3xDCxkq77Xo4zqyc8RbRBDSc4fVijc6LHEiNNE9pHEUZnBl64uBWelg2cGCA-udYA0omugTxFOCH-VHs1p_3sKAjs3LJj4_UGfmqRYsBP9Fh_81V499jTvEfO-6rjVTIs4O5iAYvFue2aeHklxDb9E",
-    gradient: "from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30",
+    gradient: "from-[#E8F4FF] to-[#F0F8FF]",
     order: "normal",
   },
   {
@@ -62,8 +62,8 @@ const solutions = [
 ];
 
 const badgeColors = {
-  blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-  purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
+  blue: "bg-[#E8F4FF] text-[#0066CC] dark:bg-[#0085FF]/15 dark:text-[#00AAFF]",
+  purple: "bg-[#E8F4FF] text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
   orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300",
 };
 

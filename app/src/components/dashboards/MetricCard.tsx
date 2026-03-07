@@ -24,8 +24,8 @@ export function MetricCard({
   change,
   changeType = "up",
   icon,
-  iconBg = "bg-blue-50 dark:bg-blue-900/20",
-  iconColor = "text-[#135bec]",
+  iconBg = "bg-[#F0F8FF] dark:bg-blue-900/20",
+  iconColor = "text-[#0085FF]",
   changeColor,
 }: MetricCardProps) {
   const showChange = change && changeType;

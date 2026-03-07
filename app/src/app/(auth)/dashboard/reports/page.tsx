@@ -235,7 +235,7 @@ function AdminReportsView({
           title="Tổng học sinh"
           value={stats?.totalStudents?.toString() || "0"}
           icon={Users}
-          color="bg-blue-50 text-blue-600"
+          color="bg-[#F0F8FF] text-[#0085FF]"
         />
         <StatCard
           title="Tổng giáo viên"
@@ -516,7 +516,7 @@ function TeacherReportsView({
           title="Lớp chủ nhiệm"
           value={stats?.totalClasses?.toString() || "0"}
           icon={School}
-          color="bg-blue-50 text-blue-600"
+          color="bg-[#F0F8FF] text-[#0085FF]"
         />
         <StatCard
           title="Tổng học sinh"

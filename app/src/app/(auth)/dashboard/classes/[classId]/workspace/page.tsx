@@ -233,10 +233,10 @@ export default function ClassWorkspacePage() {
         };
       case "blue":
         return {
-          bg: "bg-blue-50 dark:bg-blue-900/10",
+          bg: "bg-[#F0F8FF] dark:bg-blue-900/10",
           border: "border-blue-200 dark:border-blue-800",
-          badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-          dot: "bg-blue-500",
+          badge: "bg-[#E8F4FF] text-[#0066CC] dark:bg-blue-900/30 dark:text-blue-400",
+          dot: "bg-[#F0F8FF]0",
         };
       default:
         return {

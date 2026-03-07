@@ -19,21 +19,20 @@ const features = [
     icon: BarChart3,
     title: "Real-time Data",
     description: "Báo cáo dữ liệu trực quan theo thời gian thực cho giáo viên và quản trị viên.",
-    color: "indigo",
+    color: "blue",
   },
   {
     icon: Gamepad2,
     title: "Gamification",
     description: "Học qua trò chơi nhỏ (micro-learning) giúp tăng hứng thú và khả năng ghi nhớ.",
-    color: "purple",
+    color: "cyan",
   },
 ];
 
 const colorClasses = {
-  blue: "bg-blue-100 dark:bg-blue-900/50 text-primary",
-  cyan: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600",
-  indigo: "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600",
-  purple: "bg-purple-100 dark:bg-purple-900/50 text-purple-600",
+  blue: "bg-[#E8F4FF] dark:bg-[#0085FF]/15 text-[#0085FF]",
+  cyan: "bg-[#E0F5FF] dark:bg-[#0085FF]/15 text-[#0066CC]",
+  blue2: "bg-[#E8F4FF] dark:bg-[#0085FF]/15 text-[#0066CC]",
 };
 
 export function FeaturesSection() {

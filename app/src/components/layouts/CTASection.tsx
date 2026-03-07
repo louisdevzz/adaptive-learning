@@ -5,9 +5,9 @@ import { ArrowRight } from "lucide-react";
 
 export function CTASection() {
   return (
-    <section className="py-24 bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-br from-[#0085FF] via-[#0066CC] to-[#003D99] text-white relative overflow-hidden">
       <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/50 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0085FF]/50 to-transparent" />
       
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
@@ -20,7 +20,7 @@ export function CTASection() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/login"
-              className="h-14 px-8 rounded-full bg-white text-primary text-base font-semibold shadow-xl hover:bg-blue-50 hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 group"
+              className="h-14 px-8 rounded-full bg-white text-primary text-base font-semibold shadow-xl hover:bg-[#F0F8FF] hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 group"
             >
               Bắt đầu học
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

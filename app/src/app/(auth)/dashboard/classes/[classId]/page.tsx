@@ -345,8 +345,8 @@ export default function ClassPage() {
         );
       case "completed":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#F0F8FF] text-[#0066CC] dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F0F8FF]0"></span>
             Hoàn thành
           </span>
         );
@@ -473,7 +473,7 @@ export default function ClassPage() {
             value={students.length.toString()}
             subtitle={`${students.filter((s) => s.status === "active").length} đang học`}
             icon={Users}
-            color="bg-blue-50 text-blue-600 dark:bg-blue-900/20"
+            color="bg-[#F0F8FF] text-[#0085FF] dark:bg-blue-900/20"
           />
           <StatCard
             title="Điểm trung bình"
@@ -865,8 +865,8 @@ export default function ClassPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                    <Mail className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 rounded-lg bg-[#F0F8FF] flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 text-[#0085FF]" />
                   </div>
                   <div>
                     <p className="text-xs text-[#717680] dark:text-gray-400">

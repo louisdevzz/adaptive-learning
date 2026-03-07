@@ -534,8 +534,8 @@ export default function CoursesPage() {
             title="Tổng khóa học"
             value={stats.total.toString()}
             subtitle={`${stats.totalModules} modules`}
-            icon={<BookOpen className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-50 dark:bg-blue-900/20"
+            icon={<BookOpen className="w-6 h-6 text-[#0085FF]" />}
+            color="bg-[#F0F8FF] dark:bg-blue-900/20"
           />
           <StatCard
             title="Đang hoạt động"

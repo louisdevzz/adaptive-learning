@@ -27,7 +27,7 @@ export function ClassHeader({ onCreate }: ClassHeaderProps) {
           Export
         </Button>
         <Button
-          className="bg-[#135bec] hover:bg-[#0e4bce] text-white"
+          className="bg-[#0085FF] hover:bg-[#0e4bce] text-white"
           startContent={<UserPlus className="size-5" />}
           onPress={onCreate}
         >

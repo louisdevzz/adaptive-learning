@@ -63,7 +63,7 @@ function StudentCard({
     other: "Khác",
   };
   const genderColors: Record<string, string> = {
-    male: "bg-blue-50 text-blue-700 border-blue-200",
+    male: "bg-[#F0F8FF] text-[#0066CC] border-blue-200",
     female: "bg-pink-50 text-pink-700 border-pink-200",
     other: "bg-gray-50 text-gray-700 border-gray-200",
   };
@@ -610,8 +610,8 @@ export default function StudentsPage() {
             title="Tổng học sinh"
             value={stats.total.toString()}
             subtitle="Học sinh đang hoạt động"
-            icon={<Users className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-50 dark:bg-blue-900/20"
+            icon={<Users className="w-6 h-6 text-[#0085FF]" />}
+            color="bg-[#F0F8FF] dark:bg-blue-900/20"
           />
           <StatCard
             title="Nam"

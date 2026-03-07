@@ -199,7 +199,7 @@ export default function StudentProgressPage() {
       case "completed":
         return "bg-green-500";
       case "in_progress":
-        return "bg-blue-500";
+        return "bg-[#F0F8FF]0";
       default:
         return "bg-gray-300";
     }
@@ -341,8 +341,8 @@ export default function StudentProgressPage() {
             change={`${stats.currentStreak} ngày liên tục`}
             changeType="up"
             icon={<Clock className="w-5 h-5" />}
-            iconBg="bg-blue-50 dark:bg-blue-900/20"
-            iconColor="text-blue-600"
+            iconBg="bg-[#F0F8FF] dark:bg-blue-900/20"
+            iconColor="text-[#0085FF]"
           />
         </div>
 
@@ -407,7 +407,7 @@ export default function StudentProgressPage() {
                         course.status === "completed"
                           ? "bg-green-50 text-green-600"
                           : course.status === "in_progress"
-                          ? "bg-blue-50 text-blue-600"
+                          ? "bg-[#F0F8FF] text-[#0085FF]"
                           : "bg-gray-100 text-gray-500"
                       }`}
                     >

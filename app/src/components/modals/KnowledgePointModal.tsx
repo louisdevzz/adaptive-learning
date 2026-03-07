@@ -552,14 +552,6 @@ const KnowledgePointModal = ({
                           <p className="flex-1 text-sm font-medium text-text-main dark:text-white truncate">
                             {formData.content.slideFileName || "Slide đã tải lên"}
                           </p>
-                          <a
-                            href={formData.content.slideUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0"
-                          >
-                            Mở tab mới <ExternalLink className="w-3 h-3" />
-                          </a>
                           <button
                             onClick={() =>
                               setFormData({

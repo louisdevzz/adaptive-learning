@@ -200,8 +200,8 @@ export function AdminDashboard() {
       icon: (
         <HugeiconsIcon icon={UserGroupIcon} size={24} className="w-6 h-6" />
       ),
-      iconBg: "bg-blue-50 dark:bg-blue-900/20",
-      iconColor: "text-[#135bec]",
+      iconBg: "bg-[#F0F8FF] dark:bg-blue-900/20",
+      iconColor: "text-[#0085FF]",
     },
     {
       title: "Giáo viên hoạt động",
@@ -249,7 +249,7 @@ export function AdminDashboard() {
     return (
       <div className="flex items-center justify-center h-96 w-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#135bec] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0085FF] mx-auto"></div>
           <p className="mt-4 text-sm text-[#4c669a]">Đang tải dữ liệu...</p>
         </div>
       </div>
@@ -289,7 +289,7 @@ export function AdminDashboard() {
             <Button
               variant="light"
               size="sm"
-              className="text-[#135bec] text-sm font-medium hover:underline"
+              className="text-[#0085FF] text-sm font-medium hover:underline"
             >
               Chi tiết báo cáo
             </Button>
@@ -324,26 +324,26 @@ export function AdminDashboard() {
               Mật độ học tập (Heatmap)
             </h4>
             <div className="grid grid-cols-7 gap-1 h-24">
-              <div className="bg-blue-100 rounded-sm"></div>
+              <div className="bg-[#E8F4FF] rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
-              <div className="bg-[#135bec] rounded-sm"></div>
+              <div className="bg-[#0085FF] rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
-              <div className="bg-blue-100 rounded-sm"></div>
+              <div className="bg-[#E8F4FF] rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
-              <div className="bg-[#135bec] rounded-sm"></div>
+              <div className="bg-[#0085FF] rounded-sm"></div>
               <div className="bg-blue-800 rounded-sm"></div>
-              <div className="bg-[#135bec] rounded-sm"></div>
+              <div className="bg-[#0085FF] rounded-sm"></div>
               <div className="bg-blue-200 rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
               <div className="bg-blue-300 rounded-sm"></div>
               <div className="bg-blue-600 rounded-sm"></div>
-              <div className="bg-blue-500 rounded-sm"></div>
+              <div className="bg-[#F0F8FF]0 rounded-sm"></div>
               <div className="bg-blue-400 rounded-sm"></div>
               <div className="bg-blue-300 rounded-sm"></div>
-              <div className="bg-blue-100 rounded-sm"></div>
+              <div className="bg-[#E8F4FF] rounded-sm"></div>
               <div className="bg-gray-100 rounded-sm"></div>
             </div>
             <div className="flex justify-between text-[10px] text-[#4c669a] mt-1">
@@ -393,7 +393,7 @@ export function AdminDashboard() {
             <HugeiconsIcon
               icon={Analytics01Icon}
               size={20}
-              className="text-[#135bec]"
+              className="text-[#0085FF]"
             />
             Hiệu suất Nội dung & Khóa học
           </h2>
@@ -401,7 +401,7 @@ export function AdminDashboard() {
             <Button
               variant="light"
               size="sm"
-              className="text-xs font-medium text-[#135bec] bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20"
+              className="text-xs font-medium text-[#0085FF] bg-[#F0F8FF] hover:bg-[#E8F4FF] dark:bg-blue-900/20"
             >
               Cải thiện nội dung
             </Button>
@@ -446,14 +446,14 @@ export function AdminDashboard() {
               <Button
                 variant="light"
                 size="sm"
-                className="text-sm font-bold text-[#135bec] border-b-2 border-[#135bec] -mb-2.5 pb-2 px-0"
+                className="text-sm font-bold text-[#0085FF] border-b-2 border-[#0085FF] -mb-2.5 pb-2 px-0"
               >
                 KP Khó (Fail nhiều)
               </Button>
               <Button
                 variant="light"
                 size="sm"
-                className="text-sm font-medium text-[#4c669a] px-2 hover:text-[#135bec] transition-colors"
+                className="text-sm font-medium text-[#4c669a] px-2 hover:text-[#0085FF] transition-colors"
               >
                 Tỷ lệ bỏ cao
               </Button>
@@ -560,7 +560,7 @@ export function AdminDashboard() {
                             ? ""
                             : preset.key !== "custom" &&
                                 selectedTimeRange === preset.label
-                              ? "bg-blue-50 dark:bg-blue-900/20 text-[#135bec] font-medium"
+                              ? "bg-[#F0F8FF] dark:bg-blue-900/20 text-[#0085FF] font-medium"
                               : "text-[#0d121b] dark:text-white"
                         }`}
                       >
@@ -582,7 +582,7 @@ export function AdminDashboard() {
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#135bec]"
+                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0085FF]"
                           />
                         </div>
                         <div>
@@ -594,12 +594,12 @@ export function AdminDashboard() {
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                             min={startDate}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#135bec]"
+                            className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-[#0d121b] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0085FF]"
                           />
                         </div>
                         <Button
                           size="sm"
-                          className="w-full bg-[#135bec] text-white text-xs mt-1"
+                          className="w-full bg-[#0085FF] text-white text-xs mt-1"
                           onPress={handleCustomDateApply}
                           isDisabled={!startDate || !endDate}
                         >
@@ -660,7 +660,7 @@ export function AdminDashboard() {
               {classDistribution.map((cls, index) => (
                 <div
                   key={index}
-                  className="w-full bg-[#135bec] rounded-t hover:bg-blue-600 transition-colors relative group"
+                  className="w-full bg-[#0085FF] rounded-t hover:bg-blue-600 transition-colors relative group"
                   style={{ height: `${(cls.value / maxDistribution) * 100}%` }}
                 >
                   <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 text-[10px] hidden group-hover:block bg-black text-white px-1 rounded">
@@ -692,7 +692,7 @@ export function AdminDashboard() {
                       />
                     ) : (
                       <div
-                        className={`size-8 rounded-full ${index === 0 ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"} flex items-center justify-center font-bold text-xs`}
+                        className={`size-8 rounded-full ${index === 0 ? "bg-[#E8F4FF] text-[#0085FF]" : "bg-purple-100 text-purple-600"} flex items-center justify-center font-bold text-xs`}
                       >
                         {teacher.initials}
                       </div>
@@ -743,14 +743,14 @@ export function AdminDashboard() {
           <HugeiconsIcon
             icon={Analytics01Icon}
             size={20}
-            className="text-[#135bec]"
+            className="text-[#0085FF]"
           />
           Admin Command Center
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link href="/dashboard/users">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={UserGroupIcon} size={32} />
               </div>
               <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
@@ -762,8 +762,8 @@ export function AdminDashboard() {
             </div>
           </Link>
           <Link href="/dashboard/courses">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={Book04Icon} size={32} />
               </div>
               <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
@@ -775,8 +775,8 @@ export function AdminDashboard() {
             </div>
           </Link>
           <Link href="/dashboard/courses/create">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={AddCircleIcon} size={32} />
               </div>
               <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">
@@ -788,8 +788,8 @@ export function AdminDashboard() {
             </div>
           </Link>
           <Link href="/dashboard/reports">
-            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#135bec] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
-              <div className="size-14 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center mb-4 group-hover:bg-[#135bec] group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-[#1a202c] p-6 rounded-xl border border-[#e7ebf3] dark:border-gray-700 hover:border-[#0085FF] transition-all flex flex-col items-center justify-center text-center h-auto cursor-pointer group">
+              <div className="size-14 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center mb-4 group-hover:bg-[#0085FF] group-hover:text-white transition-colors">
                 <HugeiconsIcon icon={Analytics01Icon} size={32} />
               </div>
               <h3 className="text-base font-semibold text-[#0d121b] dark:text-white">

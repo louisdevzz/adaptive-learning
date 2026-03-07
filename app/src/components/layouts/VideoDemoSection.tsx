@@ -7,7 +7,7 @@ export function VideoDemoSection() {
     <section className="py-24 bg-gradient-to-b from-slate-900 to-slate-800 text-white relative isolate overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
         <div className="absolute top-10 left-10 w-96 h-96 bg-primary/30 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-600/30 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#0066CC]/20 rounded-full blur-[100px]"></div>
       </div>
 
       <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">

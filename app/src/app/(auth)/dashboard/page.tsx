@@ -92,30 +92,30 @@ function WelcomeSection({ user }: { user: any }) {
           Đây là tình hình hoạt động của hệ thống hôm nay.
         </p>
       </div>
-      <div className="flex items-center gap-3">
-        <Button
-          variant="bordered"
-          size="sm"
-          className="border-[#d5d7da] dark:border-gray-600"
-        >
-          <Calendar className="w-4 h-4 mr-2" />
-          {new Date().toLocaleDateString("vi-VN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </Button>
-        <Button
-          isIconOnly
-          variant="bordered"
-          size="sm"
-          className="border-[#d5d7da] dark:border-gray-600 relative"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
-        </Button>
-      </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="bordered"
+              size="sm"
+              className="border-[#E8F4FF] dark:border-[#0085FF]/30 bg-[#F0F8FF] dark:bg-[#0085FF]/10"
+            >
+              <Calendar className="w-4 h-4 mr-2 text-[#0085FF]" />
+              {new Date().toLocaleDateString("vi-VN", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Button>
+            <Button
+              isIconOnly
+              variant="bordered"
+              size="sm"
+              className="border-[#E8F4FF] dark:border-[#0085FF]/30 bg-[#F0F8FF] dark:bg-[#0085FF]/10 relative"
+            >
+              <Bell className="w-4 h-4 text-[#0085FF]" />
+              <span className="absolute top-0 right-0 w-2 h-2 bg-[#00AAFF] rounded-full" />
+            </Button>
+          </div>
     </div>
   );
 }
@@ -139,13 +139,13 @@ function QuickStatCard({
   href?: string;
 }) {
   const content = (
-    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 hover:shadow-lg transition-all group">
+    <div className="bg-white dark:bg-[#1a202c] rounded-2xl border border-[#E8F4FF] dark:border-gray-700 p-5 hover:shadow-lg hover:shadow-[#0085FF]/10 hover:border-[#0085FF]/30 transition-all group">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-[#717680] dark:text-gray-400 font-medium">
             {title}
           </p>
-          <p className="text-2xl font-bold text-[#181d27] dark:text-white mt-1">
+          <p className="text-2xl font-bold text-[#0A1628] dark:text-white mt-1">
             {value}
           </p>
           {change && (
@@ -153,7 +153,7 @@ function QuickStatCard({
               <span
                 className={`text-xs font-medium ${
                   changeType === "up"
-                    ? "text-green-600"
+                    ? "text-[#0085FF]"
                     : changeType === "down"
                       ? "text-red-600"
                       : "text-gray-500"
@@ -176,11 +176,11 @@ function QuickStatCard({
         </div>
       </div>
       {href && (
-        <div className="mt-4 pt-4 border-t border-[#e9eaeb] dark:border-gray-700 flex items-center justify-between">
-          <span className="text-sm text-primary font-medium group-hover:underline">
+        <div className="mt-4 pt-4 border-t border-[#E8F4FF] dark:border-gray-700 flex items-center justify-between">
+          <span className="text-sm text-[#0085FF] font-medium group-hover:underline">
             Xem chi tiết
           </span>
-          <ArrowUpRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ArrowUpRight className="w-4 h-4 text-[#0085FF] opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       )}
     </div>
@@ -200,14 +200,14 @@ function QuickStatCard({
 // Activity Item Component
 function ActivityItem({ activity }: { activity: Activity }) {
   const icons = {
-    student_joined: <Users className="w-4 h-4 text-blue-600" />,
+    student_joined: <Users className="w-4 h-4 text-[#0085FF]" />,
     course_completed: <CheckCircle2 className="w-4 h-4 text-green-600" />,
     assignment_submitted: <BookOpen className="w-4 h-4 text-purple-600" />,
     achievement_earned: <Award className="w-4 h-4 text-yellow-600" />,
   };
 
   const bgColors = {
-    student_joined: "bg-blue-50 dark:bg-blue-900/20",
+    student_joined: "bg-[#F0F8FF] dark:bg-blue-900/20",
     course_completed: "bg-green-50 dark:bg-green-900/20",
     assignment_submitted: "bg-purple-50 dark:bg-purple-900/20",
     achievement_earned: "bg-yellow-50 dark:bg-yellow-900/20",
@@ -358,8 +358,8 @@ function AdminDashboardContent({ user }: { user: any }) {
           value={stats.totalStudents.toLocaleString()}
           change="+12"
           changeType="up"
-          icon={<Users className="w-6 h-6 text-blue-600" />}
-          color="bg-blue-50 dark:bg-blue-900/20"
+          icon={<Users className="w-6 h-6 text-[#0085FF]" />}
+          color="bg-[#E8F4FF] dark:bg-[#0085FF]/20"
           href="/dashboard/students"
         />
         <QuickStatCard
@@ -404,8 +404,8 @@ function AdminDashboardContent({ user }: { user: any }) {
             <QuickActionCard
               title="Quản lý học sinh"
               description="Thêm, sửa, xóa và xem thông tin học sinh"
-              icon={<Users className="w-6 h-6 text-blue-600" />}
-              color="bg-blue-50 dark:bg-blue-900/20"
+              icon={<Users className="w-6 h-6 text-[#0085FF]" />}
+              color="bg-[#F0F8FF] dark:bg-blue-900/20"
               href="/dashboard/students"
             />
             <QuickActionCard
@@ -476,8 +476,8 @@ function AdminDashboardContent({ user }: { user: any }) {
               </p>
             </div>
             <div className="text-center border-x border-[#e9eaeb] dark:border-gray-700">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 mb-3">
-                <Flame className="w-8 h-8 text-blue-600" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#F0F8FF] dark:bg-blue-900/20 mb-3">
+                <Flame className="w-8 h-8 text-[#0085FF]" />
               </div>
               <p className="text-2xl font-bold text-[#181d27] dark:text-white">
                 85%
@@ -573,8 +573,8 @@ function TeacherDashboardContent({ user }: { user: any }) {
         <QuickStatCard
           title="Lớp đang dạy"
           value={stats.totalClasses.toString()}
-          icon={<School className="w-6 h-6 text-blue-600" />}
-          color="bg-blue-50 dark:bg-blue-900/20"
+          icon={<School className="w-6 h-6 text-[#0085FF]" />}
+          color="bg-[#F0F8FF] dark:bg-blue-900/20"
           href="/dashboard/classes"
         />
         <QuickStatCard
@@ -584,13 +584,13 @@ function TeacherDashboardContent({ user }: { user: any }) {
           color="bg-green-50 dark:bg-green-900/20"
           href="/dashboard/students"
         />
-        <QuickStatCard
-          title="Khóa học"
-          value={stats.totalCourses.toString()}
-          icon={<BookOpen className="w-6 h-6 text-purple-600" />}
-          color="bg-purple-50 dark:bg-purple-900/20"
-          href="/dashboard/courses"
-        />
+          <QuickStatCard
+            title="Khóa học"
+            value={stats.totalCourses.toString()}
+            icon={<BookOpen className="w-6 h-6 text-[#0085FF]" />}
+            color="bg-[#E8F4FF] dark:bg-[#0085FF]/20"
+            href="/dashboard/courses"
+          />
         <QuickStatCard
           title="Bài tập đã tạo"
           value={stats.totalAssignments.toString()}
@@ -635,8 +635,8 @@ function TeacherDashboardContent({ user }: { user: any }) {
                   <Link key={cls.id} href={`/dashboard/classes`}>
                     <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                          <School className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 rounded-lg bg-[#F0F8FF] dark:bg-blue-900/20 flex items-center justify-center">
+                          <School className="w-5 h-5 text-[#0085FF]" />
                         </div>
                         <div>
                           <p className="font-medium text-[#181d27] dark:text-white">
@@ -805,7 +805,7 @@ function StudentDashboardContent({ user }: { user: any }) {
       case 'completed':
         return 'text-green-600 bg-green-50 dark:bg-green-900/20';
       case 'in_progress':
-        return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20';
+        return 'text-[#0085FF] bg-[#F0F8FF] dark:bg-blue-900/20';
       default:
         return 'text-gray-600 bg-gray-50 dark:bg-gray-800';
     }
@@ -851,8 +851,8 @@ function StudentDashboardContent({ user }: { user: any }) {
       {/* Class Info */}
       {stats.classInfo && (
         <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-            <School className="w-6 h-6 text-blue-600" />
+          <div className="w-12 h-12 rounded-xl bg-[#F0F8FF] dark:bg-blue-900/20 flex items-center justify-center">
+            <School className="w-6 h-6 text-[#0085FF]" />
           </div>
           <div>
             <p className="font-semibold text-[#181d27] dark:text-white">
@@ -871,8 +871,8 @@ function StudentDashboardContent({ user }: { user: any }) {
           value={stats.totalCourses.toString()}
           change={`${stats.coursesInProgress} đang học`}
           changeType="neutral"
-          icon={<BookOpen className="w-6 h-6 text-blue-600" />}
-          color="bg-blue-50 dark:bg-blue-900/20"
+          icon={<BookOpen className="w-6 h-6 text-[#0085FF]" />}
+          color="bg-[#F0F8FF] dark:bg-blue-900/20"
           href="/dashboard/my-courses"
         />
         <QuickStatCard
@@ -994,8 +994,8 @@ function StudentDashboardContent({ user }: { user: any }) {
           <QuickActionCard
             title="Khóa học của tôi"
             description="Xem tất cả khóa học đang học"
-            icon={<BookOpen className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-50 dark:bg-blue-900/20"
+            icon={<BookOpen className="w-6 h-6 text-[#0085FF]" />}
+            color="bg-[#F0F8FF] dark:bg-blue-900/20"
             href="/dashboard/my-courses"
           />
           <QuickActionCard
@@ -1139,8 +1139,8 @@ function ParentDashboardContent({ user }: { user: any }) {
           <QuickStatCard
             title="Số con đang học"
             value={children.length.toString()}
-            icon={<Users className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-50 dark:bg-blue-900/20"
+            icon={<Users className="w-6 h-6 text-[#0085FF]" />}
+            color="bg-[#F0F8FF] dark:bg-blue-900/20"
           />
         </Link>
         <Link href="/dashboard/children-progress">

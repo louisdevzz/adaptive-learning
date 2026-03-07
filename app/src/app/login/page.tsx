@@ -169,9 +169,9 @@ function LoginForm() {
                     x2="100%"
                     y2="100%"
                   >
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-                    <stop offset="50%" stopColor="#1d4ed8" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.3" />
+                    <stop offset="0%" stopColor="#0085FF" stopOpacity="0.8" />
+                    <stop offset="50%" stopColor="#0066CC" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#003D99" stopOpacity="0.3" />
                   </linearGradient>
                 </defs>
                 <motion.path
@@ -207,8 +207,8 @@ function LoginForm() {
                     x2="100%"
                     y2="100%"
                   >
-                    <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#1e40af" stopOpacity="0.2" />
+                    <stop offset="0%" stopColor="#00AAFF" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#0066CC" stopOpacity="0.2" />
                   </linearGradient>
                 </defs>
                 <motion.path

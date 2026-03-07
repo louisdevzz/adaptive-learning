@@ -290,7 +290,7 @@ export default function StudentDetailPage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[#F0F8FF] dark:bg-blue-900/20 flex items-center justify-center">
                     <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
@@ -351,8 +351,8 @@ export default function StudentDetailPage() {
             change="Đang học"
             changeType="up"
             icon={<BookOpen className="w-5 h-5" />}
-            iconBg="bg-blue-50 dark:bg-blue-900/20"
-            iconColor="text-blue-600"
+            iconBg="bg-[#F0F8FF] dark:bg-blue-900/20"
+            iconColor="text-[#0085FF]"
           />
           <MetricCard
             title="Điểm nắm vững TB"
@@ -492,7 +492,7 @@ export default function StudentDetailPage() {
                             ? "bg-green-50 text-green-600"
                             : activity.type === "mastery"
                             ? "bg-yellow-50 text-yellow-600"
-                            : "bg-blue-50 text-blue-600"
+                            : "bg-[#F0F8FF] text-[#0085FF]"
                         }`}
                       >
                         {activity.type === "completed" ? (

@@ -151,7 +151,7 @@ export default function ClassProgressPage() {
         );
       case "good":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#F0F8FF] text-[#0066CC] dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
             <CheckCircle2 className="w-3 h-3" />
             Tốt
           </span>
@@ -284,7 +284,7 @@ export default function ClassProgressPage() {
             value={`${summary.avgMastery}%`}
             subtitle="Toàn lớp"
             icon={TrendingUp}
-            color="bg-blue-50 text-blue-600 dark:bg-blue-900/20"
+            color="bg-[#F0F8FF] text-[#0085FF] dark:bg-blue-900/20"
           />
           <StatCard
             title="Tổng học sinh"

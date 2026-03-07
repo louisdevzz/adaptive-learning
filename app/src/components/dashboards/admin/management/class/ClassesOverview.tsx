@@ -176,7 +176,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                   </h3>
                   <Link
                     href={`/dashboard/classes/${classItem.id}`}
-                    className="text-sm text-[#135bec] hover:underline font-medium"
+                    className="text-sm text-[#0085FF] hover:underline font-medium"
                   >
                     Xem tất cả
                   </Link>
@@ -195,7 +195,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                           <Avatar
                             src={student.avatarUrl}
                             size="lg"
-                            className="size-20 rounded-full mb-3 border-2 border-[#135bec]/20 dark:border-[#135bec]/50"
+                            className="size-20 rounded-full mb-3 border-2 border-[#0085FF]/20 dark:border-[#0085FF]/50"
                           />
                         ) : (
                           <div className="size-20 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 flex items-center justify-center font-bold text-xl border-2 border-green-500/20 dark:border-green-500/30 mb-3">
@@ -224,7 +224,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                           <Button
                             variant="light"
                             size="sm"
-                            className="bg-[#135bec]/10 hover:bg-[#135bec]/20 text-[#135bec]"
+                            className="bg-[#0085FF]/10 hover:bg-[#0085FF]/20 text-[#0085FF]"
                             startContent={<TrendingUp className="size-4" />}
                             onPress={() =>
                               router.push(
@@ -300,7 +300,7 @@ export function ClassesOverview({ classes, loading }: ClassesOverviewProps) {
                     size="sm"
                     className={`min-w-[32px] h-8 ${
                       currentPage === pageNum
-                        ? "bg-[#135bec] text-white"
+                        ? "bg-[#0085FF] text-white"
                         : "text-[#4c669a] dark:text-gray-400"
                     }`}
                     // @ts-ignore

@@ -72,7 +72,7 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleColors: Record<UserRole, string> = {
   admin: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  teacher: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  teacher: "bg-[#E8F4FF] text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   student: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   parent: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
 };
@@ -293,7 +293,7 @@ export function UserTable({
                 className="rounded-full shrink-0"
               />
             ) : (
-              <div className="size-10 rounded-full bg-[#135bec]/10 text-[#135bec] flex items-center justify-center font-bold text-sm shrink-0 border border-transparent dark:border-[#135bec]/20">
+              <div className="size-10 rounded-full bg-[#0085FF]/10 text-[#0085FF] flex items-center justify-center font-bold text-sm shrink-0 border border-transparent dark:border-[#0085FF]/20">
                 {getInitials(user.fullName)}
               </div>
             )}
@@ -338,7 +338,7 @@ export function UserTable({
               isIconOnly
               variant="light"
               size="sm"
-              className="text-[#4c669a] hover:text-[#135bec] hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              className="text-[#4c669a] hover:text-[#0085FF] hover:bg-[#F0F8FF] dark:hover:bg-blue-900/20"
               onPress={() => onEdit(user)}
             >
               <Edit className="size-4" />
@@ -417,7 +417,7 @@ export function UserTable({
                 size="sm"
                 className={`min-w-[32px] h-8 ${
                   currentPage === pageNum
-                    ? "bg-[#135bec] text-white"
+                    ? "bg-[#0085FF] text-white"
                     : "text-[#4c669a] dark:text-gray-400"
                 }`}
                 onPress={() => onPageChange(pageNum)}

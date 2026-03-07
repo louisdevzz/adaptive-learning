@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
-import { Roboto_Flex } from "next/font/google";
+import { Space_Grotesk, DM_Sans } from "next/font/google";
 import Provider from "@/components/Provider";
 import { Toaster } from "sonner";
 import localFont from "next/font/local";
 
 import "./globals.css";
 
-const robotoFlex = Roboto_Flex({
-  variable: "--font-roboto-flex",
-  subsets: ["latin", "vietnamese"],
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-heading",
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -36,7 +43,7 @@ const dinRoundMedium = localFont({
 export const metadata: Metadata = {
   title: "Adaptive Learning Platform v3.0 - Học tập thông minh, cá nhân hóa",
   description:
-    "Nền tảng học tập thông minh được thiết kế để cá nhân hoá hành trình học của từng học sinh. Hệ thống phân rã kiến thức thành các đơn vị nhỏ (Knowledge Points), theo dõi mức độ nắm vững theo thời gian thực và tự động đề xuất nội dung phù hợp với năng lực hiện tại.",
+    "Nền tảng học tập thông minh được thiết kế để cá nhân hoá hành trình học của từng học sinh. Hệ thống phân rã kiến thức thành các đơn vị nhỏ (Knowledge Points), theo dõi mức độ nắm vững theo thờigian thực và tự động đề xuất nội dung phù hợp với năng lực hiện tại.",
   keywords: [
     "adaptive learning",
     "học tập thông minh",
@@ -65,7 +72,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Adaptive Learning Platform v3.0 - Học tập thông minh, cá nhân hóa",
     description:
-      "Nền tảng học tập thông minh với cá nhân hóa theo thời gian thực. Phân rã kiến thức, theo dõi mastery và tự động đề xuất nội dung phù hợp.",
+      "Nền tảng học tập thông minh với cá nhân hóa theo thờigian thực. Phân rã kiến thức, theo dõi mastery và tự động đề xuất nội dung phù hợp.",
     type: "website",
     locale: "vi_VN",
     siteName: "Adaptive Learning Platform",
@@ -74,7 +81,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Adaptive Learning Platform v3.0",
     description:
-      "Nền tảng học tập thông minh với cá nhân hóa theo thời gian thực",
+      "Nền tảng học tập thông minh với cá nhân hóa theo thờigian thực",
     creator: "@adaptivelearning",
   },
   viewport: {
@@ -96,7 +103,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
-        className={`${robotoFlex.className} ${dinRound.variable} ${dinRoundMedium.variable} font-sans antialiased`}
+        className={`${spaceGrotesk.variable} ${dmSans.variable} ${dinRound.variable} ${dinRoundMedium.variable} font-body antialiased`}
       >
         <Provider>
           {children}

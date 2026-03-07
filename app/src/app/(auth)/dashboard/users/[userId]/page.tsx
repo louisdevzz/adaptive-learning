@@ -69,7 +69,7 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleColors: Record<UserRole, string> = {
   admin: "bg-purple-50 text-purple-700 border-purple-200",
-  teacher: "bg-blue-50 text-blue-700 border-blue-200",
+  teacher: "bg-[#F0F8FF] text-[#0066CC] border-blue-200",
   student: "bg-green-50 text-green-700 border-green-200",
   parent: "bg-orange-50 text-orange-700 border-orange-200",
 };
@@ -827,8 +827,8 @@ export default function UserDetailPage() {
               <StatCard
                 title="Khóa học"
                 value="5"
-                icon={<School className="w-5 h-5 text-blue-600" />}
-                color="bg-blue-50 dark:bg-blue-900/20"
+                icon={<School className="w-5 h-5 text-[#0085FF]" />}
+                color="bg-[#F0F8FF] dark:bg-blue-900/20"
               />
               <StatCard
                 title="Tiến độ"
@@ -894,7 +894,7 @@ export default function UserDetailPage() {
                         activity.type === "login"
                           ? "bg-green-50 text-green-600"
                           : activity.type === "update"
-                          ? "bg-blue-50 text-blue-600"
+                          ? "bg-[#F0F8FF] text-[#0085FF]"
                           : "bg-purple-50 text-purple-600"
                       }`}>
                         <History className="w-4 h-4" />

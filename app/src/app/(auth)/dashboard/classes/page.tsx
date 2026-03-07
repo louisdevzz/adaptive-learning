@@ -635,8 +635,8 @@ export default function ClassesPage() {
             title="Tổng lớp học"
             value={classes.length.toString()}
             subtitle="Lớp đang hoạt động"
-            icon={<School className="w-6 h-6 text-blue-600" />}
-            color="bg-blue-50 dark:bg-blue-900/20"
+            icon={<School className="w-6 h-6 text-[#0085FF]" />}
+            color="bg-[#F0F8FF] dark:bg-blue-900/20"
           />
           <StatCard
             title="Tổng học sinh"

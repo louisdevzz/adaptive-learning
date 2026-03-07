@@ -11,14 +11,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "primary": "#2563EB",
-        "primary-dark": "#1D4ED8",
-        "secondary": "#EFF6FF",
-        "accent": "#F0F9FF",
+        "primary": "#0085FF",
+        "primary-dark": "#0066CC",
+        "primary-light": "#E8F4FF",
+        "secondary": "#E8F4FF",
+        "accent": "#F0F8FF",
         "background-light": "#FFFFFF",
         "background-soft": "#F8FAFC",
-        "background-dark": "#0F172A",
-        "text-main": "#0F172A",
+        "background-dark": "#0A1628",
+        "text-main": "#0A1628",
         "text-muted": "#64748B",
         "card-border": "#E2E8F0",
       },
@@ -36,7 +37,7 @@ module.exports = {
       },
       boxShadow: {
         'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
-        'glow': '0 0 20px rgba(37, 99, 235, 0.3)',
+        'glow': '0 0 20px rgba(0, 133, 255, 0.35)',
       }
     },
   },

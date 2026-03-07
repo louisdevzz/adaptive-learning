@@ -5,6 +5,8 @@ import { DashboardBreadcrumbs } from "./DashboardBreadcrumbs";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
+import { Search, Bell } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
 
 export default function LayoutDashboard({
   children,
@@ -12,7 +14,9 @@ export default function LayoutDashboard({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user } = useUser();
   const [entityNames, setEntityNames] = useState<Record<string, string>>({});
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Check if a string is a UUID
   const isUUID = (str: string): boolean => {
@@ -26,12 +30,10 @@ export default function LayoutDashboard({
     const fetchEntityName = async () => {
       const segments = pathname.split("/").filter(Boolean);
 
-      // Skip 'dashboard' segment
       if (segments[0] === "dashboard") {
         segments.shift();
       }
 
-      // Find ID segments and their entity types that need fetching
       const toFetch: Array<{
         entityType: string;
         entityId: string;
@@ -41,13 +43,11 @@ export default function LayoutDashboard({
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
 
-        // Check if segment is a UUID and get entity type from previous segment
         if (isUUID(segment) && i > 0) {
           const entityType = segments[i - 1];
           const entityId = segment;
           const cacheKey = `${entityType}-${entityId}`;
 
-          // Check if we support this entity type and it's not cached
           if (
             [
               "courses",
@@ -59,32 +59,20 @@ export default function LayoutDashboard({
               "users",
             ].includes(entityType)
           ) {
-            // Check if already cached
             setEntityNames((prev) => {
-              if (prev[cacheKey]) {
-                return prev; // Already cached, no update needed
-              }
-              return prev; // Return same reference, we'll fetch separately
+              if (prev[cacheKey]) return prev;
+              return prev;
             });
-
             toFetch.push({ entityType, entityId, cacheKey });
           }
         }
       }
 
-      // If nothing to fetch, return early
       if (toFetch.length === 0) return;
 
-      // Fetch all entities in parallel
       const fetchPromises = toFetch.map(
         async ({ entityType, entityId, cacheKey }) => {
           try {
-            // Check cache one more time before fetching
-            setEntityNames((prev) => {
-              if (prev[cacheKey]) return prev;
-              return prev;
-            });
-
             let name: string | undefined;
 
             switch (entityType) {
@@ -113,7 +101,6 @@ export default function LayoutDashboard({
                 name = parent?.fullName;
                 break;
               case "users":
-                // Try to fetch from all role endpoints (similar to user detail page)
                 try {
                   const endpoints = [
                     api.admins
@@ -171,7 +158,6 @@ export default function LayoutDashboard({
 
       if (Object.keys(newNames).length > 0) {
         setEntityNames((prev) => {
-          // Only update if we have new names that aren't already in cache
           const hasNew = Object.keys(newNames).some((key) => !prev[key]);
           return hasNew ? { ...prev, ...newNames } : prev;
         });
@@ -211,78 +197,45 @@ export default function LayoutDashboard({
     };
 
     const actionLabels: Record<string, Record<string, string>> = {
-      courses: {
-        create: "Tạo khóa học",
-        edit: "Sửa khóa học",
-      },
-      classes: {
-        create: "Tạo lớp học",
-        edit: "Sửa lớp học",
-      },
-      students: {
-        create: "Tạo học sinh",
-        edit: "Sửa học sinh",
-      },
-      teachers: {
-        create: "Tạo giáo viên",
-        edit: "Sửa giáo viên",
-      },
-      parents: {
-        create: "Tạo phụ huynh",
-        edit: "Sửa phụ huynh",
-      },
-      admins: {
-        create: "Tạo quản trị viên",
-        edit: "Sửa quản trị viên",
-      },
-      users: {
-        create: "Tạo người dùng",
-        edit: "Sửa người dùng",
-      },
+      courses: { create: "Tạo khóa học", edit: "Sửa khóa học" },
+      classes: { create: "Tạo lớp học", edit: "Sửa lớp học" },
+      students: { create: "Tạo học sinh", edit: "Sửa học sinh" },
+      teachers: { create: "Tạo giáo viên", edit: "Sửa giáo viên" },
+      parents: { create: "Tạo phụ huynh", edit: "Sửa phụ huynh" },
+      admins: { create: "Tạo quản trị viên", edit: "Sửa quản trị viên" },
+      users: { create: "Tạo người dùng", edit: "Sửa người dùng" },
     };
 
     const segments = pathname.split("/").filter(Boolean);
     const items: Array<{ label: string; href?: string }> = [];
 
-    // Skip 'dashboard' segment
     if (segments[0] === "dashboard") {
       segments.shift();
     }
 
-    // Build breadcrumb items
     let currentPath = "/dashboard";
     segments.forEach((segment, index) => {
       const isLast = index === segments.length - 1;
-
       currentPath += `/${segment}`;
 
       let label: string;
 
-      // Check if this segment is a UUID (ID)
       if (isUUID(segment) && index > 0) {
         const entityType = segments[index - 1];
         const cacheKey = `${entityType}-${segment}`;
-        label = entityNames[cacheKey] || segment; // Use cached name or fallback to ID
-      }
-      // Check if this is an action (create/edit) with a specific label
-      else if (actionLabels[segments[index - 1]]?.[segment]) {
+        label = entityNames[cacheKey] || segment;
+      } else if (actionLabels[segments[index - 1]]?.[segment]) {
         const entityType = segments[index - 1];
         label = actionLabels[entityType][segment];
-      }
-      // Check if this is "create" and should combine with previous segment
-      else if (segment === "create" && index > 0) {
+      } else if (segment === "create" && index > 0) {
         const entityType = segments[index - 1];
         label =
           actionLabels[entityType]?.["create"] || labelMap[segment] || segment;
-      }
-      // Check if this is "edit" and should combine with previous segment
-      else if (segment === "edit" && index > 0 && isUUID(segments[index - 1])) {
+      } else if (segment === "edit" && index > 0 && isUUID(segments[index - 1])) {
         const entityType = segments[index - 2];
         label =
           actionLabels[entityType]?.["edit"] || labelMap[segment] || segment;
-      }
-      // Use labelMap or format the segment
-      else {
+      } else {
         label =
           labelMap[segment] ||
           segment
@@ -301,15 +254,48 @@ export default function LayoutDashboard({
   }, [pathname, entityNames]);
 
   return (
-    <div className="bg-white flex flex-col items-start relative min-h-screen w-full">
-      <SidebarNavigation />
-      <main className="flex-1 md:px-12 py-6 px-4 mx-auto w-full">
-        {/* Breadcrumbs */}
-        <div className="mb-6">
-          <DashboardBreadcrumbs items={breadcrumbItems} />
-        </div>
-        {children}
-      </main>
+    <div className="flex min-h-screen bg-[#f8f9fb]">
+      {/* Sidebar */}
+      <SidebarNavigation
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+      />
+
+      {/* Main content — offset by sidebar width on desktop */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[64px]" : "lg:ml-[250px]"}`}>
+        {/* Top Bar */}
+        <header className="sticky top-0 z-30 bg-white border-b border-[#e7ebf3] px-6 py-3 flex items-center justify-between gap-4 lg:mt-0 mt-[57px]">
+          {/* Search */}
+          <div className="flex items-center bg-[#f0f2f5] rounded-lg px-3 py-2 w-full max-w-sm focus-within:ring-2 focus-within:ring-[#0085FF]/20 transition-all">
+            <Search className="w-4 h-4 text-[#4c669a] shrink-0" />
+            <input
+              className="bg-transparent border-none text-sm w-full focus:ring-0 text-[#0d121b] placeholder:text-[#4c669a] ml-2 outline-none"
+              placeholder="Tìm kiếm..."
+              type="text"
+            />
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              className="relative p-2 text-[#0d121b] hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 px-6 py-5">
+          {/* Breadcrumbs */}
+          <div className="mb-5">
+            <DashboardBreadcrumbs items={breadcrumbItems} />
+          </div>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
