@@ -105,6 +105,16 @@ export class StudentProgressService {
         attemptId: updateDto.lastAttemptId,
       });
 
+      return { progress, oldMasteryScore: oldScore };
+    }).then(({ progress, oldMasteryScore }) => {
+      // Emit event after transaction commits
+      this.eventEmitter.emit('progress.updated', {
+        studentId: updateDto.studentId,
+        kpId: updateDto.kpId,
+        newMasteryScore: updateDto.masteryScore,
+        oldMasteryScore,
+        timestamp: new Date(),
+      });
       return progress;
     });
   }
@@ -339,7 +349,7 @@ export class StudentProgressService {
     // Check if answer is correct
     const isCorrect = String(submitDto.selectedAnswer) === String(correctAnswer);
 
-    return await db.transaction(async (tx) => {
+    const txResult = await db.transaction(async (tx) => {
       // Create question attempt
       const [attempt] = await tx
         .insert(questionAttempts)
@@ -425,24 +435,24 @@ export class StudentProgressService {
         attemptId: attempt.id,
       });
 
-      const result = {
-        attempt,
-        isCorrect,
-        masteryScore,
-        confidence,
-      };
-
-      // Emit event for learning path auto-generation
-      this.eventEmitter.emit('progress.updated', {
-        studentId: submitDto.studentId,
-        kpId: submitDto.kpId,
-        newMasteryScore: masteryScore,
-        oldMasteryScore: oldScore,
-        timestamp: new Date(),
-      });
-
-      return result;
+      return { attempt, isCorrect, masteryScore, confidence, oldMasteryScore: oldScore };
     });
+
+    // Emit event after transaction commits to avoid seeing uncommitted data
+    this.eventEmitter.emit('progress.updated', {
+      studentId: submitDto.studentId,
+      kpId: submitDto.kpId,
+      newMasteryScore: txResult.masteryScore,
+      oldMasteryScore: txResult.oldMasteryScore,
+      timestamp: new Date(),
+    });
+
+    return {
+      attempt: txResult.attempt,
+      isCorrect: txResult.isCorrect,
+      masteryScore: txResult.masteryScore,
+      confidence: txResult.confidence,
+    };
   }
 
   async getStudentQuestionAttempts(studentId: string, kpId: string) {
@@ -594,6 +604,15 @@ export class StudentProgressService {
       newScore: masteryScore,
       confidence,
       source: 'practice',
+    });
+
+    // Emit event after DB writes complete
+    this.eventEmitter.emit('progress.updated', {
+      studentId: submitDto.studentId,
+      kpId: submitDto.kpId,
+      newMasteryScore: masteryScore,
+      oldMasteryScore: oldScore,
+      timestamp: new Date(),
     });
 
     return {

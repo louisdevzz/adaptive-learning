@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { eq, and, lt, gte, inArray, sql, count, avg } from 'drizzle-orm';
+import { OnEvent } from '@nestjs/event-emitter';
+import { eq, and, lt, inArray, count, avg } from 'drizzle-orm';
 import {
   db,
   learningPath,
@@ -13,7 +14,6 @@ import {
   modules,
   courses,
   classEnrollment,
-  classCourses,
 } from '../../db';
 import { PrerequisiteService } from './prerequisite.service';
 
@@ -33,24 +33,27 @@ interface LearningPathItemInput {
 }
 
 @Injectable()
-export class LearningPathAutoGenerationService implements OnModuleInit {
+export class LearningPathAutoGenerationService {
   private readonly logger = new Logger(LearningPathAutoGenerationService.name);
   private readonly MASTERY_THRESHOLD = 60;
   private readonly MAX_ITEMS_PER_PATH = 15;
-  private readonly SIGNIFICANT_CHANGE_THRESHOLD = 20; // Mastery change > 20% triggers update
+
+  private isRunning = false;
+  private readonly processingStudents = new Set<string>();
 
   constructor(private readonly prerequisiteService: PrerequisiteService) {}
-
-  onModuleInit() {
-    this.logger.log('LearningPathAutoGenerationService initialized');
-    this.logger.log('Auto-generation will run every hour');
-  }
 
   /**
    * Scheduled job: Auto-generate/update learning paths for all active students every hour
    */
   @Cron(CronExpression.EVERY_HOUR)
   async autoGeneratePathsForAllStudents() {
+    if (this.isRunning) {
+      this.logger.warn('Previous scheduled run is still in progress, skipping...');
+      return;
+    }
+
+    this.isRunning = true;
     this.logger.log('Starting scheduled learning path auto-generation...');
     
     try {
@@ -81,18 +84,27 @@ export class LearningPathAutoGenerationService implements OnModuleInit {
         'Critical error in scheduled learning path generation:',
         error instanceof Error ? error.message : 'Unknown error',
       );
+    } finally {
+      this.isRunning = false;
     }
   }
 
   /**
    * Real-time trigger: Called when student progress is updated
    */
-  async handleProgressUpdate(studentId: string, kpId: string, newMasteryScore: number) {
+  @OnEvent('progress.updated')
+  async handleProgressUpdate(payload: {
+    studentId: string;
+    kpId: string;
+    newMasteryScore: number;
+    oldMasteryScore?: number;
+  }) {
+    const { studentId, kpId, newMasteryScore, oldMasteryScore } = payload;
     this.logger.debug(`Progress update received for student ${studentId}, KP ${kpId}`);
     
     try {
       // Check if this is a significant change that warrants path update
-      const shouldUpdate = await this.shouldUpdatePath(studentId, kpId, newMasteryScore);
+      const shouldUpdate = await this.shouldUpdatePath(studentId, kpId, newMasteryScore, oldMasteryScore);
       
       if (shouldUpdate) {
         this.logger.log(`Significant progress change detected for student ${studentId}, updating path...`);
@@ -110,40 +122,50 @@ export class LearningPathAutoGenerationService implements OnModuleInit {
    * Analyze student performance and update/create learning path
    */
   async analyzeAndUpdatePath(studentId: string): Promise<void> {
-    // 1. Identify weak areas
-    const weakAreas = await this.identifyWeakAreas(studentId);
-    
-    if (weakAreas.length === 0) {
-      this.logger.debug(`Student ${studentId} has no weak areas, skipping path generation`);
+    if (this.processingStudents.has(studentId)) {
+      this.logger.debug(`Skipping path generation for student ${studentId} - already in progress`);
       return;
     }
-    
-    this.logger.log(`Student ${studentId} has ${weakAreas.length} weak areas to address`);
-    
-    // 2. Expand with prerequisites
-    const kpIds = weakAreas.map((wa) => wa.kpId);
-    const expandedKpIds = await this.prerequisiteService.expandWithPrerequisites(kpIds);
-    
-    // 3. Limit to max items
-    const limitedKpIds = expandedKpIds.slice(0, this.MAX_ITEMS_PER_PATH);
-    
-    // 4. Get or create learning path
-    const existingPath = await this.getActivePath(studentId);
-    
-    if (existingPath) {
-      // Check if significant changes are needed
-      const currentItems = await this.getPathItems(existingPath.id);
-      const needsUpdate = this.detectSignificantChanges(currentItems, limitedKpIds);
+
+    this.processingStudents.add(studentId);
+    try {
+      // 1. Identify weak areas
+      const weakAreas = await this.identifyWeakAreas(studentId);
       
-      if (needsUpdate) {
-        this.logger.log(`Updating existing learning path for student ${studentId}`);
-        await this.updateExistingPath(existingPath.id, studentId, limitedKpIds);
-      } else {
-        this.logger.debug(`No significant changes needed for student ${studentId}`);
+      if (weakAreas.length === 0) {
+        this.logger.debug(`Student ${studentId} has no weak areas, skipping path generation`);
+        return;
       }
-    } else {
-      this.logger.log(`Creating new learning path for student ${studentId}`);
-      await this.createNewPath(studentId, limitedKpIds);
+      
+      this.logger.log(`Student ${studentId} has ${weakAreas.length} weak areas to address`);
+      
+      // 2. Expand with prerequisites
+      const kpIds = weakAreas.map((wa) => wa.kpId);
+      const expandedKpIds = await this.prerequisiteService.expandWithPrerequisites(kpIds);
+      
+      // 3. Limit to max items
+      const limitedKpIds = expandedKpIds.slice(0, this.MAX_ITEMS_PER_PATH);
+      
+      // 4. Get or create learning path
+      const existingPath = await this.getActivePath(studentId);
+      
+      if (existingPath) {
+        // Check if significant changes are needed
+        const currentItems = await this.getPathItems(existingPath.id);
+        const needsUpdate = this.detectSignificantChanges(currentItems, limitedKpIds);
+        
+        if (needsUpdate) {
+          this.logger.log(`Updating existing learning path for student ${studentId}`);
+          await this.updateExistingPath(existingPath.id, studentId, limitedKpIds);
+        } else {
+          this.logger.debug(`No significant changes needed for student ${studentId}`);
+        }
+      } else {
+        this.logger.log(`Creating new learning path for student ${studentId}`);
+        await this.createNewPath(studentId, limitedKpIds);
+      }
+    } finally {
+      this.processingStudents.delete(studentId);
     }
   }
 
@@ -238,28 +260,31 @@ export class LearningPathAutoGenerationService implements OnModuleInit {
     studentId: string,
     kpId: string,
     newMasteryScore: number,
+    oldMasteryScore?: number,
   ): Promise<boolean> {
-    // Always update if crossing the threshold
-    if (newMasteryScore >= this.MASTERY_THRESHOLD) {
-      return true;
+    // If we know the previous score, only auto-update on threshold crossings
+    if (oldMasteryScore !== undefined) {
+      const wasBelowThreshold = oldMasteryScore < this.MASTERY_THRESHOLD;
+      const isBelowThreshold = newMasteryScore < this.MASTERY_THRESHOLD;
+
+      // Trigger update if the score crossed the 60% threshold in either direction
+      // (below→above means KP is now mastered; above→below means it regressed)
+      if (wasBelowThreshold !== isBelowThreshold) {
+        return true;
+      }
     }
-    
-    // Update if newly below threshold
-    if (newMasteryScore < this.MASTERY_THRESHOLD) {
-      return true;
-    }
-    
-    // Check if this KP is in the current path
+
+    // No threshold crossing (or no previous score): check if this KP is in the current path
     const existingPath = await this.getActivePath(studentId);
     if (!existingPath) {
       return true; // No path exists, create one
     }
-    
+
     const currentItems = await this.getPathItems(existingPath.id);
     const isInPath = currentItems.some(
       (item) => item.itemType === 'kp' && item.itemId === kpId,
     );
-    
+
     return isInPath;
   }
 
@@ -326,7 +351,7 @@ export class LearningPathAutoGenerationService implements OnModuleInit {
         itemType: 'kp',
         itemId: kpId,
         orderIndex: index,
-        status: (existingItem?.status as any) || 'not_started',
+        status: (existingItem?.status as LearningPathItemInput['status']) || 'not_started',
       };
     });
     
