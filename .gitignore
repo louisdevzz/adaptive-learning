@@ -240,3 +240,5 @@ temp/
 *.swp
 /.claude/
 .mcp.json
+
+node-compile-cache/

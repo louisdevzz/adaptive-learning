@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
   X,
@@ -11,7 +11,6 @@ import {
   GraduationCap,
   UserCircle,
   TrendingUp,
-  FileText,
   Clock,
   ArrowRight,
   ChevronRight,
@@ -19,6 +18,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
 
 // Color constants
 const colors = {
@@ -41,7 +41,7 @@ type SearchCategory = {
 const searchCategoriesByRole: Record<string, SearchCategory[]> = {
   admin: [
     { id: "all", label: "Tất cả", icon: Search },
-    { id: "users", label: "Ngườii dùng", icon: Users },
+    { id: "users", label: "Người dùng", icon: Users },
     { id: "courses", label: "Khóa học", icon: BookOpen },
     { id: "classes", label: "Lớp học", icon: School },
     { id: "students", label: "Học sinh", icon: UserCircle },
@@ -52,7 +52,6 @@ const searchCategoriesByRole: Record<string, SearchCategory[]> = {
     { id: "courses", label: "Khóa học", icon: BookOpen },
     { id: "students", label: "Học sinh", icon: UserCircle },
     { id: "classes", label: "Lớp học", icon: School },
-    { id: "assignments", label: "Bài tập", icon: FileText },
   ],
   student: [
     { id: "all", label: "Tất cả", icon: Search },
@@ -68,39 +67,13 @@ const searchCategoriesByRole: Record<string, SearchCategory[]> = {
   ],
 };
 
-// Mock search results - in production, this would come from API
 type SearchResult = {
   id: string;
   type: string;
   title: string;
   subtitle?: string;
-  icon?: string;
   href: string;
-  metadata?: Record<string, any>;
-};
-
-const mockSearchResults: Record<string, SearchResult[]> = {
-  users: [
-    { id: "1", type: "user", title: "Nguyễn Văn A", subtitle: "Học sinh - Lớp 10A", href: "/dashboard/users/1" },
-    { id: "2", type: "user", title: "Trần Thị B", subtitle: "Giáo viên - Toán", href: "/dashboard/users/2" },
-    { id: "3", type: "user", title: "Lê Văn C", subtitle: "Học sinh - Lớp 11B", href: "/dashboard/users/3" },
-  ],
-  courses: [
-    { id: "1", type: "course", title: "Toán học 10", subtitle: "Đại số và Hình học", href: "/dashboard/courses/1" },
-    { id: "2", type: "course", title: "Vật lý 11", subtitle: "Cơ học và Nhiệt học", href: "/dashboard/courses/2" },
-    { id: "3", type: "course", title: "Hóa học 12", subtitle: "Hóa hữu cơ", href: "/dashboard/courses/3" },
-  ],
-  classes: [
-    { id: "1", type: "class", title: "Lớp 10A", subtitle: "35 học sinh", href: "/dashboard/classes/1" },
-    { id: "2", type: "class", title: "Lớp 11B", subtitle: "32 học sinh", href: "/dashboard/classes/2" },
-  ],
-  students: [
-    { id: "1", type: "student", title: "Nguyễn Văn A", subtitle: "Lớp 10A - 85% hoàn thành", href: "/dashboard/students/1" },
-    { id: "2", type: "student", title: "Trần Thị B", subtitle: "Lớp 10A - 92% hoàn thành", href: "/dashboard/students/2" },
-  ],
-  teachers: [
-    { id: "1", type: "teacher", title: "Trần Thị B", subtitle: "Toán - 3 lớp", href: "/dashboard/teachers/1" },
-  ],
+  metadata?: Record<string, unknown>;
 };
 
 interface SearchModalProps {
@@ -113,12 +86,21 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const role = user?.role?.toLowerCase() || "student";
   const categories = searchCategoriesByRole[role] || searchCategoriesByRole.student;
+
+  useEffect(() => {
+    if (!categories.some((category) => category.id === selectedCategory)) {
+      setSelectedCategory("all");
+    }
+  }, [categories, selectedCategory]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -135,6 +117,51 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     }
   }, [isOpen]);
 
+  // Search with debounce
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearchError(null);
+      setIsSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+        const response = await api.dashboard.search(
+          trimmed,
+          selectedCategory,
+          12
+        );
+        if (!cancelled) {
+          setSearchResults(Array.isArray(response?.items) ? response.items : []);
+          setSelectedIndex(0);
+        }
+      } catch (error) {
+        console.error("Failed to search dashboard:", error);
+        if (!cancelled) {
+          setSearchResults([]);
+          setSearchError("Không thể tải kết quả tìm kiếm");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isOpen, query, selectedCategory, role]);
+
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,7 +172,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         return;
       }
 
-      const results = getFilteredResults();
+      const results = query.trim() ? searchResults : [];
+      if (results.length === 0) return;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -161,43 +189,23 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, query, selectedCategory, selectedIndex]);
-
-  // Get filtered results based on query and category
-  const getFilteredResults = useCallback((): SearchResult[] => {
-    if (!query.trim()) return [];
-
-    const searchTerm = query.toLowerCase();
-    let results: SearchResult[] = [];
-
-    if (selectedCategory === "all") {
-      // Search across all categories
-      Object.values(mockSearchResults).forEach((categoryResults) => {
-        results.push(...categoryResults);
-      });
-    } else if (mockSearchResults[selectedCategory]) {
-      results = mockSearchResults[selectedCategory];
-    }
-
-    return results.filter(
-      (item) =>
-        item.title.toLowerCase().includes(searchTerm) ||
-        item.subtitle?.toLowerCase().includes(searchTerm)
-    );
-  }, [query, selectedCategory]);
+  }, [isOpen, onClose, query, searchResults, selectedIndex]);
 
   // Handle result selection
-  const handleSelectResult = (result: SearchResult) => {
-    // Save to recent searches
-    const newRecent = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5);
-    setRecentSearches(newRecent);
-    localStorage.setItem(`recentSearches_${role}`, JSON.stringify(newRecent));
+  const handleSelectResult = useCallback(
+    (result: SearchResult) => {
+      // Save to recent searches
+      const newRecent = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5);
+      setRecentSearches(newRecent);
+      localStorage.setItem(`recentSearches_${role}`, JSON.stringify(newRecent));
 
-    // Navigate
-    router.push(result.href);
-    onClose();
-    setQuery("");
-  };
+      // Navigate
+      router.push(result.href);
+      onClose();
+      setQuery("");
+    },
+    [onClose, query, recentSearches, role, router]
+  );
 
   // Handle recent search click
   const handleRecentSearchClick = (search: string) => {
@@ -230,7 +238,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     );
   };
 
-  const filteredResults = getFilteredResults();
+  const filteredResults = query.trim() ? searchResults : [];
   const showRecent = !query.trim() && recentSearches.length > 0;
 
   if (!isOpen) return null;
@@ -374,11 +382,35 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 ) : query.trim() ? (
                   /* Search Results */
                   <div className="p-4">
-                    {filteredResults.length > 0 ? (
+                    {isSearching ? (
+                      <div className="text-center py-12">
+                        <div
+                          className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                          style={{ backgroundColor: colors.lightPurple }}
+                        >
+                          <Search className="w-8 h-8 text-[#6244F4] animate-pulse" />
+                        </div>
+                        <p className="text-sm font-medium" style={{ color: colors.black }}>
+                          Đang tìm kiếm...
+                        </p>
+                      </div>
+                    ) : searchError ? (
+                      <div className="text-center py-12">
+                        <div
+                          className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                          style={{ backgroundColor: colors.lightPurple }}
+                        >
+                          <Search className="w-8 h-8 text-[#6244F4]" />
+                        </div>
+                        <p className="text-sm font-medium" style={{ color: colors.black }}>
+                          {searchError}
+                        </p>
+                      </div>
+                    ) : filteredResults.length > 0 ? (
                       <div className="space-y-1">
                         {filteredResults.map((result, index) => (
                           <button
-                            key={result.id}
+                            key={`${result.type}-${result.id}`}
                             onClick={() => handleSelectResult(result)}
                             onMouseEnter={() => setSelectedIndex(index)}
                             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all text-left"
@@ -463,7 +495,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           <QuickAction
                             href="/dashboard/users"
                             icon={Users}
-                            title="Quản lý ngườii dùng"
+                            title="Quản lý người dùng"
                             description="Xem tất cả users"
                           />
                           <QuickAction

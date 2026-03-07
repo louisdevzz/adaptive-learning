@@ -80,4 +80,21 @@ export class DashboardController {
       limit ? parseInt(limit) : 3,
     );
   }
+
+  @Get('search')
+  @Roles('admin', 'teacher', 'student', 'parent')
+  async search(
+    @Req() req: any,
+    @Query('q') query?: string,
+    @Query('category') category?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.dashboardService.search({
+      userId: req.user.userId,
+      role: req.user.role,
+      query: query || '',
+      category: category || 'all',
+      limit: limit ? parseInt(limit) : 12,
+    });
+  }
 }

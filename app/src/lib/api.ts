@@ -1320,6 +1320,21 @@ export const api = {
       const response = await apiClient.get(url);
       return response.data;
     },
+
+    search: async (
+      q: string,
+      category: string = "all",
+      limit: number = 12
+    ) => {
+      const queryParams = new URLSearchParams();
+      queryParams.append("q", q);
+      queryParams.append("category", category);
+      queryParams.append("limit", limit.toString());
+      const response = await apiClient.get(
+        `/dashboard/search?${queryParams.toString()}`
+      );
+      return response.data;
+    },
   },
 
   // Generic request methods

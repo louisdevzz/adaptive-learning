@@ -403,7 +403,8 @@ export default function ClassPage() {
   }
 
   return (
-          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+    <>
+      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-[#717680] dark:text-gray-400">
           <Link
@@ -1160,6 +1161,6 @@ export default function ClassPage() {
           )}
         </ModalContent>
       </Modal>
-    
+    </>
   );
 }
