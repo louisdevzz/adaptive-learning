@@ -144,7 +144,7 @@ export default function CourseEditPage() {
   const [kpDetailLoading, setKpDetailLoading] = useState(false);
 
   // Form states
-  const [moduleForm, setModuleForm] = useState({ title: "", description: "" });
+  const [moduleForm, setModuleForm] = useState({ title: "" });
   const [sectionForm, setSectionForm] = useState({ title: "" });
 
   // Fetch course data
@@ -213,13 +213,13 @@ export default function CourseEditPage() {
   // Module CRUD
   const handleCreateModule = () => {
     setEditingModule(null);
-    setModuleForm({ title: "", description: "" });
+    setModuleForm({ title: "" });
     setShowModuleModal(true);
   };
 
   const handleEditModule = (module: ModuleItem) => {
     setEditingModule(module);
-    setModuleForm({ title: module.title, description: module.description || "" });
+    setModuleForm({ title: module.title });
     setShowModuleModal(true);
   };
 
@@ -227,13 +227,12 @@ export default function CourseEditPage() {
     try {
       setSaving(true);
       if (editingModule) {
-        await api.courses.updateModule(editingModule.id, moduleForm);
+        await api.courses.updateModule(editingModule.id, { title: moduleForm.title });
         toast.success("Cập nhật chương thành công");
       } else {
         await api.courses.createModule({
           courseId,
           title: moduleForm.title,
-          description: moduleForm.description,
           orderIndex: modules.length,
         });
         toast.success("Tạo chương thành công");
@@ -974,18 +973,6 @@ export default function CourseEditPage() {
                     value={moduleForm.title}
                     onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
                     placeholder="Nhập tên chương"
-                    className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#181d27] dark:text-white mb-1.5">
-                    Mô tả
-                  </label>
-                  <textarea
-                    value={moduleForm.description}
-                    onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
-                    placeholder="Mô tả ngắn về chương này"
-                    rows={3}
                     className="w-full px-3 py-2 border border-[#e9eaeb] dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-800 dark:text-white"
                   />
                 </div>

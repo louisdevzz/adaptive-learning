@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUUID, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsInt, Min, IsOptional } from 'class-validator';
 
 export class CreateModuleDto {
   @IsUUID()
@@ -10,8 +10,8 @@ export class CreateModuleDto {
   title: string;
 
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @IsInt()
   @Min(0)

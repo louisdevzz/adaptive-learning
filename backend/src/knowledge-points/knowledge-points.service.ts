@@ -61,7 +61,7 @@ export class KnowledgePointsService {
         .insert(knowledgePoint)
         .values({
           title: createKpDto.title,
-          description: createKpDto.description || '',
+          description: createKpDto.description ?? null,
           content: content,
           difficultyLevel: createKpDto.difficultyLevel,
           createdBy: userId ?? null,

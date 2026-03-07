@@ -582,7 +582,7 @@ export const api = {
     createModule: async (data: {
       courseId: string;
       title: string;
-      description: string;
+      description?: string;
       orderIndex: number;
     }) => {
       const response = await apiClient.post("/courses/modules", data);

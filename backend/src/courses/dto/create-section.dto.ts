@@ -17,8 +17,8 @@ export class CreateKnowledgePointData {
   title: string;
 
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @IsNotEmpty()
   content: any;

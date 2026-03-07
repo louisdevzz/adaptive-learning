@@ -37,7 +37,7 @@ export interface Module {
   id: string;
   courseId: string;
   title: string;
-  description: string;
+  description?: string;
   orderIndex: number;
   createdAt: string;
   updatedAt: string;
@@ -47,7 +47,7 @@ export interface Module {
 export interface ModuleFormData {
   courseId: string;
   title: string;
-  description: string;
+  description?: string;
   orderIndex: number;
 }
 
@@ -62,7 +62,7 @@ export interface Section {
   id: string;
   moduleId: string;
   title: string;
-  summary: string;
+  summary?: string;
   orderIndex: number;
   createdAt: string;
   updatedAt: string;
@@ -72,7 +72,7 @@ export interface Section {
 export interface CreateKnowledgePointData {
   id?: string; // ID for editing existing KPs
   title: string;
-  description: string;
+  description?: string;
   difficultyLevel: number;
   tags?: string[];
   prerequisites?: string[];
@@ -81,7 +81,7 @@ export interface CreateKnowledgePointData {
 export interface KnowledgePoint {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   difficultyLevel: number;
   tags: string[];
   createdAt: string;

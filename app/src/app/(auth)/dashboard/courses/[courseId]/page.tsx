@@ -94,6 +94,23 @@ interface Course {
   modules: Module[];
 }
 
+// Difficulty level label helper
+function getDifficultyLabel(level: number): string {
+  switch (level) {
+    case 1: return "Dễ";
+    case 2: return "Trung bình";
+    case 3: return "Khá";
+    case 4: return "Khó";
+    default: return "Rất khó";
+  }
+}
+
+function getDifficultyClass(level: number): string {
+  if (level <= 2) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+  if (level === 3) return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+  return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+}
+
 // Progress Ring Component
 function ProgressRing({
   progress,
@@ -893,6 +910,58 @@ export default function CoursePage() {
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-4xl mx-auto space-y-6">
+                  {/* KP Title Header */}
+                  <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h1 className="text-xl font-bold text-[#181d27] dark:text-white leading-tight">
+                          {currentKp.title}
+                        </h1>
+                        {currentKp.description && (
+                          <p className="mt-2 text-sm text-[#535862] dark:text-gray-400">
+                            {currentKp.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {kpProgress[currentKp.id] && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-lg">
+                            <Target className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-semibold text-primary">
+                              {kpProgress[currentKp.id].masteryScore}%
+                            </span>
+                          </div>
+                        )}
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getDifficultyClass(currentKp.difficultyLevel)}`}>
+                          {getDifficultyLabel(currentKp.difficultyLevel)}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Content availability indicators */}
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      {currentKp.content?.youtubeUrl && (
+                        <span className="inline-flex items-center gap-1 text-xs text-[#717680] dark:text-gray-400 bg-[#f9fafb] dark:bg-gray-800 px-2 py-1 rounded-md">
+                          <Video className="w-3 h-3" /> Video
+                        </span>
+                      )}
+                      {currentKp.content?.slideUrl && (
+                        <span className="inline-flex items-center gap-1 text-xs text-[#717680] dark:text-gray-400 bg-[#f9fafb] dark:bg-gray-800 px-2 py-1 rounded-md">
+                          <FileText className="w-3 h-3" /> Slide
+                        </span>
+                      )}
+                      {currentKp.resources && currentKp.resources.length > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs text-[#717680] dark:text-gray-400 bg-[#f9fafb] dark:bg-gray-800 px-2 py-1 rounded-md">
+                          <BookOpen className="w-3 h-3" /> {currentKp.resources.length} tài liệu
+                        </span>
+                      )}
+                      {questions.length > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs text-[#717680] dark:text-gray-400 bg-[#f9fafb] dark:bg-gray-800 px-2 py-1 rounded-md">
+                          <HelpCircle className="w-3 h-3" /> {questions.length} câu hỏi
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
                   {/* YouTube Video */}
                   {currentKp.content?.youtubeUrl && (() => {
                     const match = currentKp.content.youtubeUrl!.match(

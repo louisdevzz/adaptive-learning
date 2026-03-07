@@ -472,23 +472,6 @@ const KnowledgePointModal = ({
                         autoFocus
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-text-main dark:text-gray-300 mb-2">
-                        Mô tả ngắn
-                      </label>
-                      <textarea
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            description: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2 border border-card-border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white dark:bg-gray-800 text-text-main dark:text-white"
-                        placeholder="Mô tả ngắn gọn về nội dung..."
-                        rows={3}
-                      />
-                    </div>
                     <div className="grid gap-6">
                       <div>
                         <label className="block text-sm font-medium text-text-main dark:text-gray-300 mb-2">

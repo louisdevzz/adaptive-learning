@@ -168,7 +168,7 @@ export const modules = pgTable(
       .notNull()
       .references(() => courses.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
-    description: text('description').notNull(),
+    description: text('description'),
     orderIndex: integer('order_index').notNull(),
     createdBy: uuid('created_by').references(() => users.id, {
       onDelete: 'set null',
@@ -257,7 +257,7 @@ export const knowledgePoint = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     title: text('title').notNull(),
-    description: text('description').notNull(),
+    description: text('description'),
     content: json('content').notNull(), // knowledge point content data
     difficultyLevel: integer('difficulty_level').notNull(), // 1-5
 

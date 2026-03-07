@@ -205,7 +205,7 @@ export class CoursesService {
       .values({
         courseId: createModuleDto.courseId,
         title: createModuleDto.title,
-        description: createModuleDto.description,
+        description: createModuleDto.description ?? null,
         orderIndex: createModuleDto.orderIndex,
         createdBy: userId ?? null,
       })
@@ -378,7 +378,7 @@ export class CoursesService {
             .insert(knowledgePoint)
             .values({
               title: kpData.title,
-              description: kpData.description,
+              description: kpData.description ?? null,
               content: kpData.content,
               difficultyLevel: kpData.difficultyLevel,
 
