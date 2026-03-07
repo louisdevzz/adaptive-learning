@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import {
   ChevronRight,
   FolderOpen,
@@ -433,21 +432,19 @@ export default function CourseEditPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
             <p className="text-[#717680] dark:text-gray-400">Đang tải dữ liệu khoá học...</p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (!course) {
     return (
-      <LayoutDashboard>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+              <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <p className="text-red-500">Không tìm thấy khoá học</p>
           <Button
             as={Link}
@@ -457,13 +454,12 @@ export default function CourseEditPage() {
             Quay lại danh sách
           </Button>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -1135,6 +1131,6 @@ export default function CourseEditPage() {
           </ModalContent>
         </Modal>
       </div>
-    </LayoutDashboard>
+    
   );
 }

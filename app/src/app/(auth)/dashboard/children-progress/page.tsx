@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/useUser";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -181,18 +180,16 @@ export default function ChildrenProgressPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (children.length === 0) {
     return (
-      <LayoutDashboard>
-        <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+              <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
           <div className="text-center py-16">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-[#181d27] dark:text-white mb-2">
@@ -203,13 +200,12 @@ export default function ChildrenProgressPage() {
             </p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -497,6 +493,6 @@ export default function ChildrenProgressPage() {
           </>
         )}
       </div>
-    </LayoutDashboard>
+    
   );
 }

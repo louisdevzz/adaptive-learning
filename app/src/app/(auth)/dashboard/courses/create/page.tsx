@@ -1,6 +1,5 @@
 "use client";
 
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { Button } from "@heroui/button";
 import {
   Dropdown,
@@ -220,8 +219,7 @@ export default function CreateCoursePage() {
   };
 
   return (
-    <LayoutDashboard>
-      <div className="max-w-[1024px] mx-auto mb-10">
+          <div className="max-w-[1024px] mx-auto mb-10">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             Tạo Khóa học mới
@@ -552,6 +550,6 @@ export default function CreateCoursePage() {
           </form>
         </div>
       </div>
-    </LayoutDashboard>
+    
   );
 }

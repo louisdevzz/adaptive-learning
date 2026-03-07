@@ -19,7 +19,6 @@ import {
   DropdownMenu,
   DropdownItem,
 } from "@heroui/dropdown";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
 import { Course } from "@/types/course";
 import { toast } from "sonner";
@@ -493,8 +492,7 @@ export default function CoursesPage() {
   // Show loading while checking access
   if (userLoading || !currentUser) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-[#717680] dark:text-gray-400">
@@ -502,13 +500,12 @@ export default function CoursesPage() {
             </p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -846,6 +843,6 @@ export default function CoursesPage() {
           </ModalContent>
         </Modal>
       </div>
-    </LayoutDashboard>
+    
   );
 }

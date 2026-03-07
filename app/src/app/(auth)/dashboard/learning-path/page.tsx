@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
@@ -189,19 +188,17 @@ export default function LearningPathPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+              <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
           <div className="flex items-center justify-center h-96">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -551,6 +548,6 @@ export default function LearningPathPage() {
           </ModalContent>
         </Modal>
       </div>
-    </LayoutDashboard>
+    
   );
 }

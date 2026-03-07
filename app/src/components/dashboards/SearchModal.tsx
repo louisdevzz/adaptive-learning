@@ -248,17 +248,18 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             onClick={onClose}
           />
 
-          {/* Modal */}
+          {/* Modal Container */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 flex items-start justify-center pt-[15vh] z-50 px-4"
+            className="fixed inset-0 flex items-start justify-center pt-[15vh] z-50 px-4 pointer-events-none"
           >
             <div
-              className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
               style={{ border: `1px solid ${colors.border}` }}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Search Input Header */}
               <div className="flex items-center gap-3 px-6 py-4 border-b" style={{ borderColor: colors.border }}>

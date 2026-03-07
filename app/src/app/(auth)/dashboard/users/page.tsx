@@ -1,6 +1,5 @@
 "use client";
 
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/react";
@@ -504,8 +503,7 @@ export default function UsersPage() {
   };
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -830,6 +828,6 @@ export default function UsersPage() {
           </div>
         )}
       </div>
-    </LayoutDashboard>
+    
   );
 }

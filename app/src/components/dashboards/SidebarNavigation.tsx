@@ -6,9 +6,7 @@ import {
   BarChart3,
   BookOpen,
   Users,
-  Settings,
   LogOut,
-  HelpCircle,
   Bell,
   School,
   Book,
@@ -20,6 +18,8 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
+  UserCircle,
+  KeyRound,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -170,8 +170,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
                   </button>
                 </DropdownTrigger>
                 <DropdownMenu aria-label="User menu" classNames={{ base: "bg-white border border-[#E5E5E5] rounded-xl shadow-lg min-w-[200px]" }}>
-                  <DropdownItem key="settings" startContent={<Settings className="w-4 h-4 text-[#6244F4]" />} as={Link} href="/dashboard/settings" className="cursor-pointer text-[#010101]">Cài đặt</DropdownItem>
-                  <DropdownItem key="help" startContent={<HelpCircle className="w-4 h-4 text-[#6244F4]" />} className="cursor-pointer text-[#010101]">Hỗ trợ</DropdownItem>
+                  <DropdownItem key="profile" startContent={<UserCircle className="w-4 h-4 text-[#6244F4]" />} as={Link} href="/dashboard/profile" className="cursor-pointer text-[#010101]">Thông tin cá nhân</DropdownItem>
                   <DropdownItem key="logout" startContent={<LogOut className="w-4 h-4 text-red-500" />} onPress={logout} className="cursor-pointer text-red-500">Đăng xuất</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
@@ -195,8 +194,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
                 </button>
               </DropdownTrigger>
               <DropdownMenu aria-label="User menu" classNames={{ base: "bg-white border border-[#E5E5E5] rounded-xl shadow-lg min-w-[200px]" }}>
-                <DropdownItem key="settings" startContent={<Settings className="w-4 h-4 text-[#6244F4]" />} as={Link} href="/dashboard/settings" className="cursor-pointer text-[#010101]">Cài đặt</DropdownItem>
-                <DropdownItem key="help" startContent={<HelpCircle className="w-4 h-4 text-[#6244F4]" />} className="cursor-pointer text-[#010101]">Hỗ trợ</DropdownItem>
+                <DropdownItem key="profile" startContent={<UserCircle className="w-4 h-4 text-[#6244F4]" />} as={Link} href="/dashboard/profile" className="cursor-pointer text-[#010101]">Thông tin cá nhân</DropdownItem>
                 <DropdownItem key="logout" startContent={<LogOut className="w-4 h-4 text-red-500" />} onPress={logout} className="cursor-pointer text-red-500">Đăng xuất</DropdownItem>
               </DropdownMenu>
             </Dropdown>
@@ -275,41 +273,13 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
         })}
       </nav>
 
-      {/* Bottom: Settings, Support, Collapse toggle */}
+      {/* Bottom: Collapse toggle */}
       <div className={`shrink-0 border-t border-[#E5E5E5] pt-2 pb-3 space-y-0.5 ${collapsed ? "px-2" : "px-3"}`}>
-        {collapsed ? (
-          <>
-            <Tooltip label="Cài đặt">
-              <Link href="/dashboard/settings"
-                className={`flex justify-center items-center p-2.5 rounded-xl transition-all ${pathname === "/dashboard/settings" ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
-                <Settings className="w-5 h-5 shrink-0" />
-              </Link>
-            </Tooltip>
-            <Tooltip label="Hỗ trợ">
-              <button className="w-full flex justify-center items-center p-2.5 rounded-xl text-[#666666] hover:bg-gray-50 hover:text-[#010101] transition-all cursor-pointer">
-                <HelpCircle className="w-5 h-5 shrink-0" />
-              </button>
-            </Tooltip>
-          </>
-        ) : (
-          <>
-            <Link href="/dashboard/settings"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname === "/dashboard/settings" ? "bg-[#6244F4]/10 text-[#6244F4]" : "text-[#666666] hover:bg-gray-50 hover:text-[#010101]"}`}>
-              <Settings className="w-5 h-5 shrink-0" />
-              <span>Cài đặt</span>
-            </Link>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#666666] hover:bg-gray-50 hover:text-[#010101] transition-all cursor-pointer">
-              <HelpCircle className="w-5 h-5 shrink-0" />
-              <span>Hỗ trợ</span>
-            </button>
-          </>
-        )}
-
         {/* Collapse toggle (desktop only — rendered inside sidebar) */}
         <Tooltip label={collapsed ? "Mở rộng" : "Thu gọn"}>
           <button
             onClick={onToggleCollapse}
-            className={`w-full flex items-center rounded-xl text-sm font-medium text-[#666666] hover:bg-gray-50 hover:text-[#6244F4] transition-all cursor-pointer mt-1 ${collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"}`}
+            className={`w-full flex items-center rounded-xl text-sm font-medium text-[#666666] hover:bg-gray-50 hover:text-[#6244F4] transition-all cursor-pointer ${collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"}`}
           >
             {collapsed
               ? <ChevronsRight className="w-5 h-5 shrink-0" />

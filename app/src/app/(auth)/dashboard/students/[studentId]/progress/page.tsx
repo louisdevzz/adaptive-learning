@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -249,20 +248,18 @@ export default function StudentProgressPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center h-[calc(100vh-140px)]">
+              <div className="flex items-center justify-center h-[calc(100vh-140px)]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-gray-500">Đang tải tiến độ học sinh...</p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
         {/* Breadcrumb & Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -675,6 +672,6 @@ export default function StudentProgressPage() {
           </div>
         </div>
       </div>
-    </LayoutDashboard>
+    
   );
 }

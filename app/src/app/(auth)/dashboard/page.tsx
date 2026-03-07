@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/useUser";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -1198,10 +1197,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
-        {renderDashboard()}
-      </div>
-    </LayoutDashboard>
+    <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+      {renderDashboard()}
+    </div>
   );
 }

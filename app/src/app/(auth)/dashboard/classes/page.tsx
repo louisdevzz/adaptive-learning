@@ -10,7 +10,6 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/modal";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { api } from "@/lib/api";
 import { Class, ClassFormData, ClassEnrollment } from "@/types/class";
 import { toast } from "sonner";
@@ -606,8 +605,7 @@ export default function ClassesPage() {
   )[0];
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1440px] mx-auto">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -916,6 +914,6 @@ export default function ClassesPage() {
           </ModalContent>
         </Modal>
       </div>
-    </LayoutDashboard>
+    
   );
 }

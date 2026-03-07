@@ -1,6 +1,5 @@
 "use client";
 
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import {
   UserPlus,
   Search,
@@ -261,21 +260,19 @@ export default function ClassWorkspacePage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <Spinner size="lg" />
             <p className="text-[#717680] dark:text-gray-400">Đang tải không gian làm việc...</p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (error) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
             <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
@@ -284,13 +281,12 @@ export default function ClassWorkspacePage() {
             </Button>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-[#717680] dark:text-gray-400">
           <Link href="/dashboard/classes" className="hover:text-primary transition-colors">
@@ -599,6 +595,6 @@ export default function ClassWorkspacePage() {
           </div>
         </div>
       </div>
-    </LayoutDashboard>
+    
   );
 }

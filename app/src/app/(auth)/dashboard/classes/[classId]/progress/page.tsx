@@ -1,6 +1,5 @@
 "use client";
 
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import {
   Download,
   StickyNote,
@@ -213,21 +212,19 @@ export default function ClassProgressPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <Spinner size="lg" />
             <p className="text-[#717680] dark:text-gray-400">Đang tải tiến độ lớp học...</p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (error) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-3" />
             <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
@@ -236,13 +233,12 @@ export default function ClassProgressPage() {
             </Button>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-[#717680] dark:text-gray-400">
           <Link href="/dashboard/classes" className="hover:text-primary transition-colors">
@@ -546,6 +542,6 @@ export default function ClassProgressPage() {
           </div>
         </div>
       </div>
-    </LayoutDashboard>
+    
   );
 }

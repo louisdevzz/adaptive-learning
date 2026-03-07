@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -402,29 +401,26 @@ export default function CoursePage() {
   // ─── Loading / empty states ─────────────────────────────────────────────
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6244F4]" />
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (!course) {
     return (
-      <LayoutDashboard>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+              <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <p className="text-gray-500">Không tìm thấy khóa học</p>
           <Button as={Link} href="/dashboard/courses" startContent={<ChevronLeft className="w-4 h-4" />}>Quay lại</Button>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   // ─── Main render ────────────────────────────────────────────────────────
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-130px)]">
+          <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-130px)]">
 
         {/* ══════════════════════════════════════════════════════════
             LEFT — Main content
@@ -1064,6 +1060,6 @@ export default function CoursePage() {
           </div>
         </div>
       </div>
-    </LayoutDashboard>
+    
   );
 }

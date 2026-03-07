@@ -1,6 +1,5 @@
 "use client";
 
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/button";
@@ -824,8 +823,7 @@ export default function CreateUserPage() {
   );
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[800px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[800px] mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button
@@ -886,6 +884,6 @@ export default function CreateUserPage() {
           </div>
         </div>
       </div>
-    </LayoutDashboard>
+    
   );
 }

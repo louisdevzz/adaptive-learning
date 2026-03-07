@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import {
   FileEdit,
   UserPlus,
@@ -369,8 +368,7 @@ export default function ClassPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-[#717680] dark:text-gray-400">
@@ -378,14 +376,13 @@ export default function ClassPage() {
             </p>
           </div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (error || !classData) {
     return (
-      <LayoutDashboard>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+              <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center">
             <AlertTriangle className="w-8 h-8 text-red-500" />
           </div>
@@ -401,13 +398,12 @@ export default function ClassPage() {
             Quay lại danh sách lớp
           </Button>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-[#717680] dark:text-gray-400">
           <Link
@@ -1164,6 +1160,6 @@ export default function ClassPage() {
           )}
         </ModalContent>
       </Modal>
-    </LayoutDashboard>
+    
   );
 }

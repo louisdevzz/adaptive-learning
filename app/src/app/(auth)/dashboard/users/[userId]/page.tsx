@@ -1,6 +1,5 @@
 "use client";
 
-import LayoutDashboard from "@/components/dashboards/LayoutDashboard";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@heroui/button";
@@ -641,24 +640,22 @@ export default function UserDetailPage() {
 
   if (loading) {
     return (
-      <LayoutDashboard>
-        <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
   if (!user) {
     return (
-      <LayoutDashboard>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+              <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <p className="text-[#717680] dark:text-gray-400">Không tìm thấy ngưởi dùng</p>
           <Button as={Link} href="/dashboard/users" startContent={<ChevronLeft className="w-4 h-4" />}>
             Quay lại danh sách
           </Button>
         </div>
-      </LayoutDashboard>
+      
     );
   }
 
@@ -704,8 +701,7 @@ export default function UserDetailPage() {
   const roleInfo = getRoleInfo();
 
   return (
-    <LayoutDashboard>
-      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1200px] mx-auto">
+          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -929,6 +925,6 @@ export default function UserDetailPage() {
         user={user}
         onReset={handleResetPassword}
       />
-    </LayoutDashboard>
+    
   );
 }
