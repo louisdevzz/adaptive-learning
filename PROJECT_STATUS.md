@@ -1,6 +1,6 @@
 # 📊 Adaptive Learning Platform - Project Overview
 
-> **Last Updated:** 03/03/2026
+> **Last Updated:** 04/03/2026
 
 ---
 
@@ -76,6 +76,51 @@ adaptive-learning/
 
 ---
 
+## 🆕 Recent Updates (2026-03-04)
+
+### Role-Based Access Control (RBAC)
+- **Route-level RBAC**: Implemented for all dashboard routes
+  - `/dashboard/courses` - All authenticated users
+  - `/dashboard/users` - Admin only
+  - Automatic redirects for unauthorized access
+  - Middleware-based protection
+
+### Student Dashboard Enhancement
+- **Complete Redesign**: All student pages redesigned with consistent UI
+  - My Courses page with real data
+  - Learning Path page (view-only for students)
+  - Progress tracking page with visualizations
+- **Real Data Integration**: Connected to live APIs
+  - Dynamic progress metrics
+  - Course enrollment status
+  - Assignment tracking
+
+### Class Management Improvements
+- **Course Assignment UI**: New interface in class detail page
+  - Assign/unassign courses to classes
+  - View course status per class
+  - Teacher-friendly workflow
+
+### Course Settings Enhancement
+- **Quick Edit Modal**: Edit course settings without leaving the page
+  - Inline editing capability
+  - Modal-based settings form
+  - Improved user experience
+
+### Reports & Analytics
+- **Reports Page Redesign**: Complete overhaul with real data
+  - Export functionality (PDF/Excel)
+  - Interactive charts and visualizations
+  - Filterable report types
+
+### Documentation
+- **AGENTS.md**: Comprehensive guide for AI agents
+  - Project conventions
+  - Development guidelines
+  - API patterns
+
+---
+
 ## ✅ Completed Features
 
 ### 1. 🔐 Authentication System
@@ -113,6 +158,7 @@ adaptive-learning/
 |---------|--------|
 | Class CRUD | ✅ Complete |
 | Student Enrollment | ✅ Complete |
+| Available Students List | ✅ Complete |
 | Teacher Assignment | ✅ Complete |
 | Class-Course Assignment | ✅ Complete |
 | Class Progress Tracking | ✅ Complete |
@@ -406,6 +452,8 @@ adaptive-learning/
 ### Class Management APIs
 - `GET/POST /api/classes` - Class CRUD
 - `POST /api/classes/:id/students` - Enroll student
+- `GET /api/classes/:id/students` - Get enrolled students
+- `GET /api/classes/:id/available-students` - Get students not enrolled (for adding)
 - `DELETE /api/classes/:id/students/:studentId` - Remove student
 - `POST /api/classes/:id/teachers` - Assign teacher
 - `POST /api/classes/:id/courses` - Assign course
@@ -495,49 +543,6 @@ adaptive-learning/
 | Build Scripts | ✅ package.json |
 | Linting | ✅ ESLint |
 | Type Checking | ✅ TypeScript |
-
----
-
-## 📝 Recent Changes
-
-### [Unreleased] - 2026-03-03
-- ✅ **Admin Password Reset**: Password reset feature from admin panel
-  - Backend: `POST /api/users/:id/reset-password` endpoint with role guard
-  - Frontend: Password reset modal with validation and password generation
-  - API Integration: Connected to `api.users.resetPassword()` method
-  
-- ✅ **Teacher Dashboard Stats**: New endpoint for teacher-specific statistics
-  - Backend: `GET /api/dashboard/teacher-stats` endpoint
-  - Frontend: Integration with teacher dashboard
-  
-- ✅ **Class Progress Tracking**: Class-level progress monitoring
-  - Backend: `GET /api/classes/:id/progress` endpoint
-  - Frontend: Class progress display
-  
-- ✅ **Teacher Class Filtering**: Classes filtered by assigned teacher
-  - Teachers only see their assigned classes
-  - Admins continue to see all classes
-
-### [Unreleased] - 2026-02-20
-- ✅ **UI/UX Redesign v3.0**: Complete interface redesign
-- ✅ **Firebase Integration**: Firebase Auth, Analytics, Enhanced Dashboard
-- ✅ **Adaptive Learning Features**: Updated and improved adaptive learning
-- ✅ **Bug Fixes**: Login, Middleware, CORS, Deployment
-
-### [2026-01-04]
-- ✅ Knowledge Point Detail View
-- ✅ Questions & Games System (4 types)
-- ✅ Localized Resource Management
-- ✅ AI Content Generation (Theory-based)
-- ✅ Toast Migration (sonner → HeroUI)
-
-### Previous
-- ✅ AI Content Generation for Knowledge Points
-- ✅ Content Field for Knowledge Points
-- ✅ Removed Tags Field
-- ✅ Removed Section Summary Field
-- ✅ Course Management System
-- ✅ User Management System
 
 ---
 

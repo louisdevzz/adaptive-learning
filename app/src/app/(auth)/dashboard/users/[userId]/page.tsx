@@ -50,6 +50,7 @@ import { Student } from "@/types/student";
 import { Parent } from "@/types/parent";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useUser } from "@/hooks/useUser";
 
 type UserRole = "admin" | "teacher" | "student" | "parent";
 type UnifiedUser = (Admin | Teacher | Student | Parent) & {
@@ -499,6 +500,19 @@ function ResetPasswordModal({
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user: currentUser, loading: userLoading } = useUser();
+  
+  // Check admin access
+  useEffect(() => {
+    if (!userLoading && currentUser) {
+      const isAdmin = currentUser.role?.toLowerCase() === "admin";
+      if (!isAdmin) {
+        toast.error("Bạn không có quyền truy cập trang này");
+        router.push("/dashboard");
+      }
+    }
+  }, [currentUser, userLoading, router]);
+  
   const userId = params.userId as string;
   const [user, setUser] = useState<UnifiedUser | null>(null);
   const [loading, setLoading] = useState(true);

@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/useUser";
+import PDFSlideViewer from "@/components/ui/PDFSlideViewer";
 import {
   ChevronLeft,
   ChevronRight,
@@ -48,10 +49,11 @@ interface KnowledgePoint {
   description: string;
   difficultyLevel: number;
   orderIndex: number;
+  // Content only contains slideUrl, slideFileName, youtubeUrl
   content?: {
-    theory?: string;
-    visualization?: string;
-    questions?: any[];
+    slideUrl?: string;
+    slideFileName?: string;
+    youtubeUrl?: string;
   };
   resources: Resource[];
 }
@@ -159,6 +161,10 @@ export default function CoursePage() {
   const [questionAttempts, setQuestionAttempts] = useState<Record<string, { isCorrect: boolean; selectedAnswer: string }>>({});
   const [kpProgress, setKpProgress] = useState<Record<string, { masteryScore: number; confidence: number }>>({});
   const questionStartTimeRefs = useRef<Record<string, number>>({});
+  
+  // Time tracking
+  const kpStartTimeRef = useRef<number | null>(null);
+  const [totalStudyTime, setTotalStudyTime] = useState<number>(0);
 
   const allKnowledgePoints = useMemo(() => {
     if (!course) return [];
@@ -249,10 +255,51 @@ export default function CoursePage() {
         setExpandedSections(new Set([firstSection.id]));
         if (firstSection.knowledgePoints.length > 0) {
           setSelectedKpId(firstSection.knowledgePoints[0].id);
+          kpStartTimeRef.current = Date.now(); // Start tracking time for first KP
         }
       }
     }
   }, [course, selectedKpId]);
+
+  // Track time when KP changes
+  useEffect(() => {
+    if (selectedKpId) {
+      kpStartTimeRef.current = Date.now();
+    }
+  }, [selectedKpId]);
+
+  // Save time when component unmounts
+  useEffect(() => {
+    return () => {
+      if (kpStartTimeRef.current && selectedKpId && user?.id) {
+        const timeSpentSeconds = Math.round((Date.now() - kpStartTimeRef.current) / 1000);
+        if (timeSpentSeconds >= 5) {
+          // Use sendBeacon for reliable tracking on page unload
+          const data = JSON.stringify({
+            studentId: user.id,
+            kpId: selectedKpId,
+            timeSpentSeconds,
+          });
+          navigator.sendBeacon?.('/api/student-progress/track-time', new Blob([data], { type: 'application/json' }));
+        }
+      }
+    };
+  }, [selectedKpId, user?.id]);
+
+  // Fetch total study time on mount
+  useEffect(() => {
+    const fetchStudyTime = async () => {
+      if (user?.id) {
+        try {
+          const data = await api.studentProgress.getTotalStudyTime(user.id);
+          setTotalStudyTime(data.totalSeconds || 0);
+        } catch (error) {
+          console.error("Failed to fetch study time:", error);
+        }
+      }
+    };
+    fetchStudyTime();
+  }, [user?.id]);
 
   const fetchCourse = async () => {
     try {
@@ -281,6 +328,30 @@ export default function CoursePage() {
     setExpandedSections(newExpanded);
   };
 
+  // Save time spent on current KP before switching
+  const saveCurrentKpTime = async () => {
+    console.log("[Time Tracking] Saving time...", { hasStart: !!kpStartTimeRef.current, selectedKpId, userId: user?.id });
+    if (kpStartTimeRef.current && selectedKpId && user?.id) {
+      const timeSpentSeconds = Math.round((Date.now() - kpStartTimeRef.current) / 1000);
+      console.log("[Time Tracking] Time spent:", timeSpentSeconds, "seconds");
+      if (timeSpentSeconds >= 5) {
+        try {
+          await api.studentProgress.trackTimeOnTask({
+            studentId: user.id,
+            kpId: selectedKpId,
+            timeSpentSeconds,
+          });
+          console.log("[Time Tracking] Saved successfully");
+          setTotalStudyTime((prev) => prev + timeSpentSeconds);
+        } catch (error) {
+          console.error("[Time Tracking] Failed:", error);
+        }
+      } else {
+        console.log("[Time Tracking] Too short, skipped");
+      }
+    }
+  };
+
   const handleSelectKp = async (kpId: string) => {
     const kpIndex = allKnowledgePoints.findIndex((item) => item.kp.id === kpId);
     if (kpIndex === -1) return;
@@ -289,7 +360,13 @@ export default function CoursePage() {
       toast.warning(`Vui lòng hoàn thành "${previousKp.kp.title}" trước khi học bài này`);
       return;
     }
+    
+    // Save time for current KP before switching
+    await saveCurrentKpTime();
+    
     setSelectedKpId(kpId);
+    kpStartTimeRef.current = Date.now(); // Start tracking new KP
+    
     const found = allKnowledgePoints.find((item) => item.kp.id === kpId);
     if (found) {
       setExpandedModules((prev) => new Set(prev).add(found.moduleId));
@@ -301,25 +378,14 @@ export default function CoursePage() {
     async (kpId: string) => {
       try {
         setLoadingQuestions(true);
-        const kp = allKnowledgePoints.find((item) => item.kp.id === kpId);
         let questionsData: any[] = [];
 
-        if (kp?.kp.content?.questions && kp.kp.content.questions.length > 0) {
-          questionsData = kp.kp.content.questions.map((q, index) => ({
-            ...q,
-            id: q.id || `content-q-${index}`,
-            questionType: q.type || "multiple_choice",
-            questionText: q.questionText,
-            correctAnswer: q.correctAnswer,
-            options: q.options || [],
-          }));
-        } else {
-          try {
-            const data = await api.questionBank.getQuestionsByKp(kpId);
-            questionsData = Array.isArray(data) ? data : [];
-          } catch (error) {
-            console.log("No question bank questions found");
-          }
+        // Always fetch questions from question_bank
+        try {
+          const data = await api.questionBank.getQuestionsByKp(kpId);
+          questionsData = Array.isArray(data) ? data : [];
+        } catch (error) {
+          console.log("No question bank questions found");
         }
 
         setQuestions(questionsData);
@@ -335,7 +401,7 @@ export default function CoursePage() {
         setLoadingQuestions(false);
       }
     },
-    [allKnowledgePoints]
+    []
   );
 
   useEffect(() => {
@@ -378,8 +444,9 @@ export default function CoursePage() {
     if (kpId === selectedKpId) return "in_progress";
     const progress = kpProgress[kpId];
     if (progress) {
+      // Có progress record nghĩa là đã bắt đầu học (dù masteryScore = 0 hay bao nhiêu)
       if (progress.masteryScore >= 80) return "completed";
-      if (progress.masteryScore > 0) return "in_progress";
+      return "in_progress";
     }
     return "not_started";
   };
@@ -495,8 +562,34 @@ export default function CoursePage() {
         toast.error("Không thể lưu kết quả. Vui lòng thử lại.");
       }
     } else {
-      if (isCorrect) toast.success("Chính xác!");
-      else toast.info("Câu trả lời chưa đúng. Hãy thử lại!");
+      try {
+        const result = await api.studentProgress.submitContentQuestion({
+          studentId: user.id,
+          kpId: selectedKpId,
+          questionIndex: questionId,
+          isCorrect: isCorrect,
+          timeSpent: timeSpent,
+          totalQuestions: questions.length,
+        });
+
+        setKpProgress((prev) => ({
+          ...prev,
+          [selectedKpId]: {
+            masteryScore: result.masteryScore,
+            confidence: result.confidence,
+          },
+        }));
+
+        if (isCorrect) {
+          toast.success(`Chính xác! Điểm nắm vững: ${result.masteryScore}%`);
+        } else {
+          toast.info(`Câu trả lời chưa đúng. Điểm nắm vững: ${result.masteryScore}%`);
+        }
+      } catch (error: any) {
+        console.error("Failed to submit content question:", error);
+        if (isCorrect) toast.success("Chính xác!");
+        else toast.info("Câu trả lời chưa đúng. Hãy thử lại!");
+      }
     }
   };
 
@@ -800,65 +893,77 @@ export default function CoursePage() {
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-4xl mx-auto space-y-6">
-                  {/* Title */}
-                  <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <GraduationCap className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-[#181d27] dark:text-white">
-                          {currentKp.title}
-                        </h1>
-                        {currentKp.description && (
-                          <p className="text-[#717680] dark:text-gray-400 mt-2">
-                            {currentKp.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 mt-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                            <Target className="w-3 h-3" />
-                            Mức độ: {currentKp.difficultyLevel}/5
-                          </span>
-                          {kpProgress[currentKp.id] && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                              <Trophy className="w-3 h-3" />
-                              Điểm nắm vững: {kpProgress[currentKp.id].masteryScore}%
-                            </span>
-                          )}
+                  {/* YouTube Video */}
+                  {currentKp.content?.youtubeUrl && (() => {
+                    const match = currentKp.content.youtubeUrl!.match(
+                      /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+                    );
+                    const embedUrl = match ? `https://www.youtube.com/embed/${match[1]}` : null;
+                    return embedUrl ? (
+                      <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
+                        <h2 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
+                          <Video className="w-5 h-5 text-primary" />
+                          Video bài giảng
+                        </h2>
+                        <div className="aspect-video rounded-lg overflow-hidden">
+                          <iframe
+                            src={embedUrl}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          />
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    ) : null;
+                  })()}
 
-                  {/* Theory Content */}
-                  {currentKp.content?.theory && (
+                  {/* Slide Viewer */}
+                  {currentKp.content?.slideUrl && (
                     <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
-                      <h2 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-primary" />
-                        Lý thuyết
-                      </h2>
-                      <div
-                        className="prose dark:prose-invert max-w-none text-[#535862] dark:text-gray-300"
-                        dangerouslySetInnerHTML={{ __html: currentKp.content.theory }}
-                      />
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-[#181d27] dark:text-white flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-primary" />
+                          Slide bài giảng
+                        </h2>
+                        <a
+                          href={currentKp.content.slideUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1"
+                        >
+                          Mở tab mới
+                          <Play className="w-4 h-4" />
+                        </a>
+                      </div>
+                      {currentKp.content.slideFileName?.toLowerCase().endsWith(".pdf") ? (
+                        <PDFSlideViewer url={currentKp.content.slideUrl!} />
+                      ) : /\.(pptx?|docx?)$/i.test(currentKp.content.slideFileName || "") ? (
+                        <iframe
+                          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(currentKp.content.slideUrl!)}`}
+                          className="w-full h-[500px] rounded-lg border border-[#e9eaeb] dark:border-gray-700"
+                          title="Document Preview"
+                        />
+                      ) : (
+                        <a
+                          href={currentKp.content.slideUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-4 bg-[#f9fafb] dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <FileText className="w-8 h-8 text-primary" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-[#181d27] dark:text-white">
+                              {currentKp.content.slideFileName || "Tài liệu bài giảng"}
+                            </p>
+                            <p className="text-xs text-[#535862] dark:text-gray-400">
+                              Nhấn để tải xuống
+                            </p>
+                          </div>
+                        </a>
+                      )}
                     </div>
                   )}
-
-                  {/* Visualization Content */}
-                  {currentKp.content?.visualization && (
-                    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">
-                      <h2 className="text-lg font-bold text-[#181d27] dark:text-white mb-4 flex items-center gap-2">
-                        <Play className="w-5 h-5 text-primary" />
-                        Trực quan hóa
-                      </h2>
-                      <div
-                        className="bg-[#f9fafb] dark:bg-gray-800 rounded-xl p-4 min-h-[300px]"
-                        dangerouslySetInnerHTML={{ __html: currentKp.content.visualization }}
-                      />
-                    </div>
-                  )}
-
+                  
                   {/* Resources */}
                   {currentKp.resources && currentKp.resources.length > 0 && (
                     <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-6">

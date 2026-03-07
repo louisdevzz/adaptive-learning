@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, notInArray } from 'drizzle-orm';
 import { db, classes, classEnrollment, teacherClassMap, students, teachers, users, classCourses, courses, studentKpProgress, studentMastery, studentInsights, knowledgePoint } from '../../db';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
@@ -254,6 +254,54 @@ export class ClassesService {
     }
 
     return { message: 'Student removed from class successfully' };
+  }
+
+  async getAvailableStudents(classId: string) {
+    await this.findOne(classId);
+
+    // Get all enrolled student IDs in this class
+    const enrolledStudents = await db
+      .select({ studentId: classEnrollment.studentId })
+      .from(classEnrollment)
+      .where(eq(classEnrollment.classId, classId));
+
+    const enrolledStudentIds = enrolledStudents.map((s) => s.studentId);
+
+    // Get all students not enrolled in this class
+    let availableStudents;
+    if (enrolledStudentIds.length === 0) {
+      availableStudents = await db
+        .select({
+          student: students,
+          user: {
+            id: users.id,
+            email: users.email,
+            fullName: users.fullName,
+            avatarUrl: users.avatarUrl,
+          },
+        })
+        .from(students)
+        .innerJoin(users, eq(students.id, users.id));
+    } else {
+      availableStudents = await db
+        .select({
+          student: students,
+          user: {
+            id: users.id,
+            email: users.email,
+            fullName: users.fullName,
+            avatarUrl: users.avatarUrl,
+          },
+        })
+        .from(students)
+        .innerJoin(users, eq(students.id, users.id))
+        .where(notInArray(students.id, enrolledStudentIds));
+    }
+
+    return availableStudents.map((row) => ({
+      ...row.user,
+      studentInfo: row.student,
+    }));
   }
 
   // Teacher Assignment

@@ -56,6 +56,13 @@ export class QuestionBankService {
         estimatedTime: createQuestionDto.metadata.estimatedTime,
       });
 
+      // 3. Auto-link question to KP via kp_exercises
+      await tx.insert(kpExercises).values({
+        kpId: createQuestionDto.metadata.skillId,
+        questionId: question.id,
+        difficulty: createQuestionDto.metadata.difficulty,
+      });
+
       return question;
     });
   }

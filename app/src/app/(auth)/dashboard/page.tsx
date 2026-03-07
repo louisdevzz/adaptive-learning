@@ -720,49 +720,157 @@ function TeacherDashboardContent({ user }: { user: any }) {
 }
 
 // Student Dashboard Content
+interface StudentStats {
+  totalCourses: number;
+  coursesInProgress: number;
+  coursesCompleted: number;
+  masteryScore: number;
+  kpMastered: number;
+  totalKpsCount: number;
+  streak: number;
+  pendingAssignments: number;
+  recentActivity: number;
+  totalStudyTimeMinutes: number;
+  classInfo: {
+    className: string;
+    gradeLevel: number;
+  } | null;
+}
+
+interface CourseWithProgress {
+  id: string;
+  title: string;
+  subject: string;
+  progress: number;
+  status: 'not_started' | 'in_progress' | 'completed';
+  masteredKps: number;
+  totalKps: number;
+}
+
 function StudentDashboardContent({ user }: { user: any }) {
-  const [stats, setStats] = useState({
-    coursesEnrolled: 0,
+  const [stats, setStats] = useState<StudentStats>({
+    totalCourses: 0,
+    coursesInProgress: 0,
+    coursesCompleted: 0,
     masteryScore: 0,
     kpMastered: 0,
+    totalKpsCount: 0,
     streak: 0,
+    pendingAssignments: 0,
+    recentActivity: 0,
+    totalStudyTimeMinutes: 0,
+    classInfo: null,
   });
+  const [courses, setCourses] = useState<CourseWithProgress[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setStats({
-      coursesEnrolled: 5,
-      masteryScore: 78,
-      kpMastered: 142,
-      streak: 7,
-    });
+    const fetchStudentData = async () => {
+      try {
+        setLoading(true);
+        // Fetch dashboard stats
+        const statsData = await api.students.getMyDashboardStats();
+        setStats(statsData);
+
+        // Fetch courses with progress
+        const coursesData = await api.students.getMyCoursesWithProgress();
+        // Sort by progress (in progress first, then by progress desc)
+        const sortedCourses = coursesData.sort((a: CourseWithProgress, b: CourseWithProgress) => {
+          if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+          if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
+          return b.progress - a.progress;
+        });
+        setCourses(sortedCourses.slice(0, 4)); // Get top 4 courses
+      } catch (error) {
+        console.error("Error fetching student dashboard data:", error);
+        toast.error("Không thể tải dữ liệu dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const getCourseStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'text-green-600 bg-green-50 dark:bg-green-900/20';
+      case 'in_progress':
+        return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20';
+      default:
+        return 'text-gray-600 bg-gray-50 dark:bg-gray-800';
+    }
+  };
+
+  const getCourseStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'Đã hoàn thành';
+      case 'in_progress':
+        return 'Đang học';
+      default:
+        return 'Chưa bắt đầu';
+    }
+  };
 
   return (
     <div className="flex flex-col gap-8">
       <WelcomeSection user={user} />
 
       {/* Streak Banner */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-              <Flame className="w-8 h-8" />
+      {stats.streak > 0 && (
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <Flame className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-3xl font-bold">{stats.streak} ngày</p>
+                <p className="text-white/80">Chuỗi học tập của bạn</p>
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold">{stats.streak} ngày</p>
-              <p className="text-white/80">Chuỗi học tập của bạn</p>
-            </div>
+            <Link href="/dashboard/my-courses">
+              <Button className="bg-white text-orange-600 hover:bg-white/90">
+                Tiếp tục học
+              </Button>
+            </Link>
           </div>
-          <Button className="bg-white text-orange-600 hover:bg-white/90">
-            Tiếp tục học
-          </Button>
         </div>
-      </div>
+      )}
+
+      {/* Class Info */}
+      {stats.classInfo && (
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+            <School className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-[#181d27] dark:text-white">
+              {stats.classInfo.className}
+            </p>
+            <p className="text-sm text-[#717680] dark:text-gray-400">
+              Khối {stats.classInfo.gradeLevel}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <QuickStatCard
           title="Khóa học"
-          value={stats.coursesEnrolled.toString()}
+          value={stats.totalCourses.toString()}
+          change={`${stats.coursesInProgress} đang học`}
+          changeType="neutral"
           icon={<BookOpen className="w-6 h-6 text-blue-600" />}
           color="bg-blue-50 dark:bg-blue-900/20"
           href="/dashboard/my-courses"
@@ -770,73 +878,147 @@ function StudentDashboardContent({ user }: { user: any }) {
         <QuickStatCard
           title="Điểm nắm vững"
           value={`${stats.masteryScore}%`}
-          change="+5%"
-          changeType="up"
           icon={<Target className="w-6 h-6 text-green-600" />}
           color="bg-green-50 dark:bg-green-900/20"
         />
         <QuickStatCard
-          title="KP đã học"
+          title="KP đã thành thạo"
           value={stats.kpMastered.toString()}
-          change="+12"
-          changeType="up"
+          change={`/${stats.totalKpsCount}`}
+          changeType="neutral"
           icon={<CheckCircle2 className="w-6 h-6 text-purple-600" />}
           color="bg-purple-50 dark:bg-purple-900/20"
         />
         <QuickStatCard
-          title="Xếp hạng"
-          value="#42"
-          icon={<Award className="w-6 h-6 text-yellow-600" />}
-          color="bg-yellow-50 dark:bg-yellow-900/20"
+          title="Bài tập chờ"
+          value={stats.pendingAssignments.toString()}
+          icon={<Clock4 className="w-6 h-6 text-orange-600" />}
+          color="bg-orange-50 dark:bg-orange-900/20"
+          href="/dashboard/assignments"
         />
       </div>
 
+      {/* Study Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-cyan-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{Math.round(stats.totalStudyTimeMinutes / 60)}h</p>
+              <p className="text-sm text-[#717680] dark:text-gray-400">Thời gian học (30 ngày)</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-pink-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.recentActivity}</p>
+              <p className="text-sm text-[#717680] dark:text-gray-400">Hoạt động (7 ngày)</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+              <Award className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.coursesCompleted}</p>
+              <p className="text-sm text-[#717680] dark:text-gray-400">Khóa học hoàn thành</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Continue Learning */}
+      {courses.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-[#0d121b] dark:text-white">
+              Tiếp tục học
+            </h2>
+            <Link href="/dashboard/my-courses">
+              <Button variant="light" size="sm" className="text-primary">
+                Xem tất cả
+              </Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {courses.map((course) => (
+              <Link key={course.id} href={`/dashboard/courses/${course.id}`}>
+                <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 hover:shadow-lg transition-all cursor-pointer group">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${getCourseStatusColor(course.status)}`}>
+                      {getCourseStatusText(course.status)}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-[#181d27] dark:text-white">
+                    {course.title}
+                  </h3>
+                  <p className="text-sm text-[#717680] dark:text-gray-400 mt-1">
+                    Môn: {course.subject} • {course.masteredKps}/{course.totalKps} KP
+                  </p>
+                  <div className="mt-4">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-[#717680] dark:text-gray-400">Tiến độ</span>
+                      <span className="font-medium text-[#181d27] dark:text-white">{course.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all"
+                        style={{ width: `${course.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-bold text-[#0d121b] dark:text-white mb-4">
-          Tiếp tục học
+          Truy cập nhanh
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            {
-              title: "Đại số cơ bản",
-              progress: 65,
-              nextLesson: "Phương trình bậc 2",
-              icon: <BookOpen className="w-5 h-5" />,
-            },
-            {
-              title: "Hình học phẳng",
-              progress: 40,
-              nextLesson: "Tam giác đồng dạng",
-              icon: <Target className="w-5 h-5" />,
-            },
-          ].map((course) => (
-            <div
-              key={course.title}
-              className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 hover:shadow-lg transition-all cursor-pointer group"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  {course.icon}
-                </div>
-                <span className="text-sm font-medium text-primary">
-                  {course.progress}%
-                </span>
-              </div>
-              <h3 className="font-semibold text-[#181d27] dark:text-white">
-                {course.title}
-              </h3>
-              <p className="text-sm text-[#717680] dark:text-gray-400 mt-1">
-                Bài tiếp theo: {course.nextLesson}
-              </p>
-              <div className="mt-4 w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all"
-                  style={{ width: `${course.progress}%` }}
-                />
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionCard
+            title="Khóa học của tôi"
+            description="Xem tất cả khóa học đang học"
+            icon={<BookOpen className="w-6 h-6 text-blue-600" />}
+            color="bg-blue-50 dark:bg-blue-900/20"
+            href="/dashboard/my-courses"
+          />
+          <QuickActionCard
+            title="Lộ trình học tập"
+            description="Xem lộ trình học tập cá nhân"
+            icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+            color="bg-green-50 dark:bg-green-900/20"
+            href="/dashboard/learning-path"
+          />
+          <QuickActionCard
+            title="Tiến độ học tập"
+            description="Xem chi tiết tiến độ của bạn"
+            icon={<BarChart3 className="w-6 h-6 text-purple-600" />}
+            color="bg-purple-50 dark:bg-purple-900/20"
+            href="/dashboard/progress"
+          />
+          <QuickActionCard
+            title="Khám phá khóa học"
+            description="Tìm kiếm khóa học mới"
+            icon={<Sparkles className="w-6 h-6 text-orange-600" />}
+            color="bg-orange-50 dark:bg-orange-900/20"
+            href="/dashboard/courses/explorer"
+          />
         </div>
       </div>
     </div>
@@ -845,59 +1027,167 @@ function StudentDashboardContent({ user }: { user: any }) {
 
 // Parent Dashboard Content
 function ParentDashboardContent({ user }: { user: any }) {
-  const [children, setChildren] = useState([
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      class: "10A1",
-      progress: 78,
-      courses: 5,
-      lastActive: "2 giờ trước",
-    },
-    {
-      id: "2",
-      name: "Nguyễn Thị B",
-      class: "8A2",
-      progress: 85,
-      courses: 6,
-      lastActive: "1 giờ trước",
-    },
-  ]);
+  const [children, setChildren] = useState<Array<{
+    id: string;
+    name: string;
+    class: string;
+    progress: number;
+    courses: number;
+    completedCourses: number;
+    lastActive: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChildrenData = async () => {
+      try {
+        setLoading(true);
+        // Fetch parent's children
+        const childrenData = await api.students.getMyChildren();
+        
+        if (!childrenData || childrenData.length === 0) {
+          setChildren([]);
+          return;
+        }
+
+        // Fetch progress data for each child
+        const childrenWithProgress = await Promise.all(
+          childrenData.map(async (child: any) => {
+            try {
+              console.log("Fetching progress for child:", child.id, child.fullName);
+              const progressData = await api.students.getCoursesWithProgress(child.id);
+              console.log("Progress data received:", progressData);
+              
+              // API might return array directly or object with courses property
+              const courses = Array.isArray(progressData) 
+                ? progressData 
+                : (progressData?.courses || []);
+              
+              console.log("Courses extracted:", courses.length, courses);
+              
+              // Calculate average progress
+              const totalProgress = courses.reduce((acc: number, course: any) => acc + (course.progress || 0), 0);
+              const avgProgress = courses.length > 0 ? Math.round(totalProgress / courses.length) : 0;
+              
+              // Count completed courses (status === 'completed' or progress === 100)
+              const completedCourses = courses.filter((c: any) => c.status === 'completed' || c.progress === 100).length;
+              
+              // Get class info from the first course or default
+              const classInfo = courses[0]?.classInfo?.className || "Chưa có lớp";
+              
+              // Calculate last active based on last accessed course
+              const lastAccessed = courses
+                .filter((c: any) => c.lastAccessed)
+                .sort((a: any, b: any) => new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime())[0];
+              
+              const lastActive = lastAccessed?.lastAccessed 
+                ? formatRelativeTime(lastAccessed.lastAccessed)
+                : "Chưa hoạt động";
+
+              return {
+                id: child.id,
+                name: child.fullName || "Không có tên",
+                class: classInfo,
+                progress: avgProgress,
+                courses: courses.length,
+                completedCourses: completedCourses,
+                lastActive: lastActive,
+              };
+            } catch (error) {
+              console.error(`Error fetching progress for child ${child.id}:`, error);
+              return {
+                id: child.id,
+                name: child.fullName || "Không có tên",
+                class: "Chưa có lớp",
+                progress: 0,
+                courses: 0,
+                lastActive: "Không xác định",
+              };
+            }
+          })
+        );
+
+        setChildren(childrenWithProgress);
+      } catch (error) {
+        console.error("Error fetching children data:", error);
+        toast.error("Không thể tải dữ liệu con cái");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChildrenData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <WelcomeSection user={user} />
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
       <WelcomeSection user={user} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <QuickStatCard
-          title="Số con đang học"
-          value={children.length.toString()}
-          icon={<Users className="w-6 h-6 text-blue-600" />}
-          color="bg-blue-50 dark:bg-blue-900/20"
-        />
-        <QuickStatCard
-          title="Tiến độ trung bình"
-          value={`${Math.round(
-            children.reduce((acc, c) => acc + c.progress, 0) / children.length,
-          )}%`}
-          change="+3%"
-          changeType="up"
-          icon={<TrendingUp className="w-6 h-6 text-green-600" />}
-          color="bg-green-50 dark:bg-green-900/20"
-        />
-        <QuickStatCard
-          title="Tổng khóa học"
-          value={children.reduce((acc, c) => acc + c.courses, 0).toString()}
-          icon={<BookOpen className="w-6 h-6 text-purple-600" />}
-          color="bg-purple-50 dark:bg-purple-900/20"
-        />
+        <Link href="/dashboard/children-progress">
+          <QuickStatCard
+            title="Số con đang học"
+            value={children.length.toString()}
+            icon={<Users className="w-6 h-6 text-blue-600" />}
+            color="bg-blue-50 dark:bg-blue-900/20"
+          />
+        </Link>
+        <Link href="/dashboard/children-progress">
+          <QuickStatCard
+            title="Tiến độ trung bình"
+            value={children.length > 0 ? `${Math.round(
+              children.reduce((acc, c) => acc + c.progress, 0) / children.length,
+            )}%` : "0%"}
+            icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+            color="bg-green-50 dark:bg-green-900/20"
+          />
+        </Link>
+        <Link href="/dashboard/children-progress">
+          <QuickStatCard
+            title="Khóa học đã hoàn thành"
+            value={children.reduce((acc, c) => acc + c.completedCourses, 0).toString()}
+            icon={<BookOpen className="w-6 h-6 text-purple-600" />}
+            color="bg-purple-50 dark:bg-purple-900/20"
+          />
+        </Link>
       </div>
 
       {/* Children Progress */}
       <div>
-        <h2 className="text-lg font-bold text-[#0d121b] dark:text-white mb-4">
-          Tiến độ học tập của con
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-[#0d121b] dark:text-white">
+            Tiến độ học tập của con
+          </h2>
+          <Link href="/dashboard/children-progress">
+            <Button size="sm" variant="light" className="text-primary">
+              Xem tất cả
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+        
+        {children.length === 0 ? (
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-8 text-center">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="font-medium text-[#181d27] dark:text-white mb-1">
+              Chưa có học sinh nào được liên kết
+            </h3>
+            <p className="text-sm text-[#717680] dark:text-gray-400">
+              Vui lòng liên hệ quản trị viên để liên kết tài khoản với học sinh
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {children.map((child) => (
             <div
@@ -941,33 +1231,27 @@ function ParentDashboardContent({ user }: { user: any }) {
                   />
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#717680] dark:text-gray-400">
-                    {child.courses} khóa học
-                  </span>
-                  <Button size="sm" variant="light" className="text-primary">
-                    Xem chi tiết
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#717680] dark:text-gray-400">
+                      {child.courses} khóa học
+                    </span>
+                    {child.completedCourses > 0 && (
+                      <span className="text-green-600 dark:text-green-400 font-medium">
+                        ({child.completedCourses} đã hoàn thành)
+                      </span>
+                    )}
+                  </div>
+                  <Link href="/dashboard/children-progress">
+                    <Button size="sm" variant="light" className="text-primary">
+                      Xem chi tiết
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Alerts */}
-      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-amber-900 dark:text-amber-200">
-              Thông báo quan trọng
-            </h3>
-            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-              Nguyễn Văn A có 2 bài tập chưa hoàn thành. Hãy nhắc nhở con hoàn
-              thành bài tập đúng hạn.
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

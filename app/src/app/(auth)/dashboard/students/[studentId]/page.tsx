@@ -409,9 +409,9 @@ export default function StudentDetailPage() {
 
             <div className="space-y-3">
               {courses.length > 0 ? (
-                courses.map((course) => (
+                courses.map((course, index) => (
                   <div
-                    key={course.courseId}
+                    key={course.courseId || `course-${index}`}
                     className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e7ebf3] dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex gap-4">

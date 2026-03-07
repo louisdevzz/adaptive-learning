@@ -101,7 +101,6 @@ const menuItems: Record<string, MenuItem[]> = {
   parent: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Tiến độ con", href: "/dashboard/children-progress" },
-    { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
 };
 
@@ -111,6 +110,16 @@ export function SidebarNavigation() {
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  // Get 2-letter initials from user's full name
+  const getInitials = (fullName?: string) => {
+    if (!fullName) return "U";
+    const words = fullName.trim().split(" ");
+    if (words.length >= 2) {
+      return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+    return fullName.substring(0, 2).toUpperCase();
   };
 
   const role = user?.role?.toLowerCase() || "";
@@ -269,12 +278,11 @@ export function SidebarNavigation() {
               <DropdownTrigger>
                 <button className="flex items-center gap-2 pl-2 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                   <Avatar
-                    src={
-                      user.avatarUrl ||
-                      "/asset/4f9e135d-72bf-49d5-8313-cacb6abeb703.svg"
-                    }
+                    src={user.avatarUrl || undefined}
+                    name={getInitials(user.fullName)}
                     size="sm"
                     className="w-8 h-8 border border-gray-200 dark:border-gray-700"
+                    color="secondary"
                   />
                   <span className="hidden md:block text-sm font-semibold text-[#0d121b] dark:text-white">
                     {user.fullName}

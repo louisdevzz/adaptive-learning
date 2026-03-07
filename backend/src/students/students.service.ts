@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { eq, and, inArray, sql, count, gte } from 'drizzle-orm';
 import {
   db,
   users,
@@ -13,7 +13,10 @@ import {
   sectionKpMap,
   studentKpProgress,
   knowledgePoint,
-  teacherClassMap
+  teacherClassMap,
+  questionAttempts,
+  timeOnTask,
+  parentStudentMap,
 } from '../../db';
 import { UsersService } from '../users/users.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -65,13 +68,25 @@ export class StudentsService {
 
   async findAll() {
     const result = await db
-      .select()
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
       .from(students)
       .leftJoin(users, eq(students.id, users.id));
 
     return result.map((row) => ({
-      ...row.users,
-      studentInfo: row.students,
+      ...row.user,
+      studentInfo: row.student,
     }));
   }
 
@@ -119,20 +134,88 @@ export class StudentsService {
     }
 
     const result = await db
-      .select()
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
       .from(students)
       .leftJoin(users, eq(students.id, users.id))
       .where(inArray(students.id, studentIds));
 
     return result.map((row) => ({
-      ...row.users,
-      studentInfo: row.students,
+      ...row.user,
+      studentInfo: row.student,
+    }));
+  }
+
+  async assertParentCanAccessStudent(parentId: string, studentId: string) {
+    const relationship = await db
+      .select()
+      .from(parentStudentMap)
+      .where(
+        and(
+          eq(parentStudentMap.parentId, parentId),
+          eq(parentStudentMap.studentId, studentId),
+        ),
+      )
+      .limit(1);
+
+    if (relationship.length === 0) {
+      throw new ForbiddenException('Parent does not have access to this student');
+    }
+  }
+
+  async findByParent(parentId: string) {
+    // Get all students linked to this parent
+    const result = await db
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
+      .from(parentStudentMap)
+      .innerJoin(students, eq(parentStudentMap.studentId, students.id))
+      .innerJoin(users, eq(students.id, users.id))
+      .where(eq(parentStudentMap.parentId, parentId));
+
+    return result.map((row) => ({
+      ...row.user,
+      studentInfo: row.student,
     }));
   }
 
   async findOne(id: string) {
     const result = await db
-      .select()
+      .select({
+        student: students,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          status: users.status,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
       .from(students)
       .leftJoin(users, eq(students.id, users.id))
       .where(eq(students.id, id))
@@ -143,8 +226,8 @@ export class StudentsService {
     }
 
     return {
-      ...result[0].users,
-      studentInfo: result[0].students,
+      ...result[0].user,
+      studentInfo: result[0].student,
     };
   }
 
@@ -267,10 +350,11 @@ export class StudentsService {
     const courseAssignments = await db
       .select({
         course: courses,
-        assignment: classCourses,
+        classInfo: classes,
       })
       .from(classCourses)
       .innerJoin(courses, eq(classCourses.courseId, courses.id))
+      .innerJoin(classes, eq(classCourses.classId, classes.id))
       .where(
         and(
           inArray(classCourses.classId, classIds),
@@ -279,11 +363,14 @@ export class StudentsService {
         )
       );
 
-    // Remove duplicates by course ID
+    // Remove duplicates by course ID (keep first class info)
     const uniqueCoursesMap = new Map();
     courseAssignments.forEach((item) => {
       if (!uniqueCoursesMap.has(item.course.id)) {
-        uniqueCoursesMap.set(item.course.id, item.course);
+        uniqueCoursesMap.set(item.course.id, {
+          ...item.course,
+          classInfo: item.classInfo,
+        });
       }
     });
 
@@ -317,12 +404,13 @@ export class StudentsService {
         }
 
         // Get student's progress for these KPs
-        let studentProgress: Array<{ kpId: string; masteryScore: number }> = [];
+        let studentProgress: Array<{ kpId: string; masteryScore: number; lastUpdated: Date }> = [];
         if (kpIds.length > 0) {
           studentProgress = await db
             .select({
               kpId: studentKpProgress.kpId,
               masteryScore: studentKpProgress.masteryScore,
+              lastUpdated: studentKpProgress.lastUpdated,
             })
             .from(studentKpProgress)
             .where(
@@ -333,23 +421,32 @@ export class StudentsService {
             );
         }
 
-        // Count mastered KPs (mastery_score >= 70)
-        const MASTERY_THRESHOLD = 70;
+        // Get last accessed time (most recent progress update)
+        const lastAccessed = studentProgress.length > 0
+          ? studentProgress.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())[0].lastUpdated
+          : null;
+
+        // Count mastered KPs (mastery_score >= 60)
+        const MASTERY_THRESHOLD = 60;
         const masteredKps = studentProgress.filter(
           (p) => p.masteryScore >= MASTERY_THRESHOLD
         ).length;
+
+        // Check if student has any progress at all (has any record in student_kp_progress)
+        // Even if masteryScore = 0 (all answers wrong), it's still "in_progress" not "not_started"
+        const hasAnyProgress = studentProgress.length > 0;
 
         // Calculate progress percentage
         const progress = Math.round((masteredKps / totalKps) * 100);
 
         // Determine status
         let status: 'not_started' | 'in_progress' | 'completed';
-        if (progress === 0) {
-          status = 'not_started';
-        } else if (progress === 100) {
+        if (progress === 100) {
           status = 'completed';
-        } else {
+        } else if (progress > 0 || hasAnyProgress) {
           status = 'in_progress';
+        } else {
+          status = 'not_started';
         }
 
         return {
@@ -358,10 +455,226 @@ export class StudentsService {
           status,
           masteredKps,
           totalKps,
+          lastAccessed,
         };
       })
     );
 
     return coursesWithProgress;
+  }
+
+  async getMyDashboardStats(studentId: string) {
+    // Verify student exists
+    await this.findOne(studentId);
+
+    // 1. Get total enrolled courses
+    const enrollments = await db
+      .select({ classId: classEnrollment.classId })
+      .from(classEnrollment)
+      .where(
+        and(
+          eq(classEnrollment.studentId, studentId),
+          eq(classEnrollment.status, 'active')
+        )
+      );
+
+    const classIds = enrollments.map((e) => e.classId);
+    let totalCourses = 0;
+    let coursesInProgress = 0;
+    let coursesCompleted = 0;
+
+    if (classIds.length > 0) {
+      const courseAssignments = await db
+        .select({ courseId: classCourses.courseId })
+        .from(classCourses)
+        .innerJoin(courses, eq(classCourses.courseId, courses.id))
+        .where(
+          and(
+            inArray(classCourses.classId, classIds),
+            eq(classCourses.status, 'active'),
+            eq(courses.active, true)
+          )
+        );
+
+      const uniqueCourseIds = [...new Set(courseAssignments.map((c) => c.courseId))];
+      totalCourses = uniqueCourseIds.length;
+
+      // Check progress for each course
+      if (uniqueCourseIds.length > 0) {
+        for (const courseId of uniqueCourseIds) {
+          const courseKps = await db
+            .select({ kpId: sectionKpMap.kpId })
+            .from(modules)
+            .innerJoin(sections, eq(sections.moduleId, modules.id))
+            .innerJoin(sectionKpMap, eq(sectionKpMap.sectionId, sections.id))
+            .where(eq(modules.courseId, courseId));
+
+          const kpIds = courseKps.map((kp) => kp.kpId);
+          const totalKps = kpIds.length;
+
+          if (totalKps === 0) continue;
+
+          const studentProgress = await db
+            .select({ masteryScore: studentKpProgress.masteryScore })
+            .from(studentKpProgress)
+            .where(
+              and(
+                eq(studentKpProgress.studentId, studentId),
+                inArray(studentKpProgress.kpId, kpIds)
+              )
+            );
+
+          const masteredKps = studentProgress.filter(
+            (p) => p.masteryScore >= 60
+          ).length;
+
+          const progress = Math.round((masteredKps / totalKps) * 100);
+
+          // Check if student has attempted any KP in this course (has progress record)
+          const hasAttemptedAny = studentProgress.length > 0;
+
+          if (progress === 100) {
+            coursesCompleted++;
+          } else if (progress > 0 || hasAttemptedAny) {
+            coursesInProgress++;
+          }
+        }
+      }
+    }
+
+    // 2. Get overall mastery score (average of all KP progress)
+    const progressData = await db
+      .select({ avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)` })
+      .from(studentKpProgress)
+      .where(eq(studentKpProgress.studentId, studentId));
+
+    const masteryScore = Math.round(parseFloat(progressData[0]?.avgMastery?.toString() || '0'));
+
+    // 3. Get total KPs mastered
+          const masteredKpsCount = await db
+      .select({ count: count() })
+      .from(studentKpProgress)
+      .where(
+        and(
+          eq(studentKpProgress.studentId, studentId),
+          gte(studentKpProgress.masteryScore, 60)
+        )
+      );
+
+    const kpMastered = masteredKpsCount[0]?.count || 0;
+
+    // 4. Get total KPs attempted
+    const totalKpsAttempted = await db
+      .select({ count: count() })
+      .from(studentKpProgress)
+      .where(eq(studentKpProgress.studentId, studentId));
+
+    const totalKpsCount = totalKpsAttempted[0]?.count || 0;
+
+    // 5. Get current streak (consecutive days with activity)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentAttempts = await db
+      .select({
+        date: sql<string>`DATE(${questionAttempts.attemptTime})`,
+      })
+      .from(questionAttempts)
+      .where(
+        and(
+          eq(questionAttempts.studentId, studentId),
+          gte(questionAttempts.attemptTime, thirtyDaysAgo)
+        )
+      )
+      .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
+      .orderBy(sql`DATE(${questionAttempts.attemptTime}) DESC`);
+
+    // Calculate streak
+    let streak = 0;
+    if (recentAttempts.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      
+      // Check if active today or yesterday
+      const lastActiveDate = recentAttempts[0]?.date;
+      if (lastActiveDate === today || lastActiveDate === yesterday) {
+        streak = 1;
+        for (let i = 1; i < recentAttempts.length; i++) {
+          const currentDate = new Date(recentAttempts[i - 1]?.date);
+          const prevDate = new Date(recentAttempts[i]?.date);
+          const diffDays = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (diffDays === 1) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    // 6. Get pending assignments count
+    // Note: Currently simplified since there's no assignmentSubmissions table
+    // TODO: Implement proper assignment tracking when submissions table is added
+    const pendingAssignmentsCount = 0;
+
+    // 7. Get recent activity (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [recentActivity] = await db
+      .select({ count: count() })
+      .from(questionAttempts)
+      .where(
+        and(
+          eq(questionAttempts.studentId, studentId),
+          gte(questionAttempts.attemptTime, sevenDaysAgo)
+        )
+      );
+
+    // 8. Get total study time (in minutes) from timeOnTask table
+    const studyTimeData = await db
+      .select({
+        totalTime: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0)`,
+      })
+      .from(timeOnTask)
+      .where(
+        and(
+          eq(timeOnTask.studentId, studentId),
+          gte(timeOnTask.computedAt, thirtyDaysAgo)
+        )
+      );
+
+    const totalStudyTimeMinutes = Math.round((studyTimeData[0]?.totalTime || 0) / 60);
+
+    // 9. Get class info
+    const classInfo = await db
+      .select({
+        className: classes.className,
+        gradeLevel: classes.gradeLevel,
+      })
+      .from(classEnrollment)
+      .innerJoin(classes, eq(classEnrollment.classId, classes.id))
+      .where(
+        and(
+          eq(classEnrollment.studentId, studentId),
+          eq(classEnrollment.status, 'active')
+        )
+      )
+      .limit(1);
+
+    return {
+      totalCourses,
+      coursesInProgress,
+      coursesCompleted,
+      masteryScore,
+      kpMastered,
+      totalKpsCount,
+      streak,
+      pendingAssignments: pendingAssignmentsCount,
+      recentActivity: recentActivity?.count || 0,
+      totalStudyTimeMinutes,
+      classInfo: classInfo[0] || null,
+    };
   }
 }

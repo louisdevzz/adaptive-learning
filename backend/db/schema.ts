@@ -618,7 +618,6 @@ export const studentKpProgress = pgTable(
     masteryScore: integer('mastery_score').notNull(), // 0-100
     confidence: integer('confidence').notNull(), // 0-100, confidence in mastery score
     lastAttemptId: uuid('last_attempt_id')
-      .notNull()
       .references(() => questionAttempts.id, { onDelete: 'cascade' }),
     lastUpdated: timestamp('last_updated').notNull().defaultNow(),
   },

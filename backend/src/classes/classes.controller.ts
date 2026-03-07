@@ -67,6 +67,11 @@ export class ClassesController {
     return this.classesService.getClassStudents(id);
   }
 
+  @Get(':id/available-students')
+  getAvailableStudents(@Param('id') id: string) {
+    return this.classesService.getAvailableStudents(id);
+  }
+
   @Delete(':id/students/:studentId')
   @HttpCode(HttpStatus.OK)
   removeStudentFromClass(@Param('id') id: string, @Param('studentId') studentId: string) {

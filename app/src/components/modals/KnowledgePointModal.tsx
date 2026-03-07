@@ -15,6 +15,10 @@ import {
   Loader2,
   ChevronLeft,
   ChevronDown,
+  Upload,
+  Youtube,
+  ExternalLink,
+  File,
 } from "lucide-react";
 import {
   Dropdown,
@@ -24,8 +28,8 @@ import {
   Button,
   addToast,
 } from "@heroui/react";
-import RichTextEditor from "../ui/RichTextEditor";
 import { api } from "@/lib/api";
+import PDFSlideViewer from "../ui/PDFSlideViewer";
 
 interface KnowledgePointModalProps {
   isOpen: boolean;
@@ -36,7 +40,6 @@ interface KnowledgePointModalProps {
 }
 
 type TabType = "general" | "content" | "questions" | "resources";
-type ContentType = "theory" | "visualization";
 
 const RESOURCE_TYPE_LABELS: Record<string, string> = {
   video: "Video",
@@ -54,10 +57,9 @@ const KnowledgePointModal = ({
   sectionTitle,
 }: KnowledgePointModalProps) => {
   const [activeTab, setActiveTab] = useState<TabType>("general");
-  const [activeContentTab, setActiveContentTab] =
-    useState<ContentType>("theory");
   const [saving, setSaving] = useState(false);
-  const [visualizationPrompt, setVisualizationPrompt] = useState("");
+  const [uploadingSlide, setUploadingSlide] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
     type: "multiple_choice" as
@@ -77,10 +79,11 @@ const KnowledgePointModal = ({
     title: "",
     description: "",
     difficultyLevel: 1,
-
+    // Content only contains slideUrl, slideFileName, youtubeUrl
     content: {
-      theory: "",
-      visualization: "",
+      slideUrl: "",
+      slideFileName: "",
+      youtubeUrl: "",
     },
     questions: [] as any[],
     resources: [] as any[],
@@ -88,29 +91,32 @@ const KnowledgePointModal = ({
 
   useEffect(() => {
     if (initialData) {
-      // Load questions from content.questions (where they are stored)
-      const contentQuestions = initialData.content?.questions || [];
-      
+      // Questions now come from initialData.questions (from API join) instead of content.questions
+      const questions = initialData.questions || [];
+
       setFormData({
         title: initialData.title || "",
         description: initialData.description || "",
         difficultyLevel: initialData.difficultyLevel || 1,
+        // Content only contains slideUrl, slideFileName, youtubeUrl
         content: {
-          theory: initialData.content?.theory || "",
-          visualization: initialData.content?.visualization || "",
+          slideUrl: initialData.content?.slideUrl || "",
+          slideFileName: initialData.content?.slideFileName || "",
+          youtubeUrl: initialData.content?.youtubeUrl || "",
         },
-        questions: contentQuestions,
+        questions: questions,
         resources: initialData.resources || [],
       });
     } else {
-      // Reset form for new KP
       setFormData({
         title: "",
         description: "",
         difficultyLevel: 1,
+        // Content only contains slideUrl, slideFileName, youtubeUrl
         content: {
-          theory: "",
-          visualization: "",
+          slideUrl: "",
+          slideFileName: "",
+          youtubeUrl: "",
         },
         questions: [],
         resources: [],
@@ -130,7 +136,6 @@ const KnowledgePointModal = ({
       | "other",
   });
   const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
   // ... (previous useEffect)
 
@@ -190,47 +195,65 @@ const KnowledgePointModal = ({
     }
   };
 
-  const handleGenerateContent = async (type: "visualization") => {
-    if (!formData.content.theory) {
+  const handleSlideUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
       addToast({
-        description:
-          "Vui lòng nhập nội dung lý thuyết trước khi tạo trực quan hoá",
+        description: "Chỉ hỗ trợ file PDF, PPTX, PPT, DOCX, DOC",
+        color: "danger",
+      });
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      addToast({
+        description: "File không được vượt quá 50MB",
         color: "danger",
       });
       return;
     }
 
     try {
-      setGenerating(true);
-      const result = await api.knowledgePoints.generateContent({
-        topic: formData.title,
-        description: formData.description,
-        theoryContent: formData.content.theory,
-        prompt: visualizationPrompt || undefined,
-        contentType: type,
-        aiModel: "openai",
+      setUploadingSlide(true);
+      setUploadProgress(0);
+      const response = await api.upload.document(file, (progress) => {
+        setUploadProgress(progress);
       });
 
       setFormData({
         ...formData,
         content: {
           ...formData.content,
-          [type]: result.content,
+          slideUrl: response.url,
+          slideFileName: file.name,
         },
       });
-      addToast({
-        description: "Đã tạo nội dung trực quan hoá thành công",
-        color: "success",
-      });
+      addToast({ description: "Upload slide thành công", color: "success" });
     } catch (error) {
-      console.error("Content generation failed", error);
-      addToast({
-        description: "Không thể tạo nội dung tự động",
-        color: "danger",
-      });
+      console.error("Slide upload failed", error);
+      addToast({ description: "Upload slide thất bại", color: "danger" });
     } finally {
-      setGenerating(false);
+      setUploadingSlide(false);
+      setUploadProgress(0);
     }
+  };
+
+  const getYoutubeEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    const match = url.match(
+      /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    );
+    return match ? `https://www.youtube.com/embed/${match[1]}` : null;
   };
 
   const handleAddQuestion = () => {
@@ -523,131 +546,161 @@ const KnowledgePointModal = ({
 
             {/* Content Tab */}
             {activeTab === "content" && (
-              <div className="flex flex-col h-[calc(100vh-180px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
-                    {[
-                      { id: "theory", label: "Lý thuyết" },
-                      { id: "visualization", label: "Trực quan hoá" },
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() =>
-                          setActiveContentTab(tab.id as ContentType)
-                        }
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                          activeContentTab === tab.id
-                            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-                            : "text-text-muted dark:text-gray-400 hover:text-text-main dark:hover:text-white"
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div>
+                  <h3 className="text-lg font-bold text-text-main dark:text-white mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
+                    Nội dung giảng dạy
+                  </h3>
 
-                <div className="flex-1 overflow-y-auto">
-                  {activeContentTab === "visualization" ? (
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-                        <div className="mb-3">
-                          <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">
-                            💡 AI sẽ tự động tạo trực quan hoá dựa trên nội dung
-                            lý thuyết bạn đã nhập
+                  {/* Slide Upload */}
+                  <div className="space-y-4 mb-8">
+                    <label className="block text-sm font-medium text-text-main dark:text-gray-300">
+                      Slide bài giảng
+                    </label>
+                    <p className="text-xs text-text-muted dark:text-gray-500">
+                      Hỗ trợ PDF, PPTX, PPT, DOCX, DOC (tối đa 50MB)
+                    </p>
+
+                    {formData.content.slideUrl ? (
+                      <div className="space-y-3">
+                        {/* File info bar */}
+                        <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                          <File className="w-6 h-6 text-green-600 dark:text-green-400 shrink-0" />
+                          <p className="flex-1 text-sm font-medium text-text-main dark:text-white truncate">
+                            {formData.content.slideFileName || "Slide đã tải lên"}
                           </p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400">
-                            Bạn có thể thêm yêu cầu bổ sung bên dưới (không bắt
-                            buộc)
-                          </p>
-                        </div>
-                        <label className="block text-sm font-medium text-text-main dark:text-gray-300 mb-2">
-                          Yêu cầu bổ sung (tùy chọn)
-                        </label>
-                        <div className="flex gap-2">
-                          <textarea
-                            value={visualizationPrompt}
-                            onChange={(e) =>
-                              setVisualizationPrompt(e.target.value)
-                            }
-                            placeholder="Ví dụ: Thêm animation chuyển động, cho phép điều chỉnh tham số theo thời gian thực..."
-                            className="flex-1 px-4 py-3 border border-card-border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white dark:bg-gray-800 text-text-main dark:text-white resize-none"
-                            rows={3}
-                          />
+                          <a
+                            href={formData.content.slideUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0"
+                          >
+                            Mở tab mới <ExternalLink className="w-3 h-3" />
+                          </a>
                           <button
                             onClick={() =>
-                              handleGenerateContent("visualization")
+                              setFormData({
+                                ...formData,
+                                content: {
+                                  ...formData.content,
+                                  slideUrl: "",
+                                  slideFileName: "",
+                                },
+                              })
                             }
-                            disabled={generating || !formData.content.theory}
-                            className="px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex flex-col items-center justify-center gap-1 min-w-[100px]"
+                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
                           >
-                            {generating ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <div className="text-xl">✨</div>
-                            )}
-                            Generate
+                            <Trash className="w-4 h-4" />
                           </button>
                         </div>
-                      </div>
 
-                      {formData.content.visualization && (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                          <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                              Preview
-                            </span>
-                            <button
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  content: {
-                                    ...formData.content,
-                                    visualization: "",
-                                  },
-                                })
-                              }
-                              className="text-xs text-red-500 hover:underline"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                          <div className="p-4 bg-white dark:bg-gray-900 min-h-[300px] flex items-center justify-center">
-                            <div
-                              className="w-full"
-                              dangerouslySetInnerHTML={{
-                                __html: formData.content.visualization,
-                              }}
+                        {/* File Preview */}
+                        {formData.content.slideFileName?.toLowerCase().endsWith(".pdf") ? (
+                          <PDFSlideViewer url={formData.content.slideUrl} />
+                        ) : /\.(pptx?|docx?)$/i.test(formData.content.slideFileName || "") ? (
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                Preview
+                              </span>
+                            </div>
+                            <iframe
+                              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(formData.content.slideUrl)}`}
+                              className="w-full h-[500px]"
+                              title="Document Preview"
                             />
                           </div>
-                        </div>
-                      )}
+                        ) : null}
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        {uploadingSlide ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                            <p className="text-sm text-text-muted dark:text-gray-400">
+                              Đang tải lên... {uploadProgress}%
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2">
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <p className="text-sm text-text-muted dark:text-gray-400">
+                              Nhấn để chọn file hoặc kéo thả vào đây
+                            </p>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.pptx,.ppt,.docx,.doc"
+                          onChange={handleSlideUpload}
+                          disabled={uploadingSlide}
+                        />
+                      </label>
+                    )}
+                  </div>
 
-                      {!formData.content.visualization && (
-                        <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-12 text-center">
-                          <div className="text-4xl mb-4">🎨</div>
-                          <p className="text-text-muted dark:text-gray-500">
-                            Nhập mô tả ý tưởng và nhấn Generate để tạo nội dung
-                            trực quan hoá.
-                          </p>
-                        </div>
+                  {/* YouTube Link */}
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-text-main dark:text-gray-300">
+                      Video YouTube
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+                        <input
+                          type="url"
+                          value={formData.content.youtubeUrl}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              content: {
+                                ...formData.content,
+                                youtubeUrl: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full pl-11 pr-4 py-2 border border-card-border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white dark:bg-gray-800 text-text-main dark:text-white"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                        />
+                      </div>
+                      {formData.content.youtubeUrl && (
+                        <button
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              content: {
+                                ...formData.content,
+                                youtubeUrl: "",
+                              },
+                            })
+                          }
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
-                  ) : (
-                    <RichTextEditor
-                      key={activeContentTab}
-                      content={formData.content[activeContentTab] || ""}
-                      onChange={(newContent) =>
-                        setFormData({
-                          ...formData,
-                          content: {
-                            ...formData.content,
-                            [activeContentTab]: newContent,
-                          },
-                        })
-                      }
-                    />
-                  )}
+
+                    {/* YouTube Preview */}
+                    {getYoutubeEmbedUrl(formData.content.youtubeUrl) && (
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                            Preview
+                          </span>
+                        </div>
+                        <div className="aspect-video">
+                          <iframe
+                            src={getYoutubeEmbedUrl(formData.content.youtubeUrl)!}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

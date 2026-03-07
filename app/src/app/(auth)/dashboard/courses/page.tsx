@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useUser } from "@/hooks/useUser";
 import { useDisclosure } from "@heroui/react";
 import { Button } from "@heroui/button";
 import {
@@ -332,6 +333,20 @@ function CourseListRow({
 
 export default function CoursesPage() {
   const router = useRouter();
+  const { user: currentUser, loading: userLoading } = useUser();
+
+  // Check admin/teacher access
+  useEffect(() => {
+    if (!userLoading && currentUser) {
+      const role = currentUser.role?.toLowerCase();
+      const isAllowed = role === "admin" || role === "teacher";
+      if (!isAllowed) {
+        toast.error("Bạn không có quyền truy cập trang này");
+        router.push("/dashboard");
+      }
+    }
+  }, [currentUser, userLoading, router]);
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -474,6 +489,22 @@ export default function CoursesPage() {
       setIsDeleting(false);
     }
   };
+
+  // Show loading while checking access
+  if (userLoading || !currentUser) {
+    return (
+      <LayoutDashboard>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-[#717680] dark:text-gray-400">
+              Đang tải...
+            </p>
+          </div>
+        </div>
+      </LayoutDashboard>
+    );
+  }
 
   return (
     <LayoutDashboard>

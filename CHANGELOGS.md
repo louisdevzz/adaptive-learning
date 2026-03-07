@@ -1,8 +1,78 @@
 # Changelogs - Adaptive Learning Platform
 
+## [Unreleased] - 2026-03-04
+
+### Added
+- **AGENTS.md Documentation**: Added comprehensive guidance document for AI agents
+  - Project structure and conventions
+  - Tech stack details
+  - API patterns and security guidelines
+  - Frontend/backend development guidelines
+
+- **RBAC for Dashboard Routes**: Role-based access control implementation
+  - `/dashboard/courses` - Accessible by all authenticated users
+  - `/dashboard/users` - Restricted to admin only
+  - Proper role checking and redirects
+
+- **Course Assignment UI**: New course assignment interface in class detail page
+  - Assign courses to classes
+  - View assigned courses with status
+  - Manage course-class relationships
+
+- **Course Settings Modal**: Edit course settings directly from course edit page
+  - Edit button with modal popup
+  - Quick settings modification
+  - Improved UX for course management
+
+- **Student Dashboard Redesign**: Complete redesign of student-facing pages
+  - Redesigned `my-courses` page with new UI
+  - Redesigned `learning-path` page
+  - Redesigned `progress` page
+  - Consistent design with admin/teacher pages
+
+- **Real Data Integration**: Student dashboard now uses real data
+  - Connected to backend APIs
+  - Dynamic content based on student progress
+  - Real-time statistics
+
+- **Reports Page Redesign**: Complete reports page overhaul
+  - Real data from analytics APIs
+  - Export functionality for reports
+  - Enhanced visualizations
+
+### Changed
+- **Learning Paths API**: Updated to match new database schema
+  - API endpoints alignment
+  - Frontend component updates
+  - Removed create/delete features for students (view-only)
+
+- **UI Consistency**: Design unification across all pages
+  - Removed shadows for cleaner look
+  - Consistent styling with admin/teacher pages
+  - Improved visual hierarchy
+
+### Fixed
+- **Student Dashboard Stats API**: Resolved build errors
+  - TypeScript type issues fixed
+  - API response handling improved
+  - Error boundaries added
+
+### Documentation
+- **API Documentation**: Updated with complete endpoints
+  - All new endpoints documented
+  - Request/response examples added
+  - Role-based access documented
+
+---
+
 ## [Unreleased] - 2026-03-03
 
 ### Added
+- **Available Students API**: New endpoint to get students not enrolled in a specific class
+  - API endpoint: `GET /api/classes/:id/available-students` (teacher/admin access)
+  - Returns all students who are not currently enrolled in the specified class
+  - Fixed issue where teachers couldn't see available students to add to their classes
+
 - **Admin Password Reset**: Password reset functionality for users from user detail page (admin only)
   - API endpoint: `POST /api/users/:id/reset-password` (admin role required)
   - Frontend modal with password validation and generate random password feature

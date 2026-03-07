@@ -48,9 +48,7 @@ export function StudentsTab({ classId, students, onStudentsChange }: StudentsTab
   const loadAvailableStudents = async () => {
     try {
       setLoadingStudents(true);
-      const allStudents = await api.students.getAll();
-      const enrolledStudentIds = students.map(s => s.student.id);
-      const available = allStudents.filter((s: Student) => !enrolledStudentIds.includes(s.id));
+      const available = await api.classes.getAvailableStudents(classId);
       setAvailableStudents(available);
     } catch (error) {
       console.error('Error loading available students:', error);

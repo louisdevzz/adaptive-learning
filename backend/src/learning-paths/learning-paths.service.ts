@@ -97,15 +97,57 @@ export class LearningPathsService {
   async findOneWithItems(id: string) {
     const path = await this.findOne(id);
 
+    // Get items with their details based on item type
     const items = await db
-      .select()
+      .select({
+        item: learningPathItems,
+      })
       .from(learningPathItems)
       .where(eq(learningPathItems.learningPathId, id))
       .orderBy(learningPathItems.orderIndex);
 
+    // Fetch details for each item based on itemType
+    const itemsWithDetails = await Promise.all(
+      items.map(async ({ item }) => {
+        let details: any = {};
+
+        switch (item.itemType) {
+          case 'kp':
+            const kpResult = await db
+              .select({ id: knowledgePoint.id, title: knowledgePoint.title })
+              .from(knowledgePoint)
+              .where(eq(knowledgePoint.id, item.itemId))
+              .limit(1);
+            details = { kp: kpResult[0] || null };
+            break;
+          case 'section':
+            const sectionResult = await db
+              .select({ id: sections.id, title: sections.title })
+              .from(sections)
+              .where(eq(sections.id, item.itemId))
+              .limit(1);
+            details = { section: sectionResult[0] || null };
+            break;
+          case 'assignment':
+            const assignmentResult = await db
+              .select({ id: assignments.id, title: assignments.title })
+              .from(assignments)
+              .where(eq(assignments.id, item.itemId))
+              .limit(1);
+            details = { assignment: assignmentResult[0] || null };
+            break;
+        }
+
+        return {
+          ...item,
+          ...details,
+        };
+      })
+    );
+
     return {
       ...path,
-      items,
+      items: itemsWithDetails,
     };
   }
 
