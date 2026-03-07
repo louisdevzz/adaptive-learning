@@ -17,6 +17,7 @@ import {
   sections,
   sectionKpMap,
   studentKpProgress,
+  studentMastery,
   knowledgePoint,
   teacherClassMap,
   questionAttempts,
@@ -347,7 +348,7 @@ export class StudentsService {
     // Verify student exists
     await this.findOne(studentId);
 
-    // Get all courses (same logic as getMyCourses)
+    // Get all active class enrollments for this student
     const enrollments = await db
       .select({
         classId: classEnrollment.classId,
@@ -360,40 +361,82 @@ export class StudentsService {
         ),
       );
 
-    if (enrollments.length === 0) {
+    const classIds = enrollments.map((e) => e.classId);
+
+    const courseAssignments =
+      classIds.length > 0
+        ? await db
+            .select({
+              course: courses,
+              classInfo: classes,
+            })
+            .from(classCourses)
+            .innerJoin(courses, eq(classCourses.courseId, courses.id))
+            .innerJoin(classes, eq(classCourses.classId, classes.id))
+            .where(
+              and(
+                inArray(classCourses.classId, classIds),
+                eq(classCourses.status, 'active'),
+                eq(courses.active, true),
+              ),
+            )
+        : [];
+
+    // Also include courses inferred from existing progress/mastery/attempts data.
+    const masteryCourses = await db
+      .select({ courseId: studentMastery.courseId })
+      .from(studentMastery)
+      .where(eq(studentMastery.studentId, studentId));
+
+    const progressCourses = await db
+      .select({ courseId: modules.courseId })
+      .from(studentKpProgress)
+      .innerJoin(sectionKpMap, eq(sectionKpMap.kpId, studentKpProgress.kpId))
+      .innerJoin(sections, eq(sections.id, sectionKpMap.sectionId))
+      .innerJoin(modules, eq(modules.id, sections.moduleId))
+      .where(eq(studentKpProgress.studentId, studentId))
+      .groupBy(modules.courseId);
+
+    const attemptedCourses = await db
+      .select({ courseId: modules.courseId })
+      .from(questionAttempts)
+      .innerJoin(sectionKpMap, eq(sectionKpMap.kpId, questionAttempts.kpId))
+      .innerJoin(sections, eq(sections.id, sectionKpMap.sectionId))
+      .innerJoin(modules, eq(modules.id, sections.moduleId))
+      .where(eq(questionAttempts.studentId, studentId))
+      .groupBy(modules.courseId);
+
+    const candidateCourseIds = [
+      ...new Set([
+        ...courseAssignments.map((item) => item.course.id),
+        ...masteryCourses.map((item) => item.courseId),
+        ...progressCourses.map((item) => item.courseId),
+        ...attemptedCourses.map((item) => item.courseId),
+      ]),
+    ];
+
+    if (candidateCourseIds.length === 0) {
       return [];
     }
 
-    const classIds = enrollments.map((e) => e.classId);
-
-    const courseAssignments = await db
-      .select({
-        course: courses,
-        classInfo: classes,
-      })
-      .from(classCourses)
-      .innerJoin(courses, eq(classCourses.courseId, courses.id))
-      .innerJoin(classes, eq(classCourses.classId, classes.id))
+    const activeCourses = await db
+      .select({ course: courses })
+      .from(courses)
       .where(
-        and(
-          inArray(classCourses.classId, classIds),
-          eq(classCourses.status, 'active'),
-          eq(courses.active, true),
-        ),
+        and(inArray(courses.id, candidateCourseIds), eq(courses.active, true)),
       );
 
-    // Remove duplicates by course ID (keep first class info)
-    const uniqueCoursesMap = new Map();
+    const classInfoByCourseId = new Map<string, (typeof classes.$inferSelect)>();
     courseAssignments.forEach((item) => {
-      if (!uniqueCoursesMap.has(item.course.id)) {
-        uniqueCoursesMap.set(item.course.id, {
-          ...item.course,
-          classInfo: item.classInfo,
-        });
+      if (!classInfoByCourseId.has(item.course.id)) {
+        classInfoByCourseId.set(item.course.id, item.classInfo);
       }
     });
 
-    const coursesList = Array.from(uniqueCoursesMap.values());
+    const coursesList = activeCourses.map(({ course }) => ({
+      ...course,
+      classInfo: classInfoByCourseId.get(course.id) || null,
+    }));
 
     // For each course, calculate progress
     const coursesWithProgress = await Promise.all(
@@ -416,9 +459,12 @@ export class StudentsService {
           return {
             ...course,
             progress: 0,
+            masteryScore: 0,
             status: 'not_started' as const,
             masteredKps: 0,
             totalKps: 0,
+            timeSpent: 0,
+            lastAccessed: null,
           };
         }
 
@@ -444,14 +490,58 @@ export class StudentsService {
             );
         }
 
-        // Get last accessed time (most recent progress update)
-        const lastAccessed =
+        const [attemptSummary] = await db
+          .select({
+            totalAttempts: sql<number>`COUNT(*)`,
+            correctAttempts: sql<number>`COALESCE(SUM(CASE WHEN ${questionAttempts.isCorrect} THEN 1 ELSE 0 END), 0)`,
+            lastAttemptAt: sql<Date | null>`MAX(${questionAttempts.attemptTime})`,
+          })
+          .from(questionAttempts)
+          .where(
+            and(
+              eq(questionAttempts.studentId, studentId),
+              inArray(questionAttempts.kpId, kpIds),
+            ),
+          );
+
+        const [studySummary] = await db
+          .select({
+            totalSeconds: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0)`,
+            lastTrackedAt: sql<Date | null>`MAX(${timeOnTask.computedAt})`,
+          })
+          .from(timeOnTask)
+          .where(
+            and(
+              eq(timeOnTask.studentId, studentId),
+              inArray(timeOnTask.kpId, kpIds),
+            ),
+          );
+
+        const lastProgressAt =
           studentProgress.length > 0
-            ? studentProgress.sort(
-                (a, b) =>
-                  new Date(b.lastUpdated).getTime() -
-                  new Date(a.lastUpdated).getTime(),
-              )[0].lastUpdated
+            ? studentProgress.reduce(
+                (latest, current) =>
+                  new Date(current.lastUpdated).getTime() >
+                  new Date(latest).getTime()
+                    ? current.lastUpdated
+                    : latest,
+                studentProgress[0].lastUpdated,
+              )
+            : null;
+
+        const candidateLastAccessed = [
+          lastProgressAt ? new Date(lastProgressAt) : null,
+          attemptSummary?.lastAttemptAt
+            ? new Date(attemptSummary.lastAttemptAt)
+            : null,
+          studySummary?.lastTrackedAt ? new Date(studySummary.lastTrackedAt) : null,
+        ].filter(Boolean) as Date[];
+
+        const lastAccessed =
+          candidateLastAccessed.length > 0
+            ? candidateLastAccessed.reduce((latest, current) =>
+                current.getTime() > latest.getTime() ? current : latest,
+              )
             : null;
 
         // Count mastered KPs (mastery_score >= 60)
@@ -460,12 +550,29 @@ export class StudentsService {
           (p) => p.masteryScore >= MASTERY_THRESHOLD,
         ).length;
 
-        // Check if student has any progress at all (has any record in student_kp_progress)
-        // Even if masteryScore = 0 (all answers wrong), it's still "in_progress" not "not_started"
-        const hasAnyProgress = studentProgress.length > 0;
-
         // Calculate progress percentage
         const progress = Math.round((masteredKps / totalKps) * 100);
+        const masteryFromProgress =
+          studentProgress.length > 0
+            ? Math.round(
+                studentProgress.reduce((sum, p) => sum + p.masteryScore, 0) /
+                  studentProgress.length,
+              )
+            : null;
+
+        const totalAttempts = Number(attemptSummary?.totalAttempts || 0);
+        const correctAttempts = Number(attemptSummary?.correctAttempts || 0);
+        const masteryScore =
+          masteryFromProgress ??
+          (totalAttempts > 0
+            ? Math.round((correctAttempts / totalAttempts) * 100)
+            : 0);
+
+        const totalStudySeconds = Number(studySummary?.totalSeconds || 0);
+        const timeSpentMinutes = Math.round(totalStudySeconds / 60);
+
+        const hasAnyProgress =
+          studentProgress.length > 0 || totalAttempts > 0 || totalStudySeconds > 0;
 
         // Determine status
         let status: 'not_started' | 'in_progress' | 'completed';
@@ -480,9 +587,11 @@ export class StudentsService {
         return {
           ...course,
           progress,
+          masteryScore,
           status,
           masteredKps,
           totalKps,
+          timeSpent: timeSpentMinutes,
           lastAccessed,
         };
       }),
@@ -492,124 +601,62 @@ export class StudentsService {
   }
 
   async getMyDashboardStats(studentId: string) {
-    // Verify student exists
-    await this.findOne(studentId);
-
-    // 1. Get total enrolled courses
-    const enrollments = await db
-      .select({ classId: classEnrollment.classId })
-      .from(classEnrollment)
-      .where(
-        and(
-          eq(classEnrollment.studentId, studentId),
-          eq(classEnrollment.status, 'active'),
-        ),
-      );
-
-    const classIds = enrollments.map((e) => e.classId);
-    let totalCourses = 0;
-    let coursesInProgress = 0;
-    let coursesCompleted = 0;
-
-    if (classIds.length > 0) {
-      const courseAssignments = await db
-        .select({ courseId: classCourses.courseId })
-        .from(classCourses)
-        .innerJoin(courses, eq(classCourses.courseId, courses.id))
-        .where(
-          and(
-            inArray(classCourses.classId, classIds),
-            eq(classCourses.status, 'active'),
-            eq(courses.active, true),
-          ),
-        );
-
-      const uniqueCourseIds = [
-        ...new Set(courseAssignments.map((c) => c.courseId)),
-      ];
-      totalCourses = uniqueCourseIds.length;
-
-      // Check progress for each course
-      if (uniqueCourseIds.length > 0) {
-        for (const courseId of uniqueCourseIds) {
-          const courseKps = await db
-            .select({ kpId: sectionKpMap.kpId })
-            .from(modules)
-            .innerJoin(sections, eq(sections.moduleId, modules.id))
-            .innerJoin(sectionKpMap, eq(sectionKpMap.sectionId, sections.id))
-            .where(eq(modules.courseId, courseId));
-
-          const kpIds = courseKps.map((kp) => kp.kpId);
-          const totalKps = kpIds.length;
-
-          if (totalKps === 0) continue;
-
-          const studentProgress = await db
-            .select({ masteryScore: studentKpProgress.masteryScore })
-            .from(studentKpProgress)
-            .where(
-              and(
-                eq(studentKpProgress.studentId, studentId),
-                inArray(studentKpProgress.kpId, kpIds),
-              ),
-            );
-
-          const masteredKps = studentProgress.filter(
-            (p) => p.masteryScore >= 60,
-          ).length;
-
-          const progress = Math.round((masteredKps / totalKps) * 100);
-
-          // Check if student has attempted any KP in this course (has progress record)
-          const hasAttemptedAny = studentProgress.length > 0;
-
-          if (progress === 100) {
-            coursesCompleted++;
-          } else if (progress > 0 || hasAttemptedAny) {
-            coursesInProgress++;
-          }
-        }
-      }
-    }
+    const coursesWithProgress = await this.getMyCoursesWithProgress(studentId);
+    const totalCourses = coursesWithProgress.length;
+    const coursesCompleted = coursesWithProgress.filter(
+      (course) => course.status === 'completed',
+    ).length;
+    const coursesInProgress = coursesWithProgress.filter(
+      (course) => course.status === 'in_progress',
+    ).length;
 
     // 2. Get overall mastery score (average of all KP progress)
-    const progressData = await db
+    const [progressData] = await db
       .select({
         avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
+        progressCount: sql<number>`COUNT(*)`,
       })
       .from(studentKpProgress)
       .where(eq(studentKpProgress.studentId, studentId));
 
-    const masteryScore = Math.round(
-      parseFloat(progressData[0]?.avgMastery?.toString() || '0'),
+    const progressCount = Number(progressData?.progressCount || 0);
+    let masteryScore = 0;
+    if (progressCount > 0) {
+      masteryScore = Math.round(
+        parseFloat(progressData?.avgMastery?.toString() || '0'),
+      );
+    } else {
+      const [attemptSummary] = await db
+        .select({
+          totalAttempts: sql<number>`COUNT(*)`,
+          correctAttempts: sql<number>`COALESCE(SUM(CASE WHEN ${questionAttempts.isCorrect} THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(questionAttempts)
+        .where(eq(questionAttempts.studentId, studentId));
+
+      const totalAttempts = Number(attemptSummary?.totalAttempts || 0);
+      const correctAttempts = Number(attemptSummary?.correctAttempts || 0);
+      masteryScore =
+        totalAttempts > 0
+          ? Math.round((correctAttempts / totalAttempts) * 100)
+          : 0;
+    }
+
+    // 3. Get total KPs mastered/attempted from per-course progress
+    const kpMastered = coursesWithProgress.reduce(
+      (sum, course) => sum + (course.masteredKps || 0),
+      0,
+    );
+    const totalKpsCount = coursesWithProgress.reduce(
+      (sum, course) => sum + (course.totalKps || 0),
+      0,
     );
 
-    // 3. Get total KPs mastered
-    const masteredKpsCount = await db
-      .select({ count: count() })
-      .from(studentKpProgress)
-      .where(
-        and(
-          eq(studentKpProgress.studentId, studentId),
-          gte(studentKpProgress.masteryScore, 60),
-        ),
-      );
-
-    const kpMastered = masteredKpsCount[0]?.count || 0;
-
-    // 4. Get total KPs attempted
-    const totalKpsAttempted = await db
-      .select({ count: count() })
-      .from(studentKpProgress)
-      .where(eq(studentKpProgress.studentId, studentId));
-
-    const totalKpsCount = totalKpsAttempted[0]?.count || 0;
-
-    // 5. Get current streak (consecutive days with activity)
+    // 4. Get current streak (consecutive days with activity in last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentAttempts = await db
+    const recentAttemptDays = await db
       .select({
         date: sql<string>`DATE(${questionAttempts.attemptTime})`,
       })
@@ -623,21 +670,46 @@ export class StudentsService {
       .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
       .orderBy(sql`DATE(${questionAttempts.attemptTime}) DESC`);
 
+    const recentStudyDays = await db
+      .select({
+        date: sql<string>`DATE(${timeOnTask.computedAt})`,
+      })
+      .from(timeOnTask)
+      .where(
+        and(
+          eq(timeOnTask.studentId, studentId),
+          gte(timeOnTask.computedAt, thirtyDaysAgo),
+        ),
+      )
+      .groupBy(sql`DATE(${timeOnTask.computedAt})`);
+
+    const uniqueActivityDays = [
+      ...new Set([
+        ...recentAttemptDays.map((d) => d.date),
+        ...recentStudyDays.map((d) => d.date),
+      ]),
+    ].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    const toLocalDateString = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     // Calculate streak
     let streak = 0;
-    if (recentAttempts.length > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000)
-        .toISOString()
-        .split('T')[0];
+    if (uniqueActivityDays.length > 0) {
+      const today = toLocalDateString(new Date());
+      const yesterday = toLocalDateString(new Date(Date.now() - 86400000));
 
       // Check if active today or yesterday
-      const lastActiveDate = recentAttempts[0]?.date;
+      const lastActiveDate = uniqueActivityDays[0];
       if (lastActiveDate === today || lastActiveDate === yesterday) {
         streak = 1;
-        for (let i = 1; i < recentAttempts.length; i++) {
-          const currentDate = new Date(recentAttempts[i - 1]?.date);
-          const prevDate = new Date(recentAttempts[i]?.date);
+        for (let i = 1; i < uniqueActivityDays.length; i++) {
+          const currentDate = new Date(uniqueActivityDays[i - 1]);
+          const prevDate = new Date(uniqueActivityDays[i]);
           const diffDays =
             (currentDate.getTime() - prevDate.getTime()) /
             (1000 * 60 * 60 * 24);
@@ -651,12 +723,12 @@ export class StudentsService {
       }
     }
 
-    // 6. Get pending assignments count
+    // 5. Get pending assignments count
     // Note: Currently simplified since there's no assignmentSubmissions table
     // TODO: Implement proper assignment tracking when submissions table is added
     const pendingAssignmentsCount = 0;
 
-    // 7. Get recent activity (last 7 days)
+    // 6. Get recent activity (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -670,8 +742,15 @@ export class StudentsService {
         ),
       );
 
-    // 8. Get total study time (in minutes) from timeOnTask table
-    const studyTimeData = await db
+    // 7. Get study time from timeOnTask table
+    const [studyTimeData] = await db
+      .select({
+        totalTime: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0)`,
+      })
+      .from(timeOnTask)
+      .where(eq(timeOnTask.studentId, studentId));
+
+    const [studyTimeLast30Days] = await db
       .select({
         totalTime: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0)`,
       })
@@ -684,10 +763,17 @@ export class StudentsService {
       );
 
     const totalStudyTimeMinutes = Math.round(
-      (studyTimeData[0]?.totalTime || 0) / 60,
+      Number(studyTimeData?.totalTime || 0) / 60,
     );
+    const totalStudyTimeMinutesLast30Days = Math.round(
+      Number(studyTimeLast30Days?.totalTime || 0) / 60,
+    );
+    const averageTimePerDay =
+      uniqueActivityDays.length > 0
+        ? Math.round(totalStudyTimeMinutesLast30Days / uniqueActivityDays.length)
+        : 0;
 
-    // 9. Get class info
+    // 8. Get class info
     const classInfo = await db
       .select({
         className: classes.className,
@@ -714,6 +800,7 @@ export class StudentsService {
       pendingAssignments: pendingAssignmentsCount,
       recentActivity: recentActivity?.count || 0,
       totalStudyTimeMinutes,
+      averageTimePerDay,
       classInfo: classInfo[0] || null,
     };
   }

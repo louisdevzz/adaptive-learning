@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { api } from "@/lib/api";
@@ -10,7 +10,6 @@ import {
   Mail,
   School,
   Calendar,
-  User,
   GraduationCap,
   BookOpen,
   Target,
@@ -66,6 +65,24 @@ interface RecentActivity {
   timestamp: string;
 }
 
+interface StudentDashboardStatsResponse {
+  totalCourses: number;
+  masteryScore: number;
+  kpMastered: number;
+  streak: number;
+  totalStudyTimeMinutes: number;
+}
+
+interface StudentCourseWithProgressResponse {
+  id: string;
+  title: string;
+  thumbnailUrl?: string;
+  progress: number;
+  masteredKps: number;
+  totalKps: number;
+  lastAccessed?: string | null;
+}
+
 export default function StudentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -83,38 +100,47 @@ export default function StudentDetailPage() {
   const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (studentId) {
-      fetchStudentData();
-    }
-  }, [studentId]);
-
-  const fetchStudentData = async () => {
+  const fetchStudentData = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Fetch student details
-      const studentData = await api.students.getById(studentId);
+      // Fetch student details + stats + courses
+      const [studentData, dashboardStats, coursesData] = await Promise.all([
+        api.students.getById(studentId),
+        api.students.getDashboardStats(studentId),
+        api.students.getCoursesWithProgress(studentId),
+      ]);
       setStudent(studentData);
 
-      // Fetch student progress stats
-      const progressData = await api.studentProgress.getAllStudentProgress(studentId);
-      
-      // Fetch student insights
-      const insights = await api.studentProgress.getStudentInsights(studentId);
-
-      // Calculate stats from data
+      const safeStats = (dashboardStats || {}) as StudentDashboardStatsResponse;
       setStats({
-        totalCourses: progressData?.courses?.length || 0,
-        averageMastery: insights?.overallMastery || 0,
-        totalLearningTime: progressData?.totalTimeSpent || 0,
-        completedKps: insights?.completedKps || 0,
-        streakDays: insights?.streakDays || 0,
+        totalCourses: safeStats.totalCourses || 0,
+        averageMastery: safeStats.masteryScore || 0,
+        totalLearningTime: safeStats.totalStudyTimeMinutes || 0,
+        completedKps: safeStats.kpMastered || 0,
+        streakDays: safeStats.streak || 0,
       });
 
-      // Fetch courses with progress
-      const coursesData = await api.students.getCoursesWithProgress(studentId);
-      setCourses(coursesData || []);
+      const mappedCourses = ((coursesData || []) as StudentCourseWithProgressResponse[]).map((course) => {
+        const masteryScore =
+          course.totalKps > 0
+            ? Math.round((course.masteredKps / course.totalKps) * 100)
+            : 0;
+
+        return {
+          courseId: course.id,
+          courseTitle: course.title,
+          thumbnailUrl: course.thumbnailUrl,
+          progress: course.progress || 0,
+          masteryScore,
+          completedKps: course.masteredKps || 0,
+          totalKps: course.totalKps || 0,
+          lastAccessed: course.lastAccessed
+            ? new Date(course.lastAccessed).toLocaleDateString("vi-VN")
+            : "Chưa học",
+        };
+      });
+      setCourses(mappedCourses);
 
       // Mock activities (will be replaced with real API)
       setActivities([
@@ -140,24 +166,27 @@ export default function StudentDetailPage() {
           timestamp: "1 ngày trước",
         },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching student data:", error);
-      toast.error(error.response?.data?.message || "Không thể tải thông tin học sinh");
+      const message =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as { response?: { data?: { message?: string } } }).response
+          ?.data?.message === "string"
+          ? (error as { response?: { data?: { message?: string } } }).response!.data!.message!
+          : "Không thể tải thông tin học sinh";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId]);
 
-  const getGenderLabel = (gender: string) => {
-    switch (gender) {
-      case "male":
-        return "Nam";
-      case "female":
-        return "Nữ";
-      default:
-        return "Khác";
+  useEffect(() => {
+    if (studentId) {
+      fetchStudentData();
     }
-  };
+  }, [studentId, fetchStudentData]);
 
   const getGradeLabel = (grade: number) => {
     return `Lớp ${grade}`;

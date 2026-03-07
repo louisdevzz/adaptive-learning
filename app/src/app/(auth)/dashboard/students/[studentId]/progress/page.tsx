@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { MetricCard } from "@/components/dashboards/MetricCard";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -9,17 +9,12 @@ import {
   ArrowLeft,
   ChevronRight,
   BookOpen,
-  Target,
   TrendingUp,
   Clock,
   Award,
   CheckCircle2,
-  AlertCircle,
   Brain,
-  FileText,
   BarChart3,
-  Calendar,
-  Filter,
   Download,
   ChevronDown,
   ChevronUp,
@@ -79,9 +74,33 @@ interface SkillBreakdown {
   completedKps: number;
 }
 
+interface StudentDashboardStatsResponse {
+  masteryScore: number;
+  coursesCompleted: number;
+  coursesInProgress: number;
+  kpMastered: number;
+  averageTimePerDay: number;
+  streak: number;
+}
+
+interface StudentCourseWithProgressResponse {
+  id: string;
+  title: string;
+  subject: string;
+  gradeLevel: number;
+  thumbnailUrl?: string;
+  progress: number;
+  masteryScore?: number;
+  masteredKps: number;
+  totalKps: number;
+  timeSpent?: number;
+  lastAccessed?: string | null;
+  status: "not_started" | "in_progress" | "completed";
+  modules?: ModuleProgress[];
+}
+
 export default function StudentProgressPage() {
   const params = useParams();
-  const router = useRouter();
   const studentId = params.studentId as string;
 
   const [studentName, setStudentName] = useState("");
@@ -102,86 +121,117 @@ export default function StudentProgressPage() {
     currentStreak: 0,
   });
 
-  useEffect(() => {
-    if (studentId) {
-      fetchProgressData();
-    }
-  }, [studentId]);
-
-  const fetchProgressData = async () => {
+  const fetchProgressData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Fetch student info
-      const student = await api.students.getById(studentId);
+      // Fetch student info + stats + courses
+      const [student, dashboardStats, coursesDataRaw] = await Promise.all([
+        api.students.getById(studentId),
+        api.students.getDashboardStats(studentId),
+        api.students.getCoursesWithProgress(studentId),
+      ]);
       setStudentName(student.fullName);
 
-      // Fetch courses with progress (includes status: not_started/in_progress/completed)
-      const coursesDataRaw = await api.students.getCoursesWithProgress(studentId);
-      
-      // Fetch insights
-      const insights = await api.studentProgress.getStudentInsights(studentId);
-
       // Process courses data - API already returns correct status
-      const coursesData: CourseProgress[] = (coursesDataRaw || []).map((c: any) => ({
-        courseId: c.id,
-        courseTitle: c.title,
-        subject: c.subject,
-        gradeLevel: c.gradeLevel,
-        thumbnailUrl: c.thumbnailUrl,
-        progress: c.progress || 0,
-        masteryScore: c.masteryScore || 0,
-        completedKps: c.masteredKps || 0,
-        totalKps: c.totalKps || 0,
-        timeSpent: c.timeSpent || 0,
-        lastAccessed: c.lastAccessed,
-        status: c.status || "not_started",
-        modules: c.modules || [],
-      }));
+      const coursesData: CourseProgress[] = (
+        (coursesDataRaw || []) as StudentCourseWithProgressResponse[]
+      ).map((c) => {
+        const masteryScore =
+          c.masteryScore ??
+          (c.totalKps > 0 ? Math.round((c.masteredKps / c.totalKps) * 100) : 0);
+
+        return {
+          courseId: c.id,
+          courseTitle: c.title,
+          subject: c.subject,
+          gradeLevel: c.gradeLevel,
+          thumbnailUrl: c.thumbnailUrl,
+          progress: c.progress || 0,
+          masteryScore,
+          completedKps: c.masteredKps || 0,
+          totalKps: c.totalKps || 0,
+          timeSpent: c.timeSpent || 0,
+          lastAccessed: c.lastAccessed || "",
+          status: c.status || "not_started",
+          modules: c.modules || [],
+        };
+      });
 
       setCourses(coursesData);
 
       // Calculate stats
+      const safeStats = (dashboardStats || {}) as StudentDashboardStatsResponse;
       setStats({
-        overallMastery: insights?.overallMastery || 0,
-        coursesCompleted: coursesData.filter((c) => c.status === "completed").length,
-        coursesInProgress: coursesData.filter((c) => c.status === "in_progress").length,
-        totalKpsMastered: insights?.totalKpsMastered || 0,
-        averageTimePerDay: insights?.averageTimePerDay || 0,
-        currentStreak: insights?.streakDays || 0,
+        overallMastery: safeStats.masteryScore || 0,
+        coursesCompleted: safeStats.coursesCompleted || 0,
+        coursesInProgress: safeStats.coursesInProgress || 0,
+        totalKpsMastered: safeStats.kpMastered || 0,
+        averageTimePerDay: safeStats.averageTimePerDay || 0,
+        currentStreak: safeStats.streak || 0,
       });
 
-      // Mock mastery trend data (will be replaced with real API)
-      setMasteryTrend([
-        { date: "T1", score: 45 },
-        { date: "T2", score: 52 },
-        { date: "T3", score: 58 },
-        { date: "T4", score: 65 },
-        { date: "T5", score: 72 },
-        { date: "T6", score: 78 },
-        { date: "T7", score: 82 },
-      ]);
+      const weeklyActivity =
+        await api.studentProgress.getWeeklyActivity(studentId);
+      const activityTrend: MasteryTrend[] = (weeklyActivity || []).map(
+        (day: { date: string; attempts: number; timeSpent: number }) => ({
+          date: day.date,
+          score: Math.min(100, Math.round(day.attempts * 10 + day.timeSpent / 6)),
+        })
+      );
+      setMasteryTrend(activityTrend);
 
-      // Mock skill breakdown
-      setSkillBreakdown([
-        { skill: "Đại số", mastery: 85, totalKps: 24, completedKps: 20 },
-        { skill: "Hình học", mastery: 72, totalKps: 18, completedKps: 13 },
-        { skill: "Giải tích", mastery: 60, totalKps: 15, completedKps: 9 },
-        { skill: "Xác suất", mastery: 45, totalKps: 12, completedKps: 5 },
-        { skill: "Số học", mastery: 90, totalKps: 20, completedKps: 18 },
-      ]);
+      const skillsMap = new Map<
+        string,
+        { totalKps: number; completedKps: number }
+      >();
+      coursesData.forEach((course) => {
+        const key = course.subject || "Khác";
+        const current = skillsMap.get(key) || { totalKps: 0, completedKps: 0 };
+        skillsMap.set(key, {
+          totalKps: current.totalKps + (course.totalKps || 0),
+          completedKps: current.completedKps + (course.completedKps || 0),
+        });
+      });
 
-      // Select first course by default
-      if (coursesData.length > 0 && !selectedCourse) {
-        setSelectedCourse(coursesData[0].courseId);
+      const skillData: SkillBreakdown[] = Array.from(skillsMap.entries()).map(
+        ([skill, value]) => ({
+          skill,
+          mastery:
+            value.totalKps > 0
+              ? Math.round((value.completedKps / value.totalKps) * 100)
+              : 0,
+          totalKps: value.totalKps,
+          completedKps: value.completedKps,
+        })
+      );
+      setSkillBreakdown(skillData);
+
+      // Select first course by default once
+      if (coursesData.length > 0) {
+        setSelectedCourse((prev) => prev || coursesData[0].courseId);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching progress data:", error);
-      toast.error(error.response?.data?.message || "Không thể tải tiến độ học sinh");
+      const message =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as { response?: { data?: { message?: string } } }).response
+          ?.data?.message === "string"
+          ? (error as { response?: { data?: { message?: string } } }).response!.data!.message!
+          : "Không thể tải tiến độ học sinh";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId]);
+
+  useEffect(() => {
+    if (studentId) {
+      fetchProgressData();
+    }
+  }, [studentId, fetchProgressData]);
 
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
@@ -191,17 +241,6 @@ export default function StudentProgressPage() {
       newExpanded.add(moduleId);
     }
     setExpandedModules(newExpanded);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500";
-      case "in_progress":
-        return "bg-[#6244F4/10]0";
-      default:
-        return "bg-gray-300";
-    }
   };
 
   const getStatusLabel = (status: string) => {

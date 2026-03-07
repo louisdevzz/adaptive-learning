@@ -230,6 +230,11 @@ export const api = {
       return response.data;
     },
 
+    getDashboardStats: async (studentId: string) => {
+      const response = await apiClient.get(`/students/${studentId}/dashboard-stats`);
+      return response.data;
+    },
+
     getMyDashboardStats: async () => {
       const response = await apiClient.get("/students/me/dashboard-stats");
       return response.data;

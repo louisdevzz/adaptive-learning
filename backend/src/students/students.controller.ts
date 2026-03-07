@@ -65,6 +65,11 @@ export class StudentsController {
     return this.studentsService.getMyCoursesWithProgress(id);
   }
 
+  @Get(':id/dashboard-stats')
+  getStudentDashboardStats(@Param('id') id: string) {
+    return this.studentsService.getMyDashboardStats(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.studentsService.findOne(id);
