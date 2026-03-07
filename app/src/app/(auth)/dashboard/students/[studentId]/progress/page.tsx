@@ -117,28 +117,28 @@ export default function StudentProgressPage() {
       const student = await api.students.getById(studentId);
       setStudentName(student.fullName);
 
-      // Fetch all progress (includes courses)
-      const progressData = await api.studentProgress.getAllStudentProgress(studentId);
+      // Fetch courses with progress (includes status: not_started/in_progress/completed)
+      const coursesDataRaw = await api.students.getCoursesWithProgress(studentId);
       
       // Fetch insights
       const insights = await api.studentProgress.getStudentInsights(studentId);
 
-      // Process courses data
-      const coursesData: CourseProgress[] = progressData?.courses?.map((c: any) => ({
-        courseId: c.courseId,
-        courseTitle: c.courseTitle,
+      // Process courses data - API already returns correct status
+      const coursesData: CourseProgress[] = (coursesDataRaw || []).map((c: any) => ({
+        courseId: c.id,
+        courseTitle: c.title,
         subject: c.subject,
         gradeLevel: c.gradeLevel,
         thumbnailUrl: c.thumbnailUrl,
         progress: c.progress || 0,
         masteryScore: c.masteryScore || 0,
-        completedKps: c.completedKps || 0,
+        completedKps: c.masteredKps || 0,
         totalKps: c.totalKps || 0,
         timeSpent: c.timeSpent || 0,
         lastAccessed: c.lastAccessed,
-        status: c.progress === 100 ? "completed" : c.progress > 0 ? "in_progress" : "not_started",
+        status: c.status || "not_started",
         modules: c.modules || [],
-      })) || [];
+      }));
 
       setCourses(coursesData);
 

@@ -94,6 +94,58 @@ export class UploadService {
     }
   }
 
+  async uploadDocument(
+    file: Express.Multer.File,
+    folder: string = 'slides',
+  ): Promise<string> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
+      'application/vnd.ms-powerpoint', // ppt
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
+      'application/msword', // doc
+    ];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Invalid file type. Only PDF, PPTX, PPT, DOCX, and DOC are allowed',
+      );
+    }
+
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size exceeds 50MB limit');
+    }
+
+    const fileExtension = file.originalname.split('.').pop();
+    const fileName = `${folder}/${uuidv4()}.${fileExtension}`;
+
+    try {
+      const upload = new Upload({
+        client: this.s3Client,
+        params: {
+          Bucket: this.bucketName,
+          Key: fileName,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        },
+      });
+
+      await upload.done();
+
+      return `${this.publicUrl}/${fileName}`;
+    } catch (error) {
+      throw new BadRequestException(`Failed to upload file: ${error.message}`);
+    }
+  }
+
+  getPublicUrl(): string {
+    return this.publicUrl;
+  }
+
   async uploadAvatar(file: Express.Multer.File): Promise<string> {
     return this.uploadFile(file, 'avatars');
   }

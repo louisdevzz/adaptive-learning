@@ -327,23 +327,26 @@ export default function CourseEditPage() {
   const handleSaveKp = async (kpData: any) => {
     if (!selectedSectionId) return;
     try {
+      // Content now only contains slideUrl, slideFileName, youtubeUrl
+      // Questions are sent as a separate top-level field
       const preparedData = {
-        ...kpData,
+        title: kpData.title,
+        description: kpData.description,
+        difficultyLevel: Number(kpData.difficultyLevel),
         content: {
-          ...kpData.content,
-          questions: kpData.questions || [],
+          slideUrl: kpData.content?.slideUrl || null,
+          slideFileName: kpData.content?.slideFileName || null,
+          youtubeUrl: kpData.content?.youtubeUrl || null,
         },
+        questions: kpData.questions || [],
+        resources: kpData.resources || [],
       };
-      delete preparedData.questions;
 
       if (editingKp) {
         await api.knowledgePoints.update(editingKp.id, preparedData);
         toast.success("Cập nhật điểm kiến thức thành công");
       } else {
-        const newKp = await api.knowledgePoints.create({
-          ...preparedData,
-          difficultyLevel: Number(preparedData.difficultyLevel),
-        });
+        const newKp = await api.knowledgePoints.create(preparedData);
         let orderIndex = 0;
         modules.forEach((mod) => {
           const section = mod.sections.find((s) => s.id === selectedSectionId);

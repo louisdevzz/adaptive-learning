@@ -951,6 +951,30 @@ export const api = {
     ): Promise<{ message: string; url: string }> => {
       return api.upload.file(file, onProgress);
     },
+
+    document: async (
+      file: File,
+      onProgress?: (progress: number) => void
+    ): Promise<{ message: string; url: string }> => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await apiClient.post("/upload/document", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-api-key": API_KEY,
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onProgress(percentCompleted);
+          }
+        },
+      });
+      return response.data;
+    },
   },
 
   // Explorer endpoints
@@ -1096,6 +1120,21 @@ export const api = {
       return response.data;
     },
 
+    submitContentQuestion: async (data: {
+      studentId: string;
+      kpId: string;
+      questionIndex: string;
+      isCorrect: boolean;
+      timeSpent?: number;
+      totalQuestions?: number;
+    }) => {
+      const response = await apiClient.post(
+        "/student-progress/submit-content-question",
+        data
+      );
+      return response.data;
+    },
+
     updateKpProgress: async (data: {
       studentId: string;
       kpId: string;
@@ -1155,6 +1194,29 @@ export const api = {
     getStudentQuestionAttempts: async (studentId: string, kpId: string) => {
       const response = await apiClient.get(
         `/student-progress/students/${studentId}/kps/${kpId}/attempts`
+      );
+      return response.data;
+    },
+
+    trackTimeOnTask: async (data: {
+      studentId: string;
+      kpId: string;
+      timeSpentSeconds: number;
+    }) => {
+      const response = await apiClient.post("/student-progress/track-time", data);
+      return response.data;
+    },
+
+    getTotalStudyTime: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/study-time`
+      );
+      return response.data;
+    },
+
+    getKpAttemptStats: async (studentId: string, kpId: string) => {
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/kps/${kpId}/attempt-stats`
       );
       return response.data;
     },

@@ -13,6 +13,8 @@ import {
   kpExercises,
   sectionKpMap,
   sections,
+  questionBank,
+  questionMetadata,
 } from '../../db';
 import { CreateKnowledgePointDto } from './dto/create-knowledge-point.dto';
 import { UpdateKnowledgePointDto } from './dto/update-knowledge-point.dto';
@@ -47,13 +49,14 @@ export class KnowledgePointsService {
 
     // Use transaction to create KP with related entities
     return await db.transaction(async (tx) => {
-      // Merge questions into content object if provided
+      // 1. Create the knowledge point
+      // Content should only contain slideUrl, slideFileName, youtubeUrl
       const content = {
-        ...createKpDto.content,
-        ...(createKpDto.questions && { questions: createKpDto.questions }),
+        slideUrl: createKpDto.content?.slideUrl || null,
+        slideFileName: createKpDto.content?.slideFileName || null,
+        youtubeUrl: createKpDto.content?.youtubeUrl || null,
       };
 
-      // 1. Create the knowledge point
       const [kp] = await tx
         .insert(knowledgePoint)
         .values({
@@ -61,7 +64,6 @@ export class KnowledgePointsService {
           description: createKpDto.description || '',
           content: content,
           difficultyLevel: createKpDto.difficultyLevel,
-
           createdBy: userId ?? null,
         })
         .returning();
@@ -99,6 +101,40 @@ export class KnowledgePointsService {
         });
 
         await tx.insert(kpResources).values(resourceValues);
+      }
+
+      // 4. Create questions in question_bank if provided
+      if (createKpDto.questions && createKpDto.questions.length > 0) {
+        for (const question of createKpDto.questions) {
+          // Insert into question_bank
+          const [questionRecord] = await tx
+            .insert(questionBank)
+            .values({
+              questionText: question.questionText,
+              options: question.options || [],
+              correctAnswer: question.correctAnswer || '',
+              questionType: question.type === 'game' ? 'multiple_choice' : question.type,
+              createdBy: userId ?? null,
+            })
+            .returning();
+
+          // Insert into question_metadata
+          await tx.insert(questionMetadata).values({
+            questionId: questionRecord.id,
+            difficulty: 5,
+            discrimination: 0.5,
+            skillId: kp.id,
+            tags: [],
+            estimatedTime: 60,
+          });
+
+          // Insert into kp_exercises
+          await tx.insert(kpExercises).values({
+            kpId: kp.id,
+            questionId: questionRecord.id,
+            difficulty: 5,
+          });
+        }
       }
 
       return kp;
@@ -176,17 +212,28 @@ export class KnowledgePointsService {
       .where(eq(kpResources.kpId, id))
       .orderBy(kpResources.orderIndex);
 
-    // Get exercises
-    const exercises = await db
-      .select()
+    // Get questions from kp_exercises joined with question_bank
+    const questions = await db
+      .select({
+        question: questionBank,
+      })
       .from(kpExercises)
+      .innerJoin(questionBank, eq(kpExercises.questionId, questionBank.id))
       .where(eq(kpExercises.kpId, id));
 
     return {
       ...kp,
       prerequisites: prereqs.map((p) => p.prerequisite),
       resources,
-      exerciseCount: exercises.length,
+      questions: questions.map((q) => ({
+        id: q.question.id,
+        questionText: q.question.questionText,
+        options: q.question.options,
+        correctAnswer: q.question.correctAnswer,
+        questionType: q.question.questionType,
+        type: q.question.questionType,
+      })),
+      exerciseCount: questions.length,
     };
   }
 
@@ -219,11 +266,12 @@ export class KnowledgePointsService {
       if (updateKpDto.description !== undefined)
         updateData.description = updateKpDto.description;
 
-      // Merge questions into content if provided
+      // Content should only contain slideUrl, slideFileName, youtubeUrl
       if (updateKpDto.content !== undefined) {
         updateData.content = {
-          ...updateKpDto.content,
-          ...(updateKpDto.questions && { questions: updateKpDto.questions }),
+          slideUrl: updateKpDto.content.slideUrl || null,
+          slideFileName: updateKpDto.content.slideFileName || null,
+          youtubeUrl: updateKpDto.content.youtubeUrl || null,
         };
       }
 
@@ -280,6 +328,70 @@ export class KnowledgePointsService {
           });
 
           await tx.insert(kpResources).values(resourceValues);
+        }
+      }
+
+      // 4. Update questions if provided
+      if (updateKpDto.questions !== undefined) {
+        // Get existing kp_exercises to delete related question_bank records
+        const existingExercises = await tx
+          .select({
+            questionId: kpExercises.questionId,
+          })
+          .from(kpExercises)
+          .where(eq(kpExercises.kpId, id));
+
+        const questionIdsToDelete = existingExercises.map((e) => e.questionId);
+
+        // Delete existing kp_exercises
+        await tx.delete(kpExercises).where(eq(kpExercises.kpId, id));
+
+        // Delete existing question_metadata records
+        if (questionIdsToDelete.length > 0) {
+          await tx
+            .delete(questionMetadata)
+            .where(inArray(questionMetadata.questionId, questionIdsToDelete));
+        }
+
+        // Delete existing question_bank records
+        if (questionIdsToDelete.length > 0) {
+          await tx
+            .delete(questionBank)
+            .where(inArray(questionBank.id, questionIdsToDelete));
+        }
+
+        // Insert new questions
+        if (updateKpDto.questions.length > 0) {
+          for (const question of updateKpDto.questions) {
+            // Insert into question_bank
+            const [questionRecord] = await tx
+              .insert(questionBank)
+              .values({
+                questionText: question.questionText,
+                options: question.options || [],
+                correctAnswer: question.correctAnswer || '',
+                questionType: question.type === 'game' ? 'multiple_choice' : question.type,
+                createdBy: userId ?? null,
+              })
+              .returning();
+
+            // Insert into question_metadata
+            await tx.insert(questionMetadata).values({
+              questionId: questionRecord.id,
+              difficulty: 5,
+              discrimination: 0.5,
+              skillId: id,
+              tags: [],
+              estimatedTime: 60,
+            });
+
+            // Insert into kp_exercises
+            await tx.insert(kpExercises).values({
+              kpId: id,
+              questionId: questionRecord.id,
+              difficulty: 5,
+            });
+          }
         }
       }
 

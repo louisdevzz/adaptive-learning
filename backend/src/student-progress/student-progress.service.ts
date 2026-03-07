@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 import {
   db,
   studentKpProgress,
@@ -10,9 +10,15 @@ import {
   knowledgePoint,
   questionAttempts,
   questionBank,
+  kpExercises,
+  timeOnTask,
+  sectionKpMap,
+  modules,
+  sections,
 } from '../../db';
 import { UpdateKpProgressDto } from './dto/update-kp-progress.dto';
 import { SubmitQuestionAttemptDto } from './dto/submit-question-attempt.dto';
+import { SubmitContentQuestionDto } from './dto/submit-content-question.dto';
 
 @Injectable()
 export class StudentProgressService {
@@ -144,6 +150,7 @@ export class StudentProgressService {
   }
 
   async getAllStudentProgress(studentId: string) {
+    // Get all KP progress
     const result = await db
       .select({
         progress: studentKpProgress,
@@ -153,10 +160,50 @@ export class StudentProgressService {
       .innerJoin(knowledgePoint, eq(studentKpProgress.kpId, knowledgePoint.id))
       .where(eq(studentKpProgress.studentId, studentId));
 
-    return result.map((row) => ({
-      ...row.progress,
-      knowledgePoint: row.kp,
-    }));
+    // Get attempt stats for all KPs
+    const kpIds = result.map((row) => row.progress.kpId);
+    
+    let attemptStatsMap: Map<string, { totalAttempts: number; correctAttempts: number; accuracyRate: number }> = new Map();
+    
+    if (kpIds.length > 0) {
+      const attemptStats = await db
+        .select({
+          kpId: questionAttempts.kpId,
+          totalAttempts: sql<number>`COUNT(*)`,
+          correctAttempts: sql<number>`SUM(CASE WHEN ${questionAttempts.isCorrect} THEN 1 ELSE 0 END)`,
+        })
+        .from(questionAttempts)
+        .where(
+          and(
+            eq(questionAttempts.studentId, studentId),
+            inArray(questionAttempts.kpId, kpIds)
+          )
+        )
+        .groupBy(questionAttempts.kpId);
+
+      attemptStats.forEach((stat) => {
+        if (stat.kpId) {
+          attemptStatsMap.set(stat.kpId, {
+            totalAttempts: Number(stat.totalAttempts),
+            correctAttempts: Number(stat.correctAttempts),
+            accuracyRate: Math.round((Number(stat.correctAttempts) / Number(stat.totalAttempts)) * 100),
+          });
+        }
+      });
+    }
+
+    return result.map((row) => {
+      const stats = attemptStatsMap.get(row.progress.kpId);
+      return {
+        ...row.progress,
+        knowledgePoint: row.kp,
+        attemptStats: stats || {
+          totalAttempts: 0,
+          correctAttempts: 0,
+          accuracyRate: 0,
+        },
+      };
+    });
   }
 
   async getKpHistory(studentId: string, kpId: string) {
@@ -315,27 +362,19 @@ export class StudentProgressService {
         )
         .orderBy(desc(questionAttempts.attemptTime));
 
-      // Calculate mastery score based on recent attempts
-      // Consider last 10 attempts, weight recent attempts more heavily
-      const recentAttempts = allAttempts.slice(0, 10);
-      const recentCount = recentAttempts.length;
+      // Simplified mastery calculation (Option 3)
+      // If latest attempt is correct: mastery = 100%
+      // Otherwise: mastery = 0%
+      const latestAttempt = allAttempts[0];
+      const totalAttempts = allAttempts.length;
       
-      if (recentCount === 0) {
+      if (!latestAttempt) {
         throw new BadRequestException('Failed to create attempt');
       }
 
-      // Calculate weighted score (more recent = higher weight)
-      let weightedSum = 0;
-      let totalWeight = 0;
-      
-      recentAttempts.forEach((att, index) => {
-        const weight = recentCount - index; // Most recent gets highest weight
-        weightedSum += att.isCorrect ? weight : 0;
-        totalWeight += weight;
-      });
-
-      const masteryScore = Math.round((weightedSum / totalWeight) * 100);
-      const confidence = Math.min(100, Math.round((recentCount / 10) * 100)); // Confidence based on attempt count
+      // Simple logic: latest attempt correct = 100% mastery
+      const masteryScore = latestAttempt.isCorrect ? 100 : 0;
+      const confidence = Math.min(100, Math.round((totalAttempts / 10) * 100)); // Confidence based on attempt count
 
       // Get existing progress
       const existing = await tx
@@ -438,5 +477,232 @@ export class StudentProgressService {
     });
 
     return Object.values(latestAttemptsByQuestion);
+  }
+
+  // ==================== CONTENT QUESTION PROGRESS ====================
+
+  async submitContentQuestion(submitDto: SubmitContentQuestionDto) {
+    // Validate student exists
+    const studentResult = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, submitDto.studentId))
+      .limit(1);
+
+    if (studentResult.length === 0) {
+      throw new NotFoundException('Student not found');
+    }
+
+    // Validate KP exists
+    const kpResult = await db
+      .select()
+      .from(knowledgePoint)
+      .where(eq(knowledgePoint.id, submitDto.kpId))
+      .limit(1);
+
+    if (kpResult.length === 0) {
+      throw new NotFoundException('Knowledge Point not found');
+    }
+
+    // Get question count from kp_exercises instead of content
+    const exercisesResult = await db
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(kpExercises)
+      .where(eq(kpExercises.kpId, submitDto.kpId));
+
+    const exerciseCount = Number(exercisesResult[0]?.count || 0);
+    const totalQuestions = submitDto.totalQuestions || exerciseCount;
+
+    if (totalQuestions === 0) {
+      throw new BadRequestException('No questions found for this KP');
+    }
+
+    // Get existing progress
+    const existing = await db
+      .select()
+      .from(studentKpProgress)
+      .where(
+        and(
+          eq(studentKpProgress.studentId, submitDto.studentId),
+          eq(studentKpProgress.kpId, submitDto.kpId)
+        )
+      )
+      .limit(1);
+
+    const oldScore = existing.length > 0 ? existing[0].masteryScore : 0;
+
+    // Calculate new mastery score based on weighted approach:
+    // - Use existing score as base
+    // - Each correct answer increases score, each wrong answer decreases
+    let masteryScore: number;
+    const scorePerQuestion = Math.round(100 / totalQuestions);
+
+    if (existing.length > 0) {
+      // Update existing score
+      if (submitDto.isCorrect) {
+        masteryScore = Math.min(100, existing[0].masteryScore + scorePerQuestion);
+      } else {
+        masteryScore = Math.max(0, existing[0].masteryScore - Math.round(scorePerQuestion / 2));
+      }
+    } else {
+      // First attempt
+      masteryScore = submitDto.isCorrect ? scorePerQuestion : 0;
+    }
+
+    const confidence = Math.min(100, (existing.length > 0 ? existing[0].confidence ?? 0 : 0) + Math.round(100 / totalQuestions));
+
+    // Update or create progress
+    if (existing.length > 0) {
+      await db
+        .update(studentKpProgress)
+        .set({
+          masteryScore,
+          confidence,
+          lastUpdated: new Date(),
+        })
+        .where(eq(studentKpProgress.id, existing[0].id));
+    } else {
+      await db.insert(studentKpProgress).values({
+        studentId: submitDto.studentId,
+        kpId: submitDto.kpId,
+        masteryScore,
+        confidence,
+      });
+    }
+
+    // Create history record
+    await db.insert(studentKpHistory).values({
+      studentId: submitDto.studentId,
+      kpId: submitDto.kpId,
+      oldScore,
+      newScore: masteryScore,
+      confidence,
+      source: 'practice',
+    });
+
+    return {
+      isCorrect: submitDto.isCorrect,
+      masteryScore,
+      confidence,
+    };
+  }
+
+  // ==================== TIME TRACKING ====================
+
+  async trackTimeOnTask(studentId: string, kpId: string, timeSpentSeconds: number) {
+    // Validate student exists
+    const studentResult = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, studentId))
+      .limit(1);
+
+    if (studentResult.length === 0) {
+      throw new NotFoundException('Student not found');
+    }
+
+    // Validate KP exists
+    const kpResult = await db
+      .select()
+      .from(knowledgePoint)
+      .where(eq(knowledgePoint.id, kpId))
+      .limit(1);
+
+    if (kpResult.length === 0) {
+      throw new NotFoundException('Knowledge Point not found');
+    }
+
+    // Insert time tracking record
+    const [record] = await db
+      .insert(timeOnTask)
+      .values({
+        studentId,
+        kpId,
+        timeSpentSeconds,
+      })
+      .returning();
+
+    return record;
+  }
+
+  async getKpAttemptStats(studentId: string, kpId: string) {
+    // Get all attempts for this KP
+    const attempts = await db
+      .select({
+        isCorrect: questionAttempts.isCorrect,
+      })
+      .from(questionAttempts)
+      .where(
+        and(
+          eq(questionAttempts.studentId, studentId),
+          eq(questionAttempts.kpId, kpId)
+        )
+      )
+      .orderBy(desc(questionAttempts.attemptTime));
+
+    const totalAttempts = attempts.length;
+    const correctAttempts = attempts.filter(a => a.isCorrect).length;
+    const accuracyRate = totalAttempts > 0 
+      ? Math.round((correctAttempts / totalAttempts) * 100) 
+      : 0;
+
+    return {
+      totalAttempts,
+      correctAttempts,
+      incorrectAttempts: totalAttempts - correctAttempts,
+      accuracyRate,
+      latestAttemptCorrect: attempts.length > 0 ? attempts[0].isCorrect : null,
+    };
+  }
+
+  async getTotalStudyTime(studentId: string, courseId?: string) {
+    // Validate student exists
+    const studentResult = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, studentId))
+      .limit(1);
+
+    if (studentResult.length === 0) {
+      throw new NotFoundException('Student not found');
+    }
+
+    // Build conditions array
+    const conditions: any[] = [eq(timeOnTask.studentId, studentId)];
+
+    // If courseId provided, filter by KPs in that course
+    if (courseId) {
+      // Get all KP IDs in the course
+      const courseKps = await db
+        .select({
+          kpId: sectionKpMap.kpId,
+        })
+        .from(modules)
+        .innerJoin(sections, eq(sections.moduleId, modules.id))
+        .innerJoin(sectionKpMap, eq(sectionKpMap.sectionId, sections.id))
+        .where(eq(modules.courseId, courseId));
+
+      const kpIds = courseKps.map(k => k.kpId);
+      
+      if (kpIds.length > 0) {
+        conditions.push(inArray(timeOnTask.kpId, kpIds));
+      }
+    }
+
+    const result = await db
+      .select({
+        totalSeconds: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0)`,
+      })
+      .from(timeOnTask)
+      .where(and(...conditions));
+    const totalSeconds = result[0]?.totalSeconds || 0;
+
+    return {
+      totalSeconds,
+      totalMinutes: Math.round(totalSeconds / 60),
+      totalHours: Math.round((totalSeconds / 3600) * 10) / 10,
+    };
   }
 }

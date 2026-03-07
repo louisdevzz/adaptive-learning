@@ -950,7 +950,7 @@ function StudentDashboardContent({ user }: { user: any }) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {courses.map((course) => (
-              <Link key={course.id} href={`/dashboard/my-courses/${course.id}`}>
+              <Link key={course.id} href={`/dashboard/courses/${course.id}`}>
                 <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 hover:shadow-lg transition-all cursor-pointer group">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">

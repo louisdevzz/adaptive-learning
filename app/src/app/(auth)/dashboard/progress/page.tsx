@@ -51,6 +51,11 @@ interface KpProgress {
   confidence: number;
   lastUpdated: string;
   attemptCount: number;
+  attemptStats?: {
+    totalAttempts: number;
+    correctAttempts: number;
+    accuracyRate: number;
+  };
 }
 
 interface CourseMastery {
@@ -576,32 +581,42 @@ export default function ProgressPage() {
                             <BookOpen className="w-5 h-5" />
                           )}
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{kp.kpTitle}</p>
-                          <p className="text-xs text-gray-500">
-                            {kp.attemptCount} lần thử • Cập nhật: {new Date(kp.lastUpdated).toLocaleDateString("vi-VN")}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold">{kp.masteryScore}%</p>
-                          <Chip
-                            size="sm"
-                            color={
-                              kp.masteryScore >= 70
-                                ? "success"
-                                : kp.masteryScore >= 50
-                                ? "primary"
-                                : "warning"
-                            }
-                            variant="flat"
-                          >
-                            {kp.masteryScore >= 70
-                              ? "Thành thạo"
-                              : kp.masteryScore >= 50
-                              ? "Đang học"
-                              : "Cần ôn tập"}
-                          </Chip>
-                        </div>
+                         <div className="flex-1">
+                           <p className="font-medium">{kp.kpTitle}</p>
+                           <p className="text-xs text-gray-500">
+                             {kp.attemptStats?.totalAttempts || kp.attemptCount || 0} lần thử 
+                             {kp.attemptStats && (
+                               <span className="ml-1">
+                                 ({kp.attemptStats.correctAttempts} đúng / {kp.attemptStats.totalAttempts - kp.attemptStats.correctAttempts} sai)
+                               </span>
+                             )}
+                             • Cập nhật: {new Date(kp.lastUpdated).toLocaleDateString("vi-VN")}
+                           </p>
+                         </div>
+                         <div className="text-right">
+                           <p className="font-bold">{kp.masteryScore}%</p>
+                           <p className="text-xs text-gray-400">
+                             {kp.attemptStats && `Tỷ lệ đúng: ${kp.attemptStats.accuracyRate}%`}
+                           </p>
+                           <Chip
+                             size="sm"
+                             color={
+                               kp.masteryScore >= 70
+                                 ? "success"
+                                 : kp.masteryScore >= 50
+                                 ? "primary"
+                                 : "warning"
+                             }
+                             variant="flat"
+                             className="mt-1"
+                           >
+                             {kp.masteryScore >= 70
+                               ? "Thành thạo"
+                               : kp.masteryScore >= 50
+                               ? "Đang học"
+                               : "Cần ôn tập"}
+                           </Chip>
+                         </div>
                       </div>
                     ))
                 )}

@@ -15,6 +15,7 @@ import {
   knowledgePoint,
   teacherClassMap,
   questionAttempts,
+  timeOnTask,
 } from '../../db';
 import { UsersService } from '../users/users.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -334,23 +335,27 @@ export class StudentsService {
             );
         }
 
-        // Count mastered KPs (mastery_score >= 70)
-        const MASTERY_THRESHOLD = 70;
+        // Count mastered KPs (mastery_score >= 60)
+        const MASTERY_THRESHOLD = 60;
         const masteredKps = studentProgress.filter(
           (p) => p.masteryScore >= MASTERY_THRESHOLD
         ).length;
+
+        // Check if student has any progress at all (has any record in student_kp_progress)
+        // Even if masteryScore = 0 (all answers wrong), it's still "in_progress" not "not_started"
+        const hasAnyProgress = studentProgress.length > 0;
 
         // Calculate progress percentage
         const progress = Math.round((masteredKps / totalKps) * 100);
 
         // Determine status
         let status: 'not_started' | 'in_progress' | 'completed';
-        if (progress === 0) {
-          status = 'not_started';
-        } else if (progress === 100) {
+        if (progress === 100) {
           status = 'completed';
-        } else {
+        } else if (progress > 0 || hasAnyProgress) {
           status = 'in_progress';
+        } else {
+          status = 'not_started';
         }
 
         return {
@@ -428,14 +433,17 @@ export class StudentsService {
             );
 
           const masteredKps = studentProgress.filter(
-            (p) => p.masteryScore >= 70
+            (p) => p.masteryScore >= 60
           ).length;
 
           const progress = Math.round((masteredKps / totalKps) * 100);
 
+          // Check if student has attempted any KP in this course (has progress record)
+          const hasAttemptedAny = studentProgress.length > 0;
+
           if (progress === 100) {
             coursesCompleted++;
-          } else if (progress > 0) {
+          } else if (progress > 0 || hasAttemptedAny) {
             coursesInProgress++;
           }
         }
@@ -451,13 +459,13 @@ export class StudentsService {
     const masteryScore = Math.round(parseFloat(progressData[0]?.avgMastery?.toString() || '0'));
 
     // 3. Get total KPs mastered
-    const masteredKpsCount = await db
+          const masteredKpsCount = await db
       .select({ count: count() })
       .from(studentKpProgress)
       .where(
         and(
           eq(studentKpProgress.studentId, studentId),
-          gte(studentKpProgress.masteryScore, 70)
+          gte(studentKpProgress.masteryScore, 60)
         )
       );
 
@@ -532,16 +540,16 @@ export class StudentsService {
         )
       );
 
-    // 8. Get total study time (in minutes)
+    // 8. Get total study time (in minutes) from timeOnTask table
     const studyTimeData = await db
       .select({
-        totalTime: sql<number>`COALESCE(SUM(${questionAttempts.timeSpent}), 0)`,
+        totalTime: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0)`,
       })
-      .from(questionAttempts)
+      .from(timeOnTask)
       .where(
         and(
-          eq(questionAttempts.studentId, studentId),
-          gte(questionAttempts.attemptTime, thirtyDaysAgo)
+          eq(timeOnTask.studentId, studentId),
+          gte(timeOnTask.computedAt, thirtyDaysAgo)
         )
       );
 
