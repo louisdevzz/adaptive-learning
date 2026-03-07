@@ -33,6 +33,16 @@ export class ClassesService {
       })
       .returning();
 
+    // Also insert into teacher_class_map for homeroom teacher
+    if (createClassDto.homeroomTeacherId) {
+      await db.insert(teacherClassMap).values({
+        teacherId: createClassDto.homeroomTeacherId,
+        classId: newClass.id,
+        role: 'homeroom',
+        status: 'active',
+      });
+    }
+
     return newClass;
   }
 

@@ -30,7 +30,7 @@ export class CoursesController {
   @Post()
   @Roles('admin', 'teacher')
   create(@Body() createCourseDto: CreateCourseDto, @CurrentUser() user: ICurrentUser) {
-    return this.coursesService.create(createCourseDto, user.userId);
+    return this.coursesService.create(createCourseDto, user.userId, user.role);
   }
 
   @Get()
