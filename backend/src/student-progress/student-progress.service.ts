@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { eq, and, desc, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
 import {
   db,
   studentKpProgress,
@@ -704,5 +704,80 @@ export class StudentProgressService {
       totalMinutes: Math.round(totalSeconds / 60),
       totalHours: Math.round((totalSeconds / 3600) * 10) / 10,
     };
+  }
+
+  // ==================== WEEKLY ACTIVITY ====================
+
+  async getWeeklyActivity(studentId: string) {
+    // Validate student exists
+    const studentResult = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, studentId))
+      .limit(1);
+
+    if (studentResult.length === 0) {
+      throw new NotFoundException('Student not found');
+    }
+
+    // Get last 7 days data
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Get daily attempts count
+    const dailyAttempts = await db
+      .select({
+        date: sql<string>`DATE(${questionAttempts.attemptTime})`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(questionAttempts)
+      .where(
+        and(
+          eq(questionAttempts.studentId, studentId),
+          gte(questionAttempts.attemptTime, sevenDaysAgo)
+        )
+      )
+      .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
+      .orderBy(sql`DATE(${questionAttempts.attemptTime})`);
+
+    // Get daily study time (in minutes)
+    const dailyStudyTime = await db
+      .select({
+        date: sql<string>`DATE(${timeOnTask.computedAt})`,
+        totalMinutes: sql<number>`COALESCE(SUM(${timeOnTask.timeSpentSeconds}), 0) / 60`,
+      })
+      .from(timeOnTask)
+      .where(
+        and(
+          eq(timeOnTask.studentId, studentId),
+          gte(timeOnTask.computedAt, sevenDaysAgo)
+        )
+      )
+      .groupBy(sql`DATE(${timeOnTask.computedAt})`)
+      .orderBy(sql`DATE(${timeOnTask.computedAt})`);
+
+    // Create maps for easy lookup
+    const attemptsMap = new Map(dailyAttempts.map(d => [d.date, Number(d.count)]));
+    const studyTimeMap = new Map(dailyStudyTime.map(d => [d.date, Number(d.totalMinutes)]));
+
+    // Generate last 7 days array
+    const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    const result: Array<{ date: string; fullDate: string; attempts: number; timeSpent: number }> = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = days[date.getDay()];
+      
+      result.push({
+        date: dayName,
+        fullDate: dateStr,
+        attempts: attemptsMap.get(dateStr) || 0,
+        timeSpent: studyTimeMap.get(dateStr) || 0,
+      });
+    }
+
+    return result;
   }
 }

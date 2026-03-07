@@ -51,6 +51,15 @@ export class StudentsController {
     return this.studentsService.getMyDashboardStats(user.userId);
   }
 
+  @Get('me/children')
+  getMyChildren(@CurrentUser() user: ICurrentUser) {
+    // For parents to get their linked students
+    if (user.role === 'parent') {
+      return this.studentsService.findByParent(user.userId);
+    }
+    return [];
+  }
+
   @Get(':id/courses-with-progress')
   getStudentCoursesWithProgress(@Param('id') id: string) {
     return this.studentsService.getMyCoursesWithProgress(id);

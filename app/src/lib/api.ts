@@ -235,6 +235,11 @@ export const api = {
       return response.data;
     },
 
+    getMyChildren: async () => {
+      const response = await apiClient.get("/students/me/children");
+      return response.data;
+    },
+
     create: async (data: {
       email: string;
       password: string;
@@ -1217,6 +1222,13 @@ export const api = {
     getKpAttemptStats: async (studentId: string, kpId: string) => {
       const response = await apiClient.get(
         `/student-progress/students/${studentId}/kps/${kpId}/attempt-stats`
+      );
+      return response.data;
+    },
+
+    getWeeklyActivity: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/weekly-activity`
       );
       return response.data;
     },

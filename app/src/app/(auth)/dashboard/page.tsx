@@ -1027,59 +1027,167 @@ function StudentDashboardContent({ user }: { user: any }) {
 
 // Parent Dashboard Content
 function ParentDashboardContent({ user }: { user: any }) {
-  const [children, setChildren] = useState([
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      class: "10A1",
-      progress: 78,
-      courses: 5,
-      lastActive: "2 giờ trước",
-    },
-    {
-      id: "2",
-      name: "Nguyễn Thị B",
-      class: "8A2",
-      progress: 85,
-      courses: 6,
-      lastActive: "1 giờ trước",
-    },
-  ]);
+  const [children, setChildren] = useState<Array<{
+    id: string;
+    name: string;
+    class: string;
+    progress: number;
+    courses: number;
+    completedCourses: number;
+    lastActive: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChildrenData = async () => {
+      try {
+        setLoading(true);
+        // Fetch parent's children
+        const childrenData = await api.students.getMyChildren();
+        
+        if (!childrenData || childrenData.length === 0) {
+          setChildren([]);
+          return;
+        }
+
+        // Fetch progress data for each child
+        const childrenWithProgress = await Promise.all(
+          childrenData.map(async (child: any) => {
+            try {
+              console.log("Fetching progress for child:", child.id, child.fullName);
+              const progressData = await api.students.getCoursesWithProgress(child.id);
+              console.log("Progress data received:", progressData);
+              
+              // API might return array directly or object with courses property
+              const courses = Array.isArray(progressData) 
+                ? progressData 
+                : (progressData?.courses || []);
+              
+              console.log("Courses extracted:", courses.length, courses);
+              
+              // Calculate average progress
+              const totalProgress = courses.reduce((acc: number, course: any) => acc + (course.progress || 0), 0);
+              const avgProgress = courses.length > 0 ? Math.round(totalProgress / courses.length) : 0;
+              
+              // Count completed courses (status === 'completed' or progress === 100)
+              const completedCourses = courses.filter((c: any) => c.status === 'completed' || c.progress === 100).length;
+              
+              // Get class info from the first course or default
+              const classInfo = courses[0]?.classInfo?.className || "Chưa có lớp";
+              
+              // Calculate last active based on last accessed course
+              const lastAccessed = courses
+                .filter((c: any) => c.lastAccessed)
+                .sort((a: any, b: any) => new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime())[0];
+              
+              const lastActive = lastAccessed?.lastAccessed 
+                ? formatRelativeTime(lastAccessed.lastAccessed)
+                : "Chưa hoạt động";
+
+              return {
+                id: child.id,
+                name: child.fullName || "Không có tên",
+                class: classInfo,
+                progress: avgProgress,
+                courses: courses.length,
+                completedCourses: completedCourses,
+                lastActive: lastActive,
+              };
+            } catch (error) {
+              console.error(`Error fetching progress for child ${child.id}:`, error);
+              return {
+                id: child.id,
+                name: child.fullName || "Không có tên",
+                class: "Chưa có lớp",
+                progress: 0,
+                courses: 0,
+                lastActive: "Không xác định",
+              };
+            }
+          })
+        );
+
+        setChildren(childrenWithProgress);
+      } catch (error) {
+        console.error("Error fetching children data:", error);
+        toast.error("Không thể tải dữ liệu con cái");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChildrenData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <WelcomeSection user={user} />
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
       <WelcomeSection user={user} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <QuickStatCard
-          title="Số con đang học"
-          value={children.length.toString()}
-          icon={<Users className="w-6 h-6 text-blue-600" />}
-          color="bg-blue-50 dark:bg-blue-900/20"
-        />
-        <QuickStatCard
-          title="Tiến độ trung bình"
-          value={`${Math.round(
-            children.reduce((acc, c) => acc + c.progress, 0) / children.length,
-          )}%`}
-          change="+3%"
-          changeType="up"
-          icon={<TrendingUp className="w-6 h-6 text-green-600" />}
-          color="bg-green-50 dark:bg-green-900/20"
-        />
-        <QuickStatCard
-          title="Tổng khóa học"
-          value={children.reduce((acc, c) => acc + c.courses, 0).toString()}
-          icon={<BookOpen className="w-6 h-6 text-purple-600" />}
-          color="bg-purple-50 dark:bg-purple-900/20"
-        />
+        <Link href="/dashboard/children-progress">
+          <QuickStatCard
+            title="Số con đang học"
+            value={children.length.toString()}
+            icon={<Users className="w-6 h-6 text-blue-600" />}
+            color="bg-blue-50 dark:bg-blue-900/20"
+          />
+        </Link>
+        <Link href="/dashboard/children-progress">
+          <QuickStatCard
+            title="Tiến độ trung bình"
+            value={children.length > 0 ? `${Math.round(
+              children.reduce((acc, c) => acc + c.progress, 0) / children.length,
+            )}%` : "0%"}
+            icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+            color="bg-green-50 dark:bg-green-900/20"
+          />
+        </Link>
+        <Link href="/dashboard/children-progress">
+          <QuickStatCard
+            title="Khóa học đã hoàn thành"
+            value={children.reduce((acc, c) => acc + c.completedCourses, 0).toString()}
+            icon={<BookOpen className="w-6 h-6 text-purple-600" />}
+            color="bg-purple-50 dark:bg-purple-900/20"
+          />
+        </Link>
       </div>
 
       {/* Children Progress */}
       <div>
-        <h2 className="text-lg font-bold text-[#0d121b] dark:text-white mb-4">
-          Tiến độ học tập của con
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-[#0d121b] dark:text-white">
+            Tiến độ học tập của con
+          </h2>
+          <Link href="/dashboard/children-progress">
+            <Button size="sm" variant="light" className="text-primary">
+              Xem tất cả
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+        
+        {children.length === 0 ? (
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-8 text-center">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="font-medium text-[#181d27] dark:text-white mb-1">
+              Chưa có học sinh nào được liên kết
+            </h3>
+            <p className="text-sm text-[#717680] dark:text-gray-400">
+              Vui lòng liên hệ quản trị viên để liên kết tài khoản với học sinh
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {children.map((child) => (
             <div
@@ -1123,33 +1231,27 @@ function ParentDashboardContent({ user }: { user: any }) {
                   />
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#717680] dark:text-gray-400">
-                    {child.courses} khóa học
-                  </span>
-                  <Button size="sm" variant="light" className="text-primary">
-                    Xem chi tiết
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#717680] dark:text-gray-400">
+                      {child.courses} khóa học
+                    </span>
+                    {child.completedCourses > 0 && (
+                      <span className="text-green-600 dark:text-green-400 font-medium">
+                        ({child.completedCourses} đã hoàn thành)
+                      </span>
+                    )}
+                  </div>
+                  <Link href="/dashboard/children-progress">
+                    <Button size="sm" variant="light" className="text-primary">
+                      Xem chi tiết
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Alerts */}
-      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-amber-900 dark:text-amber-200">
-              Thông báo quan trọng
-            </h3>
-            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-              Nguyễn Văn A có 2 bài tập chưa hoàn thành. Hãy nhắc nhở con hoàn
-              thành bài tập đúng hạn.
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

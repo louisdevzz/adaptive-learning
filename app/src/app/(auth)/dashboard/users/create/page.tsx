@@ -109,6 +109,9 @@ export default function CreateUserPage() {
   const [relationshipType, setRelationshipType] = useState<
     "father" | "mother" | "guardian"
   >("father");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [availableStudents, setAvailableStudents] = useState<Array<{id: string, fullName: string, studentInfo?: {studentCode: string}}>>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   // Admin specific
   const [adminLevel, setAdminLevel] = useState<"super" | "system" | "support">(
@@ -117,6 +120,34 @@ export default function CreateUserPage() {
 
   const toggleVisibility = () => setIsVisible(!isVisible);
   const toggleConfirmVisibility = () => setIsConfirmVisible(!isConfirmVisible);
+
+  // Fetch students when parent role is selected
+  useEffect(() => {
+    if (role === "parent" && step === 2) {
+      fetchStudents();
+    }
+  }, [role, step]);
+
+  const fetchStudents = async () => {
+    try {
+      setLoadingStudents(true);
+      const data = await api.students.getAll();
+      setAvailableStudents(data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      toast.error("Không thể tải danh sách học sinh");
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const handleStudentToggle = (studentId: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
 
   const selectedRoleConfig = roleOptions.find((r) => r.value === role);
 
@@ -145,7 +176,8 @@ export default function CreateUserPage() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const fullName = `${firstName} ${lastName}`.trim();
+      // Vietnamese format: Họ + Tên (lastName + firstName)
+      const fullName = `${lastName} ${firstName}`.trim();
 
       switch (role) {
         case "admin":
@@ -193,7 +225,7 @@ export default function CreateUserPage() {
             address,
             relationshipType,
             avatarUrl: "",
-            studentIds: [],
+            studentIds: selectedStudentIds,
           });
           break;
       }
@@ -573,6 +605,66 @@ export default function CreateUserPage() {
                 startContent={<Building className="w-4 h-4 text-[#717680]" />}
               />
             </div>
+
+            {/* Student Selection */}
+            <div className="border-t border-[#e9eaeb] dark:border-gray-700 pt-6">
+              <h3 className="text-lg font-semibold text-[#181d27] dark:text-white mb-4">
+                Liên kết với học sinh
+              </h3>
+              <p className="text-sm text-[#717680] dark:text-gray-400 mb-4">
+                Chọn học sinh mà phụ huynh này sẽ theo dõi
+              </p>
+              
+              {loadingStudents ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : availableStudents.length === 0 ? (
+                <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-gray-500">Chưa có học sinh nào trong hệ thống</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {availableStudents.map((student) => (
+                    <div
+                      key={student.id}
+                      onClick={() => handleStudentToggle(student.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                        selectedStudentIds.includes(student.id)
+                          ? "bg-primary/10 border border-primary"
+                          : "bg-gray-50 dark:bg-gray-800 border border-transparent hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        selectedStudentIds.includes(student.id)
+                          ? "bg-primary border-primary"
+                          : "border-gray-300"
+                      }`}>
+                        {selectedStudentIds.includes(student.id) && (
+                          <CheckCircle2 className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-[#181d27] dark:text-white">
+                          {student.fullName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Mã HS: {student.studentInfo?.studentCode || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {selectedStudentIds.length > 0 && (
+                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    Đã chọn {selectedStudentIds.length} học sinh
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         );
 
@@ -699,6 +791,32 @@ export default function CreateUserPage() {
                 {department || "Chưa có"}
               </p>
             </div>
+          )}
+          {role === "parent" && (
+            <>
+              <div>
+                <p className="text-sm text-[#717680] dark:text-gray-400">
+                  Mối quan hệ
+                </p>
+                <p className="font-medium text-[#181d27] dark:text-white">
+                  {relationshipType === "father"
+                    ? "Bố"
+                    : relationshipType === "mother"
+                      ? "Mẹ"
+                      : "Ngườ giám hộ"}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm text-[#717680] dark:text-gray-400">
+                  Học sinh liên kết
+                </p>
+                <p className="font-medium text-[#181d27] dark:text-white">
+                  {selectedStudentIds.length > 0
+                    ? `${selectedStudentIds.length} học sinh`
+                    : "Chưa chọn học sinh nào"}
+                </p>
+              </div>
+            </>
           )}
         </div>
       </div>

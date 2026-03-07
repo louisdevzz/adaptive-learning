@@ -105,16 +105,35 @@ export default function ProgressPage() {
     try {
       setLoading(true);
 
-      const [allProgress, allMastery, dashboardStats] = await Promise.all([
+      const [allProgress, allMastery, dashboardStats, weeklyData] = await Promise.all([
         api.studentProgress.getAllStudentProgress(user!.id),
         api.studentProgress.getAllStudentMastery(user!.id),
         api.students.getMyDashboardStats().catch(() => null),
+        api.studentProgress.getWeeklyActivity(user!.id).catch(() => null),
       ]);
 
-      const kpData: KpProgress[] = allProgress?.kpProgress || [];
+      console.log("Raw progress data:", allProgress);
+      console.log("Raw mastery data:", allMastery);
+      console.log("Dashboard stats:", dashboardStats);
+
+      // Map API response to KpProgress interface
+      // API returns array directly with knowledgePoint nested
+      const kpData: KpProgress[] = Array.isArray(allProgress) 
+        ? allProgress.map((item: any) => ({
+            kpId: item.kpId,
+            kpTitle: item.knowledgePoint?.title || "Không có tiêu đề",
+            masteryScore: item.masteryScore || 0,
+            confidence: item.confidence || 0,
+            lastUpdated: item.lastUpdated,
+            attemptCount: item.attemptStats?.totalAttempts || 0,
+            attemptStats: item.attemptStats,
+          }))
+        : [];
+      
       setKpProgress(kpData);
 
-      const masteryData: CourseMastery[] = allMastery?.courses || [];
+      // allMastery is returned directly from getAllStudentMastery
+      const masteryData: CourseMastery[] = Array.isArray(allMastery) ? allMastery : [];
       setCourseMastery(masteryData);
 
       const totalKps = kpData.length;
@@ -133,7 +152,11 @@ export default function ProgressPage() {
       });
 
       generateInsights(kpData, masteryData);
-      generateWeeklyActivity();
+      
+      // Use real weekly activity data if available
+      if (weeklyData && Array.isArray(weeklyData)) {
+        setWeeklyActivity(weeklyData);
+      }
     } catch (error) {
       console.error("Failed to fetch progress data:", error);
       toast.error("Không thể tải dữ liệu tiến độ");
@@ -170,16 +193,6 @@ export default function ProgressPage() {
       weaknesses: [...new Set(weakSubjects)],
       recommendations,
     });
-  };
-
-  const generateWeeklyActivity = () => {
-    const days = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-    const data = days.map((day) => ({
-      date: day,
-      attempts: Math.floor(Math.random() * 20) + 5,
-      timeSpent: Math.floor(Math.random() * 60) + 15,
-    }));
-    setWeeklyActivity(data);
   };
 
   const subjectData = courseMastery.map((c) => ({

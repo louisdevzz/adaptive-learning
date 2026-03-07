@@ -144,4 +144,15 @@ export class StudentProgressController {
     const actualStudentId = user.role === 'student' ? user.userId : studentId;
     return this.progressService.getKpAttemptStats(actualStudentId, kpId);
   }
+
+  @Get('students/:studentId/weekly-activity')
+  @Roles('admin', 'teacher', 'student', 'parent')
+  getWeeklyActivity(
+    @Param('studentId') studentId: string,
+    @CurrentUser() user: ICurrentUser,
+  ) {
+    // Ensure student can only get their own activity
+    const actualStudentId = user.role === 'student' ? user.userId : studentId;
+    return this.progressService.getWeeklyActivity(actualStudentId);
+  }
 }

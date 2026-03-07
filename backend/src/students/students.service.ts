@@ -16,6 +16,7 @@ import {
   teacherClassMap,
   questionAttempts,
   timeOnTask,
+  parentStudentMap,
 } from '../../db';
 import { UsersService } from '../users/users.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -129,6 +130,24 @@ export class StudentsService {
     return result.map((row) => ({
       ...row.users,
       studentInfo: row.students,
+    }));
+  }
+
+  async findByParent(parentId: string) {
+    // Get all students linked to this parent
+    const result = await db
+      .select({
+        student: students,
+        user: users,
+      })
+      .from(parentStudentMap)
+      .innerJoin(students, eq(parentStudentMap.studentId, students.id))
+      .innerJoin(users, eq(students.id, users.id))
+      .where(eq(parentStudentMap.parentId, parentId));
+
+    return result.map((row) => ({
+      ...row.user,
+      studentInfo: row.student,
     }));
   }
 
@@ -269,10 +288,11 @@ export class StudentsService {
     const courseAssignments = await db
       .select({
         course: courses,
-        assignment: classCourses,
+        classInfo: classes,
       })
       .from(classCourses)
       .innerJoin(courses, eq(classCourses.courseId, courses.id))
+      .innerJoin(classes, eq(classCourses.classId, classes.id))
       .where(
         and(
           inArray(classCourses.classId, classIds),
@@ -281,11 +301,14 @@ export class StudentsService {
         )
       );
 
-    // Remove duplicates by course ID
+    // Remove duplicates by course ID (keep first class info)
     const uniqueCoursesMap = new Map();
     courseAssignments.forEach((item) => {
       if (!uniqueCoursesMap.has(item.course.id)) {
-        uniqueCoursesMap.set(item.course.id, item.course);
+        uniqueCoursesMap.set(item.course.id, {
+          ...item.course,
+          classInfo: item.classInfo,
+        });
       }
     });
 
@@ -319,12 +342,13 @@ export class StudentsService {
         }
 
         // Get student's progress for these KPs
-        let studentProgress: Array<{ kpId: string; masteryScore: number }> = [];
+        let studentProgress: Array<{ kpId: string; masteryScore: number; lastUpdated: Date }> = [];
         if (kpIds.length > 0) {
           studentProgress = await db
             .select({
               kpId: studentKpProgress.kpId,
               masteryScore: studentKpProgress.masteryScore,
+              lastUpdated: studentKpProgress.lastUpdated,
             })
             .from(studentKpProgress)
             .where(
@@ -334,6 +358,11 @@ export class StudentsService {
               )
             );
         }
+
+        // Get last accessed time (most recent progress update)
+        const lastAccessed = studentProgress.length > 0
+          ? studentProgress.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())[0].lastUpdated
+          : null;
 
         // Count mastered KPs (mastery_score >= 60)
         const MASTERY_THRESHOLD = 60;
@@ -364,6 +393,7 @@ export class StudentsService {
           status,
           masteredKps,
           totalKps,
+          lastAccessed,
         };
       })
     );
