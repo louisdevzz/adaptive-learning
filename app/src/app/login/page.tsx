@@ -63,11 +63,15 @@ function LoginForm() {
 
       // Set cookie on frontend domain for Next.js middleware (cross-domain fix)
       if (response?.accessToken) {
-        await fetch("/api/auth/set-cookie", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: response.accessToken }),
-        });
+        try {
+          await fetch("/api/auth/set-cookie", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: response.accessToken }),
+          });
+        } catch (cookieError) {
+          console.error("Failed to set frontend cookie:", cookieError);
+        }
       }
 
       try {
@@ -108,11 +112,15 @@ function LoginForm() {
 
       // Set cookie on frontend domain for Next.js middleware (cross-domain fix)
       if (response?.accessToken) {
-        await fetch("/api/auth/set-cookie", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: response.accessToken }),
-        });
+        try {
+          await fetch("/api/auth/set-cookie", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: response.accessToken }),
+          });
+        } catch (cookieError) {
+          console.error("Failed to set frontend cookie:", cookieError);
+        }
       }
 
       try {

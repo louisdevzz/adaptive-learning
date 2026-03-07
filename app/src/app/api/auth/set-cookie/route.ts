@@ -20,7 +20,8 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    console.error("[set-cookie] Failed to set cookie:", error);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

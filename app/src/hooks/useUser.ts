@@ -53,7 +53,11 @@ export function useUser() {
     try {
       await api.auth.logout();
       // Clear cookie on frontend domain (cross-domain fix)
-      await fetch("/api/auth/clear-cookie", { method: "POST" });
+      try {
+        await fetch("/api/auth/clear-cookie", { method: "POST" });
+      } catch (cookieError) {
+        console.error("Failed to clear frontend cookie:", cookieError);
+      }
       // Clear SWR cache for user profile
       mutate(USER_PROFILE_KEY, null, { revalidate: false });
       router.push("/login");
