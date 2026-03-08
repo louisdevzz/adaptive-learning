@@ -415,7 +415,10 @@ export const assignments = pgTable(
       .notNull()
       .references(() => teachers.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
-    description: text('description').notNull(),
+    description: text('description'),
+    attachmentUrl: text('attachment_url'),
+    attachmentName: text('attachment_name'),
+    attachmentMimeType: varchar('attachment_mime_type', { length: 100 }),
     assignmentType: varchar('assignment_type', { length: 50 }).notNull(), // 'practice', 'quiz', 'exam', 'homework', 'test', 'adaptive'
     dueDate: timestamp('due_date'),
     isPublished: boolean('is_published').notNull().default(false),
@@ -426,30 +429,6 @@ export const assignments = pgTable(
     teacherIdx: index('assignments_teacher_idx').on(table.teacherId),
     publishedIdx: index('assignments_published_idx').on(table.isPublished),
     dueDateIdx: index('assignments_due_date_idx').on(table.dueDate),
-  }),
-);
-
-export const assignmentItems = pgTable(
-  'assignment_items',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    assignmentId: uuid('assignment_id')
-      .notNull()
-      .references(() => assignments.id, { onDelete: 'cascade' }),
-    questionId: uuid('question_id')
-      .notNull()
-      .references(() => questionBank.id, { onDelete: 'cascade' }),
-    orderIndex: integer('order_index').notNull(),
-    points: integer('points').notNull(),
-  },
-  (table) => ({
-    assignmentIdx: index('assignment_items_assignment_idx').on(
-      table.assignmentId,
-    ),
-    orderIdx: index('assignment_items_order_idx').on(
-      table.assignmentId,
-      table.orderIndex,
-    ),
   }),
 );
 
@@ -505,28 +484,6 @@ export const assignmentTargets = pgTable(
   }),
 );
 
-export const assignmentAttempts = pgTable(
-  'assignment_attempts',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    studentAssignmentId: uuid('student_assignment_id')
-      .notNull()
-      .references(() => studentAssignments.id, { onDelete: 'cascade' }),
-    startedAt: timestamp('started_at').notNull().defaultNow(),
-    endedAt: timestamp('ended_at'),
-    attemptStatus: varchar('attempt_status', { length: 20 }).notNull(), // 'in_progress', 'abandoned', 'submitted'
-  },
-  (table) => ({
-    studentAssignmentIdx: index(
-      'assignment_attempts_student_assignment_idx',
-    ).on(table.studentAssignmentId),
-    statusIdx: index('assignment_attempts_status_idx').on(table.attemptStatus),
-    startedAtIdx: index('assignment_attempts_started_at_idx').on(
-      table.startedAt,
-    ),
-  }),
-);
-
 export const studentAssignments = pgTable(
   'student_assignments',
   {
@@ -540,6 +497,9 @@ export const studentAssignments = pgTable(
     status: varchar('status', { length: 20 }).notNull(), // 'not_started', 'in_progress', 'submitted', 'graded'
     startTime: timestamp('start_time'),
     submittedTime: timestamp('submitted_time'),
+    submissionUrl: text('submission_url'),
+    submissionName: text('submission_name'),
+    submissionMimeType: varchar('submission_mime_type', { length: 100 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({

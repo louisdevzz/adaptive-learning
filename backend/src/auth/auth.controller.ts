@@ -28,8 +28,6 @@ export class AuthController {
   ) {
     const result = await this.authService.createUser(createUserDto);
 
-    // Set HTTP-only cookie with the access token
-    // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
       secure: true,
@@ -38,7 +36,6 @@ export class AuthController {
       path: '/',
     });
 
-    // Also return accessToken in response body for cross-domain cookie setting
     return result;
   }
 
@@ -50,9 +47,6 @@ export class AuthController {
   ) {
     const result = await this.authService.login(loginDto);
 
-    // Set HTTP-only cookie with the access token
-    // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
-    // Don't set domain to allow cookie on any domain (flexible for Vercel)
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
       secure: true,
@@ -61,7 +55,6 @@ export class AuthController {
       path: '/',
     });
 
-    // Also return accessToken in response body for cross-domain cookie setting
     return result;
   }
 
@@ -73,8 +66,6 @@ export class AuthController {
   ) {
     const result = await this.authService.loginWithGoogle(idToken);
 
-    // Set HTTP-only cookie with the access token
-    // For cross-origin: sameSite='none' requires secure=true (HTTPS only)
     res.cookie('access_token', result.accessToken, {
       httpOnly: true,
       secure: true,
@@ -83,7 +74,6 @@ export class AuthController {
       path: '/',
     });
 
-    // Also return accessToken in response body for cross-domain cookie setting
     return result;
   }
 

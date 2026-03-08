@@ -3,15 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { eq, and, inArray, SQL, or, desc } from 'drizzle-orm';
+import { eq, and, inArray, SQL } from 'drizzle-orm';
 import {
   db,
   assignments,
-  assignmentItems,
   studentAssignments,
   studentAssignmentResults,
-  questionAttempts,
-  questionBank,
+  users,
   teachers,
   students,
   sections,
@@ -19,18 +17,14 @@ import {
   classEnrollment,
   sectionAssignments,
   assignmentTargets,
-  assignmentAttempts,
 } from '../../db';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { AssignToStudentDto } from './dto/assign-to-student.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
+import { GradeStudentAssignmentDto } from './dto/grade-student-assignment.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
-import {
-  CreateAssignmentAttemptDto,
-  UpdateAssignmentAttemptDto,
-} from './dto/create-assignment-attempt.dto';
 
 @Injectable()
 export class AssignmentsService {
@@ -48,58 +42,24 @@ export class AssignmentsService {
       throw new NotFoundException('Teacher not found');
     }
 
-    // Validate questions exist if provided
-    if (
-      createAssignmentDto.questions &&
-      createAssignmentDto.questions.length > 0
-    ) {
-      const questionIds = createAssignmentDto.questions.map(
-        (q) => q.questionId,
-      );
-      const existingQuestions = await db
-        .select()
-        .from(questionBank)
-        .where(inArray(questionBank.id, questionIds));
+    const [assignment] = await db
+      .insert(assignments)
+      .values({
+        teacherId: createAssignmentDto.teacherId,
+        title: createAssignmentDto.title,
+        description: createAssignmentDto.description?.trim() || null,
+        attachmentName: createAssignmentDto.attachmentName?.trim() || null,
+        attachmentMimeType: createAssignmentDto.attachmentMimeType || null,
+        attachmentUrl: createAssignmentDto.attachmentUrl || null,
+        assignmentType: createAssignmentDto.assignmentType,
+        dueDate: createAssignmentDto.dueDate
+          ? new Date(createAssignmentDto.dueDate)
+          : null,
+        isPublished: createAssignmentDto.isPublished ?? false,
+      })
+      .returning();
 
-      if (existingQuestions.length !== questionIds.length) {
-        throw new BadRequestException('One or more questions do not exist');
-      }
-    }
-
-    // Use transaction to create assignment with items
-    return await db.transaction(async (tx) => {
-      // 1. Create the assignment
-      const [assignment] = await tx
-        .insert(assignments)
-        .values({
-          teacherId: createAssignmentDto.teacherId,
-          title: createAssignmentDto.title,
-          description: createAssignmentDto.description,
-          assignmentType: createAssignmentDto.assignmentType,
-          dueDate: createAssignmentDto.dueDate
-            ? new Date(createAssignmentDto.dueDate)
-            : null,
-          isPublished: createAssignmentDto.isPublished ?? false,
-        })
-        .returning();
-
-      // 2. Create assignment items (questions) if provided
-      if (
-        createAssignmentDto.questions &&
-        createAssignmentDto.questions.length > 0
-      ) {
-        const itemValues = createAssignmentDto.questions.map((question) => ({
-          assignmentId: assignment.id,
-          questionId: question.questionId,
-          orderIndex: question.orderIndex,
-          points: question.points,
-        }));
-
-        await tx.insert(assignmentItems).values(itemValues);
-      }
-
-      return assignment;
-    });
+    return assignment;
   }
 
   async findAll(teacherId?: string, isPublished?: boolean) {
@@ -133,26 +93,7 @@ export class AssignmentsService {
 
   async findOneWithDetails(id: string) {
     const assignment = await this.findOne(id);
-
-    // Get assignment items (questions)
-    const items = await db
-      .select({
-        item: assignmentItems,
-        question: questionBank,
-      })
-      .from(assignmentItems)
-      .innerJoin(questionBank, eq(assignmentItems.questionId, questionBank.id))
-      .where(eq(assignmentItems.assignmentId, id))
-      .orderBy(assignmentItems.orderIndex);
-
-    return {
-      ...assignment,
-      questions: items.map((item) => ({
-        ...item.question,
-        orderIndex: item.item.orderIndex,
-        points: item.item.points,
-      })),
-    };
+    return assignment;
   }
 
   async update(id: string, updateAssignmentDto: UpdateAssignmentDto) {
@@ -171,68 +112,41 @@ export class AssignmentsService {
       }
     }
 
-    // Validate questions if provided
-    if (updateAssignmentDto.questions) {
-      const questionIds = updateAssignmentDto.questions.map(
-        (q) => q.questionId,
-      );
-      const existingQuestions = await db
-        .select()
-        .from(questionBank)
-        .where(inArray(questionBank.id, questionIds));
-
-      if (existingQuestions.length !== questionIds.length) {
-        throw new BadRequestException('One or more questions do not exist');
-      }
+    const updateData: any = { updatedAt: new Date() };
+    if (updateAssignmentDto.teacherId)
+      updateData.teacherId = updateAssignmentDto.teacherId;
+    if (updateAssignmentDto.title) updateData.title = updateAssignmentDto.title;
+    if (updateAssignmentDto.description !== undefined) {
+      updateData.description = updateAssignmentDto.description?.trim() || null;
     }
+    if (updateAssignmentDto.attachmentName !== undefined) {
+      updateData.attachmentName =
+        updateAssignmentDto.attachmentName?.trim() || null;
+    }
+    if (updateAssignmentDto.attachmentMimeType !== undefined) {
+      updateData.attachmentMimeType =
+        updateAssignmentDto.attachmentMimeType || null;
+    }
+    if (updateAssignmentDto.attachmentUrl !== undefined) {
+      updateData.attachmentUrl = updateAssignmentDto.attachmentUrl || null;
+    }
+    if (updateAssignmentDto.assignmentType)
+      updateData.assignmentType = updateAssignmentDto.assignmentType;
+    if (updateAssignmentDto.dueDate !== undefined) {
+      updateData.dueDate = updateAssignmentDto.dueDate
+        ? new Date(updateAssignmentDto.dueDate)
+        : null;
+    }
+    if (updateAssignmentDto.isPublished !== undefined)
+      updateData.isPublished = updateAssignmentDto.isPublished;
 
-    return await db.transaction(async (tx) => {
-      // 1. Update the assignment
-      const updateData: any = { updatedAt: new Date() };
-      if (updateAssignmentDto.teacherId)
-        updateData.teacherId = updateAssignmentDto.teacherId;
-      if (updateAssignmentDto.title)
-        updateData.title = updateAssignmentDto.title;
-      if (updateAssignmentDto.description)
-        updateData.description = updateAssignmentDto.description;
-      if (updateAssignmentDto.assignmentType)
-        updateData.assignmentType = updateAssignmentDto.assignmentType;
-      if (updateAssignmentDto.dueDate !== undefined) {
-        updateData.dueDate = updateAssignmentDto.dueDate
-          ? new Date(updateAssignmentDto.dueDate)
-          : null;
-      }
-      if (updateAssignmentDto.isPublished !== undefined)
-        updateData.isPublished = updateAssignmentDto.isPublished;
+    const [updated] = await db
+      .update(assignments)
+      .set(updateData)
+      .where(eq(assignments.id, id))
+      .returning();
 
-      const [updated] = await tx
-        .update(assignments)
-        .set(updateData)
-        .where(eq(assignments.id, id))
-        .returning();
-
-      // 2. Update assignment items if provided
-      if (updateAssignmentDto.questions !== undefined) {
-        // Delete existing items
-        await tx
-          .delete(assignmentItems)
-          .where(eq(assignmentItems.assignmentId, id));
-
-        // Insert new items
-        if (updateAssignmentDto.questions.length > 0) {
-          const itemValues = updateAssignmentDto.questions.map((question) => ({
-            assignmentId: id,
-            questionId: question.questionId,
-            orderIndex: question.orderIndex,
-            points: question.points,
-          }));
-
-          await tx.insert(assignmentItems).values(itemValues);
-        }
-      }
-
-      return updated;
-    });
+    return updated;
   }
 
   async remove(id: string) {
@@ -290,38 +204,6 @@ export class AssignmentsService {
     return result[0];
   }
 
-  async startAssignment(studentAssignmentId: string) {
-    const result = await db
-      .select()
-      .from(studentAssignments)
-      .where(eq(studentAssignments.id, studentAssignmentId))
-      .limit(1);
-
-    if (result.length === 0) {
-      throw new NotFoundException('Student assignment not found');
-    }
-
-    return await db.transaction(async (tx) => {
-      // Update student assignment status
-      const [updated] = await tx
-        .update(studentAssignments)
-        .set({
-          status: 'in_progress',
-          startTime: new Date(),
-        })
-        .where(eq(studentAssignments.id, studentAssignmentId))
-        .returning();
-
-      // Create assignment attempt
-      await tx.insert(assignmentAttempts).values({
-        studentAssignmentId,
-        attemptStatus: 'in_progress',
-      });
-
-      return updated;
-    });
-  }
-
   async submitAssignment(submitDto: SubmitAssignmentDto) {
     // Get student assignment
     const studentAssignment = await db
@@ -334,97 +216,75 @@ export class AssignmentsService {
       throw new NotFoundException('Student assignment not found');
     }
 
-    // Get assignment items
-    const items = await db
-      .select({
-        item: assignmentItems,
-        question: questionBank,
-      })
-      .from(assignmentItems)
-      .innerJoin(questionBank, eq(assignmentItems.questionId, questionBank.id))
-      .where(
-        eq(assignmentItems.assignmentId, studentAssignment[0].assignmentId),
+    const hasAnswers = Array.isArray(submitDto.answers) && submitDto.answers.length > 0;
+    const hasSubmissionFile = Boolean(submitDto.submissionUrl);
+
+    if (!hasAnswers && !hasSubmissionFile) {
+      throw new BadRequestException(
+        'Submission must include answers or an uploaded file',
       );
+    }
 
     return await db.transaction(async (tx) => {
-      let totalScore = 0;
-      let maxScore = 0;
-      let correctCount = 0;
-
-      // Process each answer
-      for (const answer of submitDto.answers) {
-        const item = items.find((i) => i.question.id === answer.questionId);
-        if (!item) continue;
-
-        const isCorrect =
-          String(answer.answer) === String(item.question.correctAnswer);
-        if (isCorrect) {
-          totalScore += item.item.points;
-          correctCount++;
-        }
-        maxScore += item.item.points;
-
-        // Create question attempt
-        await tx.insert(questionAttempts).values({
-          studentId: studentAssignment[0].studentId,
-          questionId: answer.questionId,
-          assignmentId: studentAssignment[0].assignmentId,
-          selectedAnswer: String(answer.answer),
-          isCorrect,
-          timeSpent: 0, // TODO: Track time spent per question
-        });
-      }
-
       // Update student assignment status
       await tx
         .update(studentAssignments)
         .set({
           status: 'submitted',
           submittedTime: new Date(),
+          submissionUrl: submitDto.submissionUrl || null,
+          submissionName: submitDto.submissionName || null,
+          submissionMimeType: submitDto.submissionMimeType || null,
         })
         .where(eq(studentAssignments.id, submitDto.studentAssignmentId));
 
-      // Update the latest assignment attempt to submitted
-      const latestAttempt = await tx
+      // Create or update default result row (manual grading flow)
+      const totalScore = 0;
+      const maxScore = 10;
+      const accuracy = 0;
+      const timeSpent = 0;
+
+      const existingResult = await tx
         .select()
-        .from(assignmentAttempts)
+        .from(studentAssignmentResults)
         .where(
           eq(
-            assignmentAttempts.studentAssignmentId,
+            studentAssignmentResults.studentAssignmentId,
             submitDto.studentAssignmentId,
           ),
         )
-        .orderBy(desc(assignmentAttempts.startedAt))
         .limit(1);
 
-      if (latestAttempt.length > 0) {
-        await tx
-          .update(assignmentAttempts)
+      let result;
+      if (existingResult.length > 0) {
+        [result] = await tx
+          .update(studentAssignmentResults)
           .set({
-            attemptStatus: 'submitted',
-            endedAt: new Date(),
+            totalScore,
+            maxScore,
+            accuracy,
+            timeSpent,
+            gradedAt: new Date(),
           })
-          .where(eq(assignmentAttempts.id, latestAttempt[0].id));
+          .where(
+            eq(
+              studentAssignmentResults.studentAssignmentId,
+              submitDto.studentAssignmentId,
+            ),
+          )
+          .returning();
+      } else {
+        [result] = await tx
+          .insert(studentAssignmentResults)
+          .values({
+            studentAssignmentId: submitDto.studentAssignmentId,
+            totalScore,
+            maxScore,
+            accuracy,
+            timeSpent,
+          })
+          .returning();
       }
-
-      // Create result
-      const accuracy =
-        maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-      const startTime = studentAssignment[0].startTime
-        ? new Date(studentAssignment[0].startTime).getTime()
-        : Date.now();
-      const timeSpent = Math.round((Date.now() - startTime) / 1000);
-
-      const [result] = await tx
-        .insert(studentAssignmentResults)
-        .values({
-          studentAssignmentId: submitDto.studentAssignmentId,
-          totalScore,
-          maxScore,
-          accuracy,
-          timeSpent,
-        })
-        .returning();
 
       return result;
     });
@@ -454,8 +314,15 @@ export class AssignmentsService {
       .select({
         studentAssignment: studentAssignments,
         result: studentAssignmentResults,
+        student: {
+          id: users.id,
+          fullName: users.fullName,
+          email: users.email,
+        },
       })
       .from(studentAssignments)
+      .innerJoin(students, eq(studentAssignments.studentId, students.id))
+      .innerJoin(users, eq(students.id, users.id))
       .leftJoin(
         studentAssignmentResults,
         eq(studentAssignments.id, studentAssignmentResults.studentAssignmentId),
@@ -463,6 +330,72 @@ export class AssignmentsService {
       .where(eq(studentAssignments.assignmentId, assignmentId));
 
     return result;
+  }
+
+  async gradeStudentAssignment(
+    studentAssignmentId: string,
+    gradeDto: GradeStudentAssignmentDto,
+  ) {
+    const target = await db
+      .select()
+      .from(studentAssignments)
+      .where(eq(studentAssignments.id, studentAssignmentId))
+      .limit(1);
+
+    if (target.length === 0) {
+      throw new NotFoundException('Student assignment not found');
+    }
+
+    if (target[0].status === 'not_started') {
+      throw new BadRequestException('Student has not submitted this assignment');
+    }
+
+    const maxScore = 10;
+    const totalScore = Math.max(0, Math.min(gradeDto.totalScore, maxScore));
+    const accuracy = Math.round((totalScore / maxScore) * 100);
+
+    return await db.transaction(async (tx) => {
+      await tx
+        .update(studentAssignments)
+        .set({
+          status: 'graded',
+        })
+        .where(eq(studentAssignments.id, studentAssignmentId));
+
+      const existing = await tx
+        .select()
+        .from(studentAssignmentResults)
+        .where(eq(studentAssignmentResults.studentAssignmentId, studentAssignmentId))
+        .limit(1);
+
+      if (existing.length > 0) {
+        const [updated] = await tx
+          .update(studentAssignmentResults)
+          .set({
+            totalScore,
+            maxScore,
+            accuracy,
+            gradedAt: new Date(),
+          })
+          .where(eq(studentAssignmentResults.studentAssignmentId, studentAssignmentId))
+          .returning();
+
+        return updated;
+      }
+
+      const [created] = await tx
+        .insert(studentAssignmentResults)
+        .values({
+          studentAssignmentId,
+          totalScore,
+          maxScore,
+          accuracy,
+          timeSpent: 0,
+        })
+        .returning();
+
+      return created;
+    });
   }
 
   // ==================== SECTION ASSIGNMENTS ====================
@@ -620,68 +553,6 @@ export class AssignmentsService {
       .where(eq(assignmentTargets.id, targetId));
 
     return { message: 'Assignment target removed successfully' };
-  }
-
-  // ==================== ASSIGNMENT ATTEMPTS ====================
-
-  async createAssignmentAttempt(createAttemptDto: CreateAssignmentAttemptDto) {
-    // Validate student assignment exists
-    const studentAssignment = await db
-      .select()
-      .from(studentAssignments)
-      .where(eq(studentAssignments.id, createAttemptDto.studentAssignmentId))
-      .limit(1);
-
-    if (studentAssignment.length === 0) {
-      throw new NotFoundException('Student assignment not found');
-    }
-
-    const [result] = await db
-      .insert(assignmentAttempts)
-      .values({
-        studentAssignmentId: createAttemptDto.studentAssignmentId,
-        attemptStatus: createAttemptDto.attemptStatus ?? 'in_progress',
-      })
-      .returning();
-
-    return result;
-  }
-
-  async updateAssignmentAttempt(
-    attemptId: string,
-    updateAttemptDto: UpdateAssignmentAttemptDto,
-  ) {
-    const updateData: any = {};
-    if (updateAttemptDto.attemptStatus)
-      updateData.attemptStatus = updateAttemptDto.attemptStatus;
-    if (updateAttemptDto.endedAt)
-      updateData.endedAt = new Date(updateAttemptDto.endedAt);
-    else if (
-      updateAttemptDto.attemptStatus === 'submitted' ||
-      updateAttemptDto.attemptStatus === 'abandoned'
-    ) {
-      updateData.endedAt = new Date();
-    }
-
-    const [updated] = await db
-      .update(assignmentAttempts)
-      .set(updateData)
-      .where(eq(assignmentAttempts.id, attemptId))
-      .returning();
-
-    if (!updated) {
-      throw new NotFoundException('Assignment attempt not found');
-    }
-
-    return updated;
-  }
-
-  async getAssignmentAttempts(studentAssignmentId: string) {
-    return await db
-      .select()
-      .from(assignmentAttempts)
-      .where(eq(assignmentAttempts.studentAssignmentId, studentAssignmentId))
-      .orderBy(desc(assignmentAttempts.startedAt));
   }
 
   // ==================== HELPER METHODS ====================
