@@ -16,7 +16,6 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
-  Check,
   GraduationCap,
   Menu,
   X,
@@ -62,7 +61,7 @@ const navLinks = [
   { label: "Khóa học", href: "#courses" },
   { label: "Tính năng", href: "#features" },
   { label: "Đánh giá", href: "#testimonials" },
-  { label: "Bảng giá", href: "#pricing" },
+  { label: "Lộ trình", href: "#roadmap" },
 ];
 
 function Navbar() {
@@ -635,142 +634,151 @@ function TestimonialsSection() {
   );
 }
 
-// ==================== PRICING SECTION ====================
-const plans = [
+// ==================== LEARNING FLOW SECTION ====================
+const learningFlow = [
   {
-    name: "Miễn phí",
-    price: "0đ",
-    period: "/mãi mãi",
-    description: "Hoàn hảo để khám phá học tập thích ứng",
-    features: [
-      "5 khóa học thích ứng",
-      "Phân tích cơ bản",
-      "Truy cập cộng đồng",
-      "Hỗ trợ email",
-    ],
-    cta: "Bắt đầu miễn phí",
-    highlighted: false,
+    step: "Bước 1",
+    title: "Đánh giá điểm xuất phát",
+    description:
+      "Bài kiểm tra ngắn giúp AI nhận diện lỗ hổng kiến thức và tốc độ học phù hợp với bạn.",
+    icon: Target,
+    tint: "rgba(98, 68, 244, 0.1)",
+    iconColor: colors.primary,
   },
   {
-    name: "Pro",
-    price: "99k",
-    period: "/tháng",
-    description: "Dành cho học viên nghiêm túc muốn tất cả",
-    features: [
-      "Khóa học không giới hạn",
-      "Phân tích AI nâng cao",
-      "Hỗ trợ ưu tiên",
-      "Lộ trình tùy chỉnh",
-      "Chứng chỉ",
-    ],
-    cta: "Nâng cấp Pro",
-    highlighted: true,
+    step: "Bước 2",
+    title: "Cá nhân hóa lộ trình",
+    description:
+      "Hệ thống tự động chọn Knowledge Point ưu tiên, sắp xếp bài học theo thứ tự tối ưu hóa tiến bộ.",
+    icon: Brain,
+    tint: "rgba(215, 246, 84, 0.35)",
+    iconColor: colors.black,
   },
   {
-    name: "Team",
-    price: "299k",
-    period: "/tháng",
-    description: "Dành cho tổ chức và lớp học",
-    features: [
-      "Tất cả tính năng Pro",
-      "Dashboard nhóm",
-      "Quyền quản trị",
-      "Truy cập API",
-      "Quản lý riêng",
-    ],
-    cta: "Liên hệ bán hàng",
-    highlighted: false,
+    step: "Bước 3",
+    title: "Theo dõi và bứt phá",
+    description:
+      "Dashboard trực quan cập nhật mastery theo thời gian thực và gợi ý hành động tiếp theo cho mỗi buổi học.",
+    icon: BarChart3,
+    tint: "rgba(98, 68, 244, 0.1)",
+    iconColor: colors.primary,
   },
 ];
 
-function PricingSection() {
+function LearningFlowSection() {
   return (
-    <section id="pricing" className="px-6 lg:px-10 py-20 max-w-7xl mx-auto">
+    <section id="roadmap" className="px-6 lg:px-10 py-20 max-w-7xl mx-auto">
       <div className="text-center mb-12">
         <div
           className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full mb-4"
           style={{ backgroundColor: "rgba(215, 246, 84, 0.3)" }}
         >
-          <Sparkles className="w-3.5 h-3.5" style={{ color: colors.black }} />{" "}
-          Giá đơn giản
+          <Sparkles className="w-3.5 h-3.5" style={{ color: colors.black }} />
+          Cách học hiệu quả
         </div>
-        <h2 className="text-3xl md:text-4xl font-heading font-bold" style={{ color: colors.black }}>
-          Chọn gói{" "}
-          <span style={{ color: colors.primary }}>học tập</span> của bạn
+        <h2
+          className="text-3xl md:text-4xl font-heading font-bold"
+          style={{ color: colors.black }}
+        >
+          Lộ trình học với <span style={{ color: colors.primary }}>3 bước</span>{" "}
+          rõ ràng
         </h2>
+        <p className="text-[#666666] mt-3 max-w-2xl mx-auto text-sm leading-relaxed">
+          Không cần đoán mò nên học gì tiếp theo. Adapt tự động dẫn bạn đi từ
+          nền tảng đến nâng cao bằng dữ liệu học tập thực tế.
+        </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto">
-        {plans.map((plan) => (
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {learningFlow.map((item, index) => (
           <div
-            key={plan.name}
+            key={item.step}
             className={`rounded-3xl p-7 flex flex-col ${
-              plan.highlighted
-                ? "text-white scale-[1.03]"
+              index === 1
+                ? "text-white scale-[1.02]"
                 : "bg-white border border-[#E5E5E5]"
             }`}
             style={
-              plan.highlighted
+              index === 1
                 ? {
                     backgroundColor: colors.primary,
-                    boxShadow: `0 0 0 4px rgba(215, 246, 84, 0.4)`,
+                    boxShadow: "0 0 0 4px rgba(215, 246, 84, 0.35)",
                   }
                 : {}
             }
           >
-            <p
-              className={`text-sm font-semibold ${
-                plan.highlighted ? "" : "text-[#6244F4]"
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                index === 1 ? "bg-white/20" : ""
               }`}
+              style={index === 1 ? {} : { backgroundColor: item.tint }}
             >
-              {plan.name}
-            </p>
-            <div className="flex items-baseline gap-1 mt-2">
-              <span className="text-4xl font-heading font-bold">{plan.price}</span>
-              <span
-                className={`text-sm ${
-                  plan.highlighted ? "opacity-60" : "text-[#666666]"
-                }`}
-              >
-                {plan.period}
-              </span>
+              <item.icon
+                className="w-5 h-5"
+                style={{ color: index === 1 ? colors.lime : item.iconColor }}
+              />
             </div>
             <p
-              className={`text-xs mt-2 ${
-                plan.highlighted ? "opacity-75" : "text-[#666666]"
+              className={`text-xs font-semibold uppercase tracking-[0.12em] mt-4 ${
+                index === 1 ? "text-white/70" : "text-[#6244F4]"
               }`}
             >
-              {plan.description}
+              {item.step}
             </p>
-            <ul className="mt-6 space-y-3 flex-1">
-              {plan.features.map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm">
-                  <Check
-                    className={`w-4 h-4 flex-shrink-0 ${
-                      plan.highlighted
-                        ? "text-[#D7F654]"
-                        : "text-[#6244F4]"
-                    }`}
-                  />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <button
-              className={`mt-7 w-full py-3 rounded-full text-sm font-medium transition-transform hover:scale-105 inline-flex items-center justify-center gap-2 ${
-                plan.highlighted
-                  ? "text-black"
-                  : "text-white"
+            <h3 className="text-xl font-heading font-bold mt-2">{item.title}</h3>
+            <p
+              className={`text-sm mt-3 leading-relaxed ${
+                index === 1 ? "text-white/80" : "text-[#666666]"
               }`}
-              style={{
-                backgroundColor: plan.highlighted
-                  ? colors.lime
-                  : colors.black,
-              }}
             >
-              {plan.cta} <ArrowRight className="w-4 h-4" />
-            </button>
+              {item.description}
+            </p>
+            <div
+              className={`mt-6 inline-flex items-center gap-2 text-xs font-medium ${
+                index === 1 ? "text-white/90" : "text-[#666666]"
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: index === 1 ? colors.lime : colors.primary,
+                }}
+              />
+              Hoàn thành trong 5-10 phút mỗi buổi
+            </div>
           </div>
         ))}
+      </div>
+
+      <div
+        className="rounded-3xl mt-7 p-7 md:p-8 border border-[#E5E5E5] flex flex-col md:flex-row items-center justify-between gap-6"
+        style={{ backgroundColor: "hsl(240 10% 98%)" }}
+      >
+        <div className="flex items-center gap-5">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{ backgroundColor: "rgba(98, 68, 244, 0.12)" }}
+          >
+            <Zap className="w-6 h-6" style={{ color: colors.primary }} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: colors.black }}>
+              87% học viên duy trì thói quen học sau 4 tuần
+            </p>
+            <p className="text-xs text-[#666666] mt-1">
+              Nhờ bài học ngắn, mục tiêu rõ ràng và phản hồi tức thì sau mỗi
+              lần luyện tập.
+            </p>
+          </div>
+        </div>
+        <Button
+          as={Link}
+          href="/login"
+          className="rounded-full text-white px-6 py-3 text-sm font-medium transition-transform hover:scale-105 inline-flex items-center gap-2"
+          style={{ backgroundColor: colors.black }}
+        >
+          Trải nghiệm lộ trình AI <ArrowRight className="w-4 h-4" />
+        </Button>
       </div>
     </section>
   );
@@ -830,7 +838,7 @@ function CTASection() {
 // ==================== FOOTER ====================
 function Footer() {
   const links = {
-    Sản_phẩm: ["Tính năng", "Bảng giá", "Khóa học", "Hướng dẫn"],
+    Sản_phẩm: ["Tính năng", "Lộ trình", "Khóa học", "Hướng dẫn"],
     Công_ty: ["Về chúng tôi", "Tuyển dụng", "Blog", "Liên hệ"],
     Hỗ_trợ: ["Trung tâm trợ giúp", "Cộng đồng", "Trạng thái", "API Docs"],
   };
@@ -924,7 +932,7 @@ export default function Home() {
       <BentoGrid />
       <FeaturesSection />
       <TestimonialsSection />
-      <PricingSection />
+      <LearningFlowSection />
       <CTASection />
       <Footer />
     </main>
