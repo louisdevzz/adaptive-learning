@@ -64,6 +64,34 @@
       "when": 1772897350299,
       "tag": "0008_gigantic_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772975529873,
+      "tag": "0009_nosy_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772978956826,
+      "tag": "0010_cooing_tinkerer",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772979697520,
+      "tag": "0011_mean_raza",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772981570891,
+      "tag": "0012_goofy_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

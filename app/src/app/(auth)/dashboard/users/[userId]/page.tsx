@@ -701,7 +701,8 @@ export default function UserDetailPage() {
   const roleInfo = getRoleInfo();
 
   return (
-          <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1200px] mx-auto">
+    <>
+      <div className="flex flex-col gap-6 pb-8 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -925,6 +926,6 @@ export default function UserDetailPage() {
         user={user}
         onReset={handleResetPassword}
       />
-    
+    </>
   );
 }

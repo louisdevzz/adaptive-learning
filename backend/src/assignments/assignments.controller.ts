@@ -14,17 +14,17 @@ import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { AssignToStudentDto } from './dto/assign-to-student.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
+import { GradeStudentAssignmentDto } from './dto/grade-student-assignment.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
-import {
-  CreateAssignmentAttemptDto,
-  UpdateAssignmentAttemptDto,
-} from './dto/create-assignment-attempt.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('assignments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
@@ -89,12 +89,6 @@ export class AssignmentsController {
     );
   }
 
-  @Post('student-assignments/:studentAssignmentId/start')
-  @Roles('student')
-  startAssignment(@Param('studentAssignmentId') studentAssignmentId: string) {
-    return this.assignmentsService.startAssignment(studentAssignmentId);
-  }
-
   @Post('submit')
   @Roles('student')
   submitAssignment(@Body() submitDto: SubmitAssignmentDto) {
@@ -111,6 +105,34 @@ export class AssignmentsController {
   @Roles('teacher', 'admin')
   getAssignmentResults(@Param('assignmentId') assignmentId: string) {
     return this.assignmentsService.getAssignmentResults(assignmentId);
+  }
+
+  @Patch('student-assignments/:studentAssignmentId/grade')
+  @Roles('teacher', 'admin')
+  gradeStudentAssignment(
+    @Param('studentAssignmentId') studentAssignmentId: string,
+    @Body() gradeDto: GradeStudentAssignmentDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
+    return this.assignmentsService.gradeStudentAssignment(
+      studentAssignmentId,
+      gradeDto,
+      user.userId,
+    );
+  }
+
+  @Get('student-assignments/:studentAssignmentId/ai-suggestion')
+  @Roles('teacher', 'admin')
+  getAiSuggestion(@Param('studentAssignmentId') studentAssignmentId: string) {
+    return this.assignmentsService.getLatestAiSuggestion(studentAssignmentId);
+  }
+
+  @Post('student-assignments/:studentAssignmentId/regrade-ai')
+  @Roles('teacher', 'admin')
+  regradeWithAi(
+    @Param('studentAssignmentId') studentAssignmentId: string,
+  ) {
+    return this.assignmentsService.regradeWithAi(studentAssignmentId);
   }
 
   // ==================== SECTION ASSIGNMENTS ====================
@@ -156,35 +178,5 @@ export class AssignmentsController {
   @Roles('admin', 'teacher')
   removeAssignmentTarget(@Param('targetId') targetId: string) {
     return this.assignmentsService.removeAssignmentTarget(targetId);
-  }
-
-  // ==================== ASSIGNMENT ATTEMPTS ====================
-
-  @Post('attempts')
-  @Roles('student')
-  createAssignmentAttempt(
-    @Body() createAttemptDto: CreateAssignmentAttemptDto,
-  ) {
-    return this.assignmentsService.createAssignmentAttempt(createAttemptDto);
-  }
-
-  @Patch('attempts/:attemptId')
-  @Roles('student')
-  updateAssignmentAttempt(
-    @Param('attemptId') attemptId: string,
-    @Body() updateAttemptDto: UpdateAssignmentAttemptDto,
-  ) {
-    return this.assignmentsService.updateAssignmentAttempt(
-      attemptId,
-      updateAttemptDto,
-    );
-  }
-
-  @Get('student-assignments/:studentAssignmentId/attempts')
-  @Roles('student', 'teacher', 'admin')
-  getAssignmentAttempts(
-    @Param('studentAssignmentId') studentAssignmentId: string,
-  ) {
-    return this.assignmentsService.getAssignmentAttempts(studentAssignmentId);
   }
 }

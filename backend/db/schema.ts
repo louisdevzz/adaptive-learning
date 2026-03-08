@@ -415,8 +415,13 @@ export const assignments = pgTable(
       .notNull()
       .references(() => teachers.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
-    description: text('description').notNull(),
+    description: text('description'),
+    attachmentUrl: text('attachment_url'),
+    attachmentName: text('attachment_name'),
+    attachmentMimeType: varchar('attachment_mime_type', { length: 100 }),
     assignmentType: varchar('assignment_type', { length: 50 }).notNull(), // 'practice', 'quiz', 'exam', 'homework', 'test', 'adaptive'
+    aiGradingEnabled: boolean('ai_grading_enabled').notNull().default(false),
+    gradingRubric: text('grading_rubric'),
     dueDate: timestamp('due_date'),
     isPublished: boolean('is_published').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -426,30 +431,6 @@ export const assignments = pgTable(
     teacherIdx: index('assignments_teacher_idx').on(table.teacherId),
     publishedIdx: index('assignments_published_idx').on(table.isPublished),
     dueDateIdx: index('assignments_due_date_idx').on(table.dueDate),
-  }),
-);
-
-export const assignmentItems = pgTable(
-  'assignment_items',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    assignmentId: uuid('assignment_id')
-      .notNull()
-      .references(() => assignments.id, { onDelete: 'cascade' }),
-    questionId: uuid('question_id')
-      .notNull()
-      .references(() => questionBank.id, { onDelete: 'cascade' }),
-    orderIndex: integer('order_index').notNull(),
-    points: integer('points').notNull(),
-  },
-  (table) => ({
-    assignmentIdx: index('assignment_items_assignment_idx').on(
-      table.assignmentId,
-    ),
-    orderIdx: index('assignment_items_order_idx').on(
-      table.assignmentId,
-      table.orderIndex,
-    ),
   }),
 );
 
@@ -505,28 +486,6 @@ export const assignmentTargets = pgTable(
   }),
 );
 
-export const assignmentAttempts = pgTable(
-  'assignment_attempts',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    studentAssignmentId: uuid('student_assignment_id')
-      .notNull()
-      .references(() => studentAssignments.id, { onDelete: 'cascade' }),
-    startedAt: timestamp('started_at').notNull().defaultNow(),
-    endedAt: timestamp('ended_at'),
-    attemptStatus: varchar('attempt_status', { length: 20 }).notNull(), // 'in_progress', 'abandoned', 'submitted'
-  },
-  (table) => ({
-    studentAssignmentIdx: index(
-      'assignment_attempts_student_assignment_idx',
-    ).on(table.studentAssignmentId),
-    statusIdx: index('assignment_attempts_status_idx').on(table.attemptStatus),
-    startedAtIdx: index('assignment_attempts_started_at_idx').on(
-      table.startedAt,
-    ),
-  }),
-);
-
 export const studentAssignments = pgTable(
   'student_assignments',
   {
@@ -540,6 +499,9 @@ export const studentAssignments = pgTable(
     status: varchar('status', { length: 20 }).notNull(), // 'not_started', 'in_progress', 'submitted', 'graded'
     startTime: timestamp('start_time'),
     submittedTime: timestamp('submitted_time'),
+    submissionUrl: text('submission_url'),
+    submissionName: text('submission_name'),
+    submissionMimeType: varchar('submission_mime_type', { length: 100 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
@@ -561,11 +523,54 @@ export const studentAssignmentResults = pgTable(
     maxScore: integer('max_score').notNull(),
     accuracy: integer('accuracy').notNull(), // 0-100
     timeSpent: integer('time_spent').notNull(), // seconds
+    gradingSource: varchar('grading_source', { length: 20 })
+      .notNull()
+      .default('manual'), // 'manual', 'ai_approved'
+    approvedBy: uuid('approved_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    approvalNote: text('approval_note'),
     gradedAt: timestamp('graded_at').notNull().defaultNow(),
   },
   (table) => ({
     studentAssignmentIdx: index('student_assignment_results_idx').on(
       table.studentAssignmentId,
+    ),
+    approvedByIdx: index('student_assignment_results_approved_by_idx').on(
+      table.approvedBy,
+    ),
+  }),
+);
+
+export const assignmentGradingRuns = pgTable(
+  'assignment_grading_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    studentAssignmentId: uuid('student_assignment_id')
+      .notNull()
+      .references(() => studentAssignments.id, { onDelete: 'cascade' }),
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
+    provider: varchar('provider', { length: 50 }),
+    model: text('model'),
+    rubricUsed: text('rubric_used'),
+    extractedText: text('extracted_text'),
+    suggestedScore: real('suggested_score'),
+    feedback: text('feedback'),
+    criteriaBreakdown: json('criteria_breakdown'),
+    confidence: integer('confidence'), // 0-100
+    errorMessage: text('error_message'),
+    retryCount: integer('retry_count').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    studentAssignmentIdx: index('assignment_grading_runs_student_idx').on(
+      table.studentAssignmentId,
+    ),
+    statusCreatedIdx: index('assignment_grading_runs_status_created_idx').on(
+      table.status,
+      table.createdAt,
     ),
   }),
 );

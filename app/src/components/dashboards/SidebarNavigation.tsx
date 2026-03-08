@@ -20,6 +20,7 @@ import {
   ChevronsRight,
   UserCircle,
   KeyRound,
+  ClipboardList,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -55,6 +56,7 @@ const menuItems: Record<string, MenuItem[]> = {
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Người dùng", href: "/dashboard/users" },
     { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    { icon: ClipboardList, label: "Bài tập", href: "/dashboard/assignments" },
     { icon: Users, label: "Học sinh", href: "/dashboard/students" },
     { icon: School, label: "Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
@@ -62,6 +64,7 @@ const menuItems: Record<string, MenuItem[]> = {
   teacher: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
+    { icon: ClipboardList, label: "Bài tập", href: "/dashboard/assignments" },
     { icon: Users, label: "Quản lý học sinh", href: "/dashboard/students" },
     { icon: School, label: "Quản lý Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
@@ -69,6 +72,7 @@ const menuItems: Record<string, MenuItem[]> = {
   student: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
     { icon: BookOpen, label: "Khóa học của tôi", href: "/dashboard/my-courses" },
+    { icon: ClipboardList, label: "Bài tập", href: "/dashboard/assignments" },
     { icon: TrendingUp, label: "Lộ trình học tập", href: "/dashboard/learning-path" },
     { icon: Award, label: "Tiến độ", href: "/dashboard/progress" },
   ],

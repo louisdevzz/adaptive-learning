@@ -5,27 +5,9 @@ import {
   IsEnum,
   IsBoolean,
   IsOptional,
-  IsArray,
-  ValidateNested,
-  IsInt,
-  Min,
   IsDateString,
+  IsUrl,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class AssignmentQuestionDto {
-  @IsUUID()
-  @IsNotEmpty()
-  questionId: string;
-
-  @IsInt()
-  @Min(0)
-  orderIndex: number;
-
-  @IsInt()
-  @Min(1)
-  points: number;
-}
 
 export class CreateAssignmentDto {
   @IsUUID()
@@ -37,8 +19,20 @@ export class CreateAssignmentDto {
   title: string;
 
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  attachmentName?: string;
+
+  @IsString()
+  @IsOptional()
+  attachmentMimeType?: string;
+
+  @IsUrl()
+  @IsOptional()
+  attachmentUrl?: string;
 
   @IsEnum(['practice', 'quiz', 'exam', 'homework', 'test', 'adaptive'])
   assignmentType:
@@ -49,6 +43,14 @@ export class CreateAssignmentDto {
     | 'test'
     | 'adaptive';
 
+  @IsBoolean()
+  @IsOptional()
+  aiGradingEnabled?: boolean;
+
+  @IsString()
+  @IsOptional()
+  gradingRubric?: string;
+
   @IsDateString()
   @IsOptional()
   dueDate?: string;
@@ -56,10 +58,4 @@ export class CreateAssignmentDto {
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AssignmentQuestionDto)
-  @IsOptional()
-  questions?: AssignmentQuestionDto[];
 }
