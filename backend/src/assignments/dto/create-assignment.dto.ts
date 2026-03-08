@@ -43,6 +43,14 @@ export class CreateAssignmentDto {
     | 'test'
     | 'adaptive';
 
+  @IsBoolean()
+  @IsOptional()
+  aiGradingEnabled?: boolean;
+
+  @IsString()
+  @IsOptional()
+  gradingRubric?: string;
+
   @IsDateString()
   @IsOptional()
   dueDate?: string;

@@ -943,6 +943,8 @@ export const api = {
         | "adaptive";
       dueDate?: string;
       isPublished?: boolean;
+      aiGradingEnabled?: boolean;
+      gradingRubric?: string;
       attachmentName?: string;
       attachmentMimeType?: string;
       attachmentUrl?: string;
@@ -966,6 +968,8 @@ export const api = {
           | "adaptive";
         dueDate?: string;
         isPublished?: boolean;
+        aiGradingEnabled?: boolean;
+        gradingRubric?: string | null;
         attachmentName?: string | null;
         attachmentMimeType?: string | null;
         attachmentUrl?: string | null;
@@ -1033,11 +1037,29 @@ export const api = {
 
     gradeStudentAssignment: async (
       studentAssignmentId: string,
-      data: { totalScore: number }
+      data: {
+        totalScore: number;
+        gradingSource?: "manual" | "ai_approved";
+        approvalNote?: string;
+      }
     ) => {
       const response = await apiClient.patch(
         `/assignments/student-assignments/${studentAssignmentId}/grade`,
         data
+      );
+      return response.data;
+    },
+
+    getAiSuggestion: async (studentAssignmentId: string) => {
+      const response = await apiClient.get(
+        `/assignments/student-assignments/${studentAssignmentId}/ai-suggestion`
+      );
+      return response.data;
+    },
+
+    regradeAi: async (studentAssignmentId: string) => {
+      const response = await apiClient.post(
+        `/assignments/student-assignments/${studentAssignmentId}/regrade-ai`
       );
       return response.data;
     },

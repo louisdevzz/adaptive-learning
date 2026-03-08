@@ -216,34 +216,38 @@ export default function AssignmentsPage() {
               Chưa có bài tập nào.
             </div>
           ) : (
-            studentAssignments.map((item) => {
-              const displayStatus = getStudentDisplayStatus(
-                item.status,
-                item.assignment.dueDate
-              );
+            <div className="flex flex-col gap-2">
+              {
+                studentAssignments.map((item) => {
+                const displayStatus = getStudentDisplayStatus(
+                  item.status,
+                  item.assignment.dueDate
+                );
 
-              return (
-                <Link key={item.id} href={`/dashboard/assignments/${item.assignment.id}`}>
-                  <div className="bg-white rounded-xl border border-[#e9eaeb] p-4 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="font-semibold text-[#181d27]">
-                          {item.assignment.title}
-                        </h3>
-                        <p className="text-sm text-[#717680] mt-1 line-clamp-2">
-                          {item.assignment.description || "Không có mô tả"}
-                        </p>
+                return (
+                  <Link key={item.id} href={`/dashboard/assignments/${item.assignment.id}`}>
+                    <div className="bg-white rounded-xl border border-[#e9eaeb] p-4 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-[#181d27]">
+                            {item.assignment.title}
+                          </h3>
+                          <p className="text-sm text-[#717680] mt-1 line-clamp-2">
+                            {item.assignment.description || "Không có mô tả"}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${getStudentStatusClass(displayStatus)}`}
+                        >
+                          {getStudentStatusLabel(displayStatus)}
+                        </span>
                       </div>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${getStudentStatusClass(displayStatus)}`}
-                      >
-                        {getStudentStatusLabel(displayStatus)}
-                      </span>
                     </div>
-                  </div>
-                </Link>
-              );
-            })
+                  </Link>
+                );
+              })
+              }
+            </div>
           )}
         </div>
       </div>

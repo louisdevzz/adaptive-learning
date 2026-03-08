@@ -47,6 +47,8 @@ export default function CreateAssignmentPage() {
   const [assignmentType, setAssignmentType] = useState<AssignmentType>("homework");
   const [dueDate, setDueDate] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+  const [aiGradingEnabled, setAiGradingEnabled] = useState(false);
+  const [gradingRubric, setGradingRubric] = useState("");
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
@@ -153,6 +155,8 @@ export default function CreateAssignmentPage() {
         assignmentType,
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         isPublished,
+        aiGradingEnabled,
+        gradingRubric: aiGradingEnabled ? gradingRubric.trim() || undefined : undefined,
         attachmentUrl: attachmentUrl || undefined,
         attachmentName: attachmentName || undefined,
         attachmentMimeType: attachmentMimeType || undefined,
@@ -335,6 +339,41 @@ export default function CreateAssignmentPage() {
                 Xuất bản ngay
               </label>
             </div>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-[#e9eaeb] p-4 bg-[#fafafa]">
+            <label className="inline-flex items-center gap-2 text-sm text-[#414651] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiGradingEnabled}
+                onChange={(e) => setAiGradingEnabled(e.target.checked)}
+              />
+              Bật chấm AI cho file bài nộp
+            </label>
+            <p className="text-xs text-[#717680]">
+              AI sẽ gợi ý điểm và nhận xét, giáo viên vẫn là người chấm điểm cuối.
+            </p>
+            {aiGradingEnabled ? (
+              <div>
+                <label className="text-sm font-medium text-[#414651]">
+                  Tiêu chí chấm điểm cho AI (tuỳ chọn)
+                </label>
+                <p className="mt-1 text-xs text-[#717680]">
+                  Đây là hướng dẫn để AI chấm bài. Bạn có thể mô tả cách cho điểm theo từng tiêu chí.
+                  Nếu để trống, hệ thống sẽ dùng tiêu chí mặc định.
+                </p>
+                <textarea
+                  className="mt-1 w-full border border-[#d5d7da] rounded-xl px-3 py-2 text-sm min-h-[120px]"
+                  placeholder={`Ví dụ:
+- Hiểu đúng kiến thức: 0-3 điểm
+- Lập luận và cách giải: 0-4 điểm
+- Kết quả đúng và trình bày rõ: 0-2 điểm
+- Diễn đạt, dùng thuật ngữ: 0-1 điểm`}
+                  value={gradingRubric}
+                  onChange={(e) => setGradingRubric(e.target.value)}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 

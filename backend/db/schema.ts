@@ -420,6 +420,8 @@ export const assignments = pgTable(
     attachmentName: text('attachment_name'),
     attachmentMimeType: varchar('attachment_mime_type', { length: 100 }),
     assignmentType: varchar('assignment_type', { length: 50 }).notNull(), // 'practice', 'quiz', 'exam', 'homework', 'test', 'adaptive'
+    aiGradingEnabled: boolean('ai_grading_enabled').notNull().default(false),
+    gradingRubric: text('grading_rubric'),
     dueDate: timestamp('due_date'),
     isPublished: boolean('is_published').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -521,11 +523,54 @@ export const studentAssignmentResults = pgTable(
     maxScore: integer('max_score').notNull(),
     accuracy: integer('accuracy').notNull(), // 0-100
     timeSpent: integer('time_spent').notNull(), // seconds
+    gradingSource: varchar('grading_source', { length: 20 })
+      .notNull()
+      .default('manual'), // 'manual', 'ai_approved'
+    approvedBy: uuid('approved_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    approvalNote: text('approval_note'),
     gradedAt: timestamp('graded_at').notNull().defaultNow(),
   },
   (table) => ({
     studentAssignmentIdx: index('student_assignment_results_idx').on(
       table.studentAssignmentId,
+    ),
+    approvedByIdx: index('student_assignment_results_approved_by_idx').on(
+      table.approvedBy,
+    ),
+  }),
+);
+
+export const assignmentGradingRuns = pgTable(
+  'assignment_grading_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    studentAssignmentId: uuid('student_assignment_id')
+      .notNull()
+      .references(() => studentAssignments.id, { onDelete: 'cascade' }),
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
+    provider: varchar('provider', { length: 50 }),
+    model: text('model'),
+    rubricUsed: text('rubric_used'),
+    extractedText: text('extracted_text'),
+    suggestedScore: real('suggested_score'),
+    feedback: text('feedback'),
+    criteriaBreakdown: json('criteria_breakdown'),
+    confidence: integer('confidence'), // 0-100
+    errorMessage: text('error_message'),
+    retryCount: integer('retry_count').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    studentAssignmentIdx: index('assignment_grading_runs_student_idx').on(
+      table.studentAssignmentId,
+    ),
+    statusCreatedIdx: index('assignment_grading_runs_status_created_idx').on(
+      table.status,
+      table.createdAt,
     ),
   }),
 );

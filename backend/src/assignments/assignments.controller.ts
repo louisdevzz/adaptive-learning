@@ -19,9 +19,12 @@ import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('assignments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
@@ -109,11 +112,27 @@ export class AssignmentsController {
   gradeStudentAssignment(
     @Param('studentAssignmentId') studentAssignmentId: string,
     @Body() gradeDto: GradeStudentAssignmentDto,
+    @CurrentUser() user: ICurrentUser,
   ) {
     return this.assignmentsService.gradeStudentAssignment(
       studentAssignmentId,
       gradeDto,
+      user.userId,
     );
+  }
+
+  @Get('student-assignments/:studentAssignmentId/ai-suggestion')
+  @Roles('teacher', 'admin')
+  getAiSuggestion(@Param('studentAssignmentId') studentAssignmentId: string) {
+    return this.assignmentsService.getLatestAiSuggestion(studentAssignmentId);
+  }
+
+  @Post('student-assignments/:studentAssignmentId/regrade-ai')
+  @Roles('teacher', 'admin')
+  regradeWithAi(
+    @Param('studentAssignmentId') studentAssignmentId: string,
+  ) {
+    return this.assignmentsService.regradeWithAi(studentAssignmentId);
   }
 
   // ==================== SECTION ASSIGNMENTS ====================

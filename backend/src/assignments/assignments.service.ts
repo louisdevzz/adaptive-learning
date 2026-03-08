@@ -25,9 +25,14 @@ import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
 import { GradeStudentAssignmentDto } from './dto/grade-student-assignment.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
+import { AssignmentAiGradingService } from './assignment-ai-grading.service';
 
 @Injectable()
 export class AssignmentsService {
+  constructor(
+    private readonly assignmentAiGradingService: AssignmentAiGradingService,
+  ) {}
+
   // ==================== ASSIGNMENTS ====================
 
   async create(createAssignmentDto: CreateAssignmentDto) {
@@ -52,6 +57,8 @@ export class AssignmentsService {
         attachmentMimeType: createAssignmentDto.attachmentMimeType || null,
         attachmentUrl: createAssignmentDto.attachmentUrl || null,
         assignmentType: createAssignmentDto.assignmentType,
+        aiGradingEnabled: createAssignmentDto.aiGradingEnabled ?? false,
+        gradingRubric: createAssignmentDto.gradingRubric?.trim() || null,
         dueDate: createAssignmentDto.dueDate
           ? new Date(createAssignmentDto.dueDate)
           : null,
@@ -132,6 +139,12 @@ export class AssignmentsService {
     }
     if (updateAssignmentDto.assignmentType)
       updateData.assignmentType = updateAssignmentDto.assignmentType;
+    if (updateAssignmentDto.aiGradingEnabled !== undefined) {
+      updateData.aiGradingEnabled = updateAssignmentDto.aiGradingEnabled;
+    }
+    if (updateAssignmentDto.gradingRubric !== undefined) {
+      updateData.gradingRubric = updateAssignmentDto.gradingRubric?.trim() || null;
+    }
     if (updateAssignmentDto.dueDate !== undefined) {
       updateData.dueDate = updateAssignmentDto.dueDate
         ? new Date(updateAssignmentDto.dueDate)
@@ -187,8 +200,20 @@ export class AssignmentsService {
 
   async getStudentAssignment(studentId: string, assignmentId: string) {
     const result = await db
-      .select()
+      .select({
+        studentAssignment: studentAssignments,
+        assignment: assignments,
+        result: studentAssignmentResults,
+      })
       .from(studentAssignments)
+      .innerJoin(
+        assignments,
+        eq(studentAssignments.assignmentId, assignments.id),
+      )
+      .leftJoin(
+        studentAssignmentResults,
+        eq(studentAssignments.id, studentAssignmentResults.studentAssignmentId),
+      )
       .where(
         and(
           eq(studentAssignments.studentId, studentId),
@@ -201,20 +226,33 @@ export class AssignmentsService {
       throw new NotFoundException('Student assignment not found');
     }
 
-    return result[0];
+    return {
+      ...result[0].studentAssignment,
+      assignment: result[0].assignment,
+      result: result[0].result,
+    };
   }
 
   async submitAssignment(submitDto: SubmitAssignmentDto) {
-    // Get student assignment
+    // Get student assignment + assignment config
     const studentAssignment = await db
-      .select()
+      .select({
+        studentAssignment: studentAssignments,
+        assignment: assignments,
+      })
       .from(studentAssignments)
+      .innerJoin(
+        assignments,
+        eq(studentAssignments.assignmentId, assignments.id),
+      )
       .where(eq(studentAssignments.id, submitDto.studentAssignmentId))
       .limit(1);
 
     if (studentAssignment.length === 0) {
       throw new NotFoundException('Student assignment not found');
     }
+
+    const target = studentAssignment[0];
 
     const hasAnswers = Array.isArray(submitDto.answers) && submitDto.answers.length > 0;
     const hasSubmissionFile = Boolean(submitDto.submissionUrl);
@@ -225,7 +263,7 @@ export class AssignmentsService {
       );
     }
 
-    return await db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       // Update student assignment status
       await tx
         .update(studentAssignments)
@@ -288,6 +326,21 @@ export class AssignmentsService {
 
       return result;
     });
+
+    if (
+      hasSubmissionFile &&
+      target.assignment.aiGradingEnabled &&
+      submitDto.submissionMimeType !== 'application/msword'
+    ) {
+      await this.assignmentAiGradingService.enqueueRun(
+        submitDto.studentAssignmentId,
+      );
+    }
+
+    return await this.getStudentAssignment(
+      target.studentAssignment.studentId,
+      target.studentAssignment.assignmentId,
+    );
   }
 
   async getStudentAssignments(studentId: string) {
@@ -329,12 +382,23 @@ export class AssignmentsService {
       )
       .where(eq(studentAssignments.assignmentId, assignmentId));
 
-    return result;
+    const studentAssignmentIds = result.map((row) => row.studentAssignment.id);
+    const latestRunsByStudentAssignmentId =
+      await this.assignmentAiGradingService.getLatestRunsByStudentAssignmentIds(
+        studentAssignmentIds,
+      );
+
+    return result.map((row) => ({
+      ...row,
+      aiSuggestion:
+        latestRunsByStudentAssignmentId.get(row.studentAssignment.id) ?? null,
+    }));
   }
 
   async gradeStudentAssignment(
     studentAssignmentId: string,
     gradeDto: GradeStudentAssignmentDto,
+    approvedBy?: string,
   ) {
     const target = await db
       .select()
@@ -353,6 +417,8 @@ export class AssignmentsService {
     const maxScore = 10;
     const totalScore = Math.max(0, Math.min(gradeDto.totalScore, maxScore));
     const accuracy = Math.round((totalScore / maxScore) * 100);
+    const gradingSource = gradeDto.gradingSource ?? 'manual';
+    const approvalNote = gradeDto.approvalNote?.trim() || null;
 
     return await db.transaction(async (tx) => {
       await tx
@@ -375,6 +441,9 @@ export class AssignmentsService {
             totalScore,
             maxScore,
             accuracy,
+            gradingSource,
+            approvedBy: approvedBy ?? null,
+            approvalNote,
             gradedAt: new Date(),
           })
           .where(eq(studentAssignmentResults.studentAssignmentId, studentAssignmentId))
@@ -391,11 +460,74 @@ export class AssignmentsService {
           maxScore,
           accuracy,
           timeSpent: 0,
+          gradingSource,
+          approvedBy: approvedBy ?? null,
+          approvalNote,
         })
         .returning();
 
       return created;
     });
+  }
+
+  async getLatestAiSuggestion(studentAssignmentId: string) {
+    const studentAssignment = await db
+      .select()
+      .from(studentAssignments)
+      .where(eq(studentAssignments.id, studentAssignmentId))
+      .limit(1);
+
+    if (studentAssignment.length === 0) {
+      throw new NotFoundException('Student assignment not found');
+    }
+
+    const latestRun =
+      await this.assignmentAiGradingService.getLatestRun(studentAssignmentId);
+
+    return latestRun;
+  }
+
+  async regradeWithAi(studentAssignmentId: string) {
+    const rows = await db
+      .select({
+        id: studentAssignments.id,
+        submissionUrl: studentAssignments.submissionUrl,
+        assignmentId: studentAssignments.assignmentId,
+        aiGradingEnabled: assignments.aiGradingEnabled,
+      })
+      .from(studentAssignments)
+      .innerJoin(
+        assignments,
+        eq(studentAssignments.assignmentId, assignments.id),
+      )
+      .where(eq(studentAssignments.id, studentAssignmentId))
+      .limit(1);
+
+    if (rows.length === 0) {
+      throw new NotFoundException('Student assignment not found');
+    }
+
+    const target = rows[0];
+
+    if (!target.submissionUrl) {
+      throw new BadRequestException(
+        'Student submission file is required for AI grading',
+      );
+    }
+
+    if (!target.aiGradingEnabled) {
+      throw new BadRequestException(
+        'AI grading is not enabled for this assignment',
+      );
+    }
+
+    const created =
+      await this.assignmentAiGradingService.requeueRun(studentAssignmentId);
+
+    return {
+      message: 'AI regrading requested',
+      run: created,
+    };
   }
 
   // ==================== SECTION ASSIGNMENTS ====================
