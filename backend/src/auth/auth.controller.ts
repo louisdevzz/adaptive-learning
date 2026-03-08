@@ -47,12 +47,10 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(
-      loginDto,
-      this.buildRequestContext(req),
-    );
+    const { accessToken, sessionId, ...response } =
+      await this.authService.login(loginDto, this.buildRequestContext(req));
 
-    res.cookie('access_token', result.accessToken, {
+    res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -60,8 +58,8 @@ export class AuthController {
       path: '/',
     });
 
-    if (result.sessionId) {
-      res.cookie('session_id', result.sessionId, {
+    if (sessionId) {
+      res.cookie('session_id', sessionId, {
         httpOnly: true,
         secure: true,
         sameSite: 'none',
@@ -70,7 +68,7 @@ export class AuthController {
       });
     }
 
-    return result;
+    return response;
   }
 
   @Post('google')
@@ -80,12 +78,13 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.loginWithGoogle(
-      idToken,
-      this.buildRequestContext(req),
-    );
+    const { accessToken, sessionId, ...response } =
+      await this.authService.loginWithGoogle(
+        idToken,
+        this.buildRequestContext(req),
+      );
 
-    res.cookie('access_token', result.accessToken, {
+    res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -93,8 +92,8 @@ export class AuthController {
       path: '/',
     });
 
-    if (result.sessionId) {
-      res.cookie('session_id', result.sessionId, {
+    if (sessionId) {
+      res.cookie('session_id', sessionId, {
         httpOnly: true,
         secure: true,
         sameSite: 'none',
@@ -103,7 +102,7 @@ export class AuthController {
       });
     }
 
-    return result;
+    return response;
   }
 
   @Get('me')
@@ -113,14 +112,18 @@ export class AuthController {
   }
 
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: ICurrentUser,
   ) {
     await this.authService.logout({
-      accessToken: req.cookies?.access_token,
-      sessionId: req.cookies?.session_id,
+      sessionId: (req as Request & { cookies?: Record<string, string> })
+        .cookies?.session_id,
+      userId: user.userId,
+      userRole: user.role,
       requestContext: this.buildRequestContext(req),
     });
 

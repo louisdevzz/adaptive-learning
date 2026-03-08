@@ -426,7 +426,7 @@ export class StudentsService {
         and(inArray(courses.id, candidateCourseIds), eq(courses.active, true)),
       );
 
-    const classInfoByCourseId = new Map<string, (typeof classes.$inferSelect)>();
+    const classInfoByCourseId = new Map<string, typeof classes.$inferSelect>();
     courseAssignments.forEach((item) => {
       if (!classInfoByCourseId.has(item.course.id)) {
         classInfoByCourseId.set(item.course.id, item.classInfo);
@@ -534,7 +534,9 @@ export class StudentsService {
           attemptSummary?.lastAttemptAt
             ? new Date(attemptSummary.lastAttemptAt)
             : null,
-          studySummary?.lastTrackedAt ? new Date(studySummary.lastTrackedAt) : null,
+          studySummary?.lastTrackedAt
+            ? new Date(studySummary.lastTrackedAt)
+            : null,
         ].filter(Boolean) as Date[];
 
         const lastAccessed =
@@ -572,7 +574,9 @@ export class StudentsService {
         const timeSpentMinutes = Math.round(totalStudySeconds / 60);
 
         const hasAnyProgress =
-          studentProgress.length > 0 || totalAttempts > 0 || totalStudySeconds > 0;
+          studentProgress.length > 0 ||
+          totalAttempts > 0 ||
+          totalStudySeconds > 0;
 
         // Determine status
         let status: 'not_started' | 'in_progress' | 'completed';
@@ -770,7 +774,9 @@ export class StudentsService {
     );
     const averageTimePerDay =
       uniqueActivityDays.length > 0
-        ? Math.round(totalStudyTimeMinutesLast30Days / uniqueActivityDays.length)
+        ? Math.round(
+            totalStudyTimeMinutesLast30Days / uniqueActivityDays.length,
+          )
         : 0;
 
     // 8. Get class info

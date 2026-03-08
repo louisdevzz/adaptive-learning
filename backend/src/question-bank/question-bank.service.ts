@@ -395,7 +395,7 @@ Trả về kết quả dưới dạng JSON với cấu trúc sau:
 
       // Generate question
       const response = await chatModel.invoke([new HumanMessage(prompt)]);
-      const content = response.content as string;
+      const content = response.content;
 
       // Parse JSON from response
       let questionData;

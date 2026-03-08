@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { and, asc, desc, eq, inArray, lt } from 'drizzle-orm';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import {
   db,
   assignmentGradingRuns,
@@ -67,7 +67,10 @@ export class AssignmentAiGradingService {
       .select()
       .from(assignmentGradingRuns)
       .where(
-        inArray(assignmentGradingRuns.studentAssignmentId, studentAssignmentIds),
+        inArray(
+          assignmentGradingRuns.studentAssignmentId,
+          studentAssignmentIds,
+        ),
       )
       .orderBy(
         desc(assignmentGradingRuns.createdAt),
@@ -182,10 +185,7 @@ export class AssignmentAiGradingService {
       .from(assignmentGradingRuns)
       .innerJoin(
         studentAssignments,
-        eq(
-          assignmentGradingRuns.studentAssignmentId,
-          studentAssignments.id,
-        ),
+        eq(assignmentGradingRuns.studentAssignmentId, studentAssignments.id),
       )
       .innerJoin(
         assignments,
@@ -303,7 +303,9 @@ export class AssignmentAiGradingService {
   private async extractSubmissionText(url: string, mimeType?: string | null) {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to download submission file (${response.status})`);
+      throw new Error(
+        `Failed to download submission file (${response.status})`,
+      );
     }
 
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -311,13 +313,8 @@ export class AssignmentAiGradingService {
     const path = new URL(url).pathname.toLowerCase();
 
     if (effectiveMime.includes('pdf') || path.endsWith('.pdf')) {
-      const parser = new PDFParse({ data: buffer });
-      try {
-        const parsed = await parser.getText();
-        return parsed.text || '';
-      } finally {
-        await parser.destroy();
-      }
+      const parsed = await pdfParse(buffer);
+      return parsed.text || '';
     }
 
     if (
@@ -330,11 +327,16 @@ export class AssignmentAiGradingService {
       return parsed.value || '';
     }
 
-    throw new Error('Unsupported submission file format. Only PDF and DOCX are supported');
+    throw new Error(
+      'Unsupported submission file format. Only PDF and DOCX are supported',
+    );
   }
 
   private normalizeText(rawText: string) {
-    return rawText.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    return rawText
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   private buildGradingPrompt(rubric: string, submissionText: string) {
