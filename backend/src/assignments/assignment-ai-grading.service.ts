@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { and, asc, desc, eq, inArray, lt } from 'drizzle-orm';
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
 import {
   db,
   assignmentGradingRuns,
@@ -25,6 +24,24 @@ interface AiSuggestion {
   criteriaBreakdown: unknown;
   confidence: number;
 }
+
+type PdfParseResult = {
+  text?: string;
+};
+
+type PdfParseFunction = (
+  dataBuffer: Buffer,
+  options?: Record<string, unknown>,
+) => Promise<PdfParseResult>;
+
+type PdfParseInstance = {
+  getText: () => Promise<PdfParseResult>;
+  destroy?: () => Promise<void> | void;
+};
+
+type PdfParseConstructor = new (options: {
+  data: Buffer;
+}) => PdfParseInstance;
 
 @Injectable()
 export class AssignmentAiGradingService {
@@ -311,8 +328,7 @@ export class AssignmentAiGradingService {
     const path = new URL(url).pathname.toLowerCase();
 
     if (effectiveMime.includes('pdf') || path.endsWith('.pdf')) {
-      const parsed = await pdfParse(buffer);
-      return parsed.text || '';
+      return this.extractPdfText(buffer);
     }
 
     if (
@@ -326,6 +342,32 @@ export class AssignmentAiGradingService {
     }
 
     throw new Error('Unsupported submission file format. Only PDF and DOCX are supported');
+  }
+
+  private async extractPdfText(buffer: Buffer): Promise<string> {
+    const pdfModule = (await import('pdf-parse')) as {
+      default?: PdfParseFunction;
+      PDFParse?: PdfParseConstructor;
+    };
+
+    if (pdfModule.PDFParse) {
+      const parser = new pdfModule.PDFParse({ data: buffer });
+      try {
+        const parsed = await parser.getText();
+        return parsed.text || '';
+      } finally {
+        await parser.destroy?.();
+      }
+    }
+
+    const parseFn =
+      pdfModule.default || (pdfModule as unknown as PdfParseFunction);
+    if (typeof parseFn !== 'function') {
+      throw new Error('pdf-parse module is not callable');
+    }
+
+    const parsed = await parseFn(buffer);
+    return parsed?.text || '';
   }
 
   private normalizeText(rawText: string) {

@@ -143,7 +143,8 @@ export class AssignmentsService {
       updateData.aiGradingEnabled = updateAssignmentDto.aiGradingEnabled;
     }
     if (updateAssignmentDto.gradingRubric !== undefined) {
-      updateData.gradingRubric = updateAssignmentDto.gradingRubric?.trim() || null;
+      updateData.gradingRubric =
+        updateAssignmentDto.gradingRubric?.trim() || null;
     }
     if (updateAssignmentDto.dueDate !== undefined) {
       updateData.dueDate = updateAssignmentDto.dueDate
@@ -254,7 +255,8 @@ export class AssignmentsService {
 
     const target = studentAssignment[0];
 
-    const hasAnswers = Array.isArray(submitDto.answers) && submitDto.answers.length > 0;
+    const hasAnswers =
+      Array.isArray(submitDto.answers) && submitDto.answers.length > 0;
     const hasSubmissionFile = Boolean(submitDto.submissionUrl);
 
     if (!hasAnswers && !hasSubmissionFile) {
@@ -407,7 +409,9 @@ export class AssignmentsService {
     }
 
     if (target[0].status === 'not_started') {
-      throw new BadRequestException('Student has not submitted this assignment');
+      throw new BadRequestException(
+        'Student has not submitted this assignment',
+      );
     }
 
     const maxScore = 10;
@@ -427,7 +431,9 @@ export class AssignmentsService {
       const existing = await tx
         .select()
         .from(studentAssignmentResults)
-        .where(eq(studentAssignmentResults.studentAssignmentId, studentAssignmentId))
+        .where(
+          eq(studentAssignmentResults.studentAssignmentId, studentAssignmentId),
+        )
         .limit(1);
 
       if (existing.length > 0) {
@@ -442,7 +448,12 @@ export class AssignmentsService {
             approvalNote,
             gradedAt: new Date(),
           })
-          .where(eq(studentAssignmentResults.studentAssignmentId, studentAssignmentId))
+          .where(
+            eq(
+              studentAssignmentResults.studentAssignmentId,
+              studentAssignmentId,
+            ),
+          )
           .returning();
 
         return updated;

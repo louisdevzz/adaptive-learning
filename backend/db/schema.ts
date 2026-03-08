@@ -757,20 +757,44 @@ export const activityLog = pgTable(
   'activity_log',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    studentId: uuid('student_id')
-      .notNull()
-      .references(() => students.id, { onDelete: 'cascade' }),
-    activityType: varchar('activity_type', { length: 20 }).notNull(), // 'view', 'submit', 'complete'
-    targetId: uuid('target_id').notNull(), // ID of the target (course, module, section, etc.)
-    targetType: varchar('target_type', { length: 20 }).notNull(), // 'course', 'module', 'section', 'kp'
+    actorUserId: uuid('actor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    actorRole: varchar('actor_role', { length: 20 }), // 'student', 'teacher', 'parent', 'admin', 'system'
+    studentId: uuid('student_id').references(() => students.id, {
+      onDelete: 'set null',
+    }),
+    sessionId: uuid('session_id').references(() => studentSession.id, {
+      onDelete: 'set null',
+    }),
+    activityType: varchar('activity_type', { length: 50 }).notNull(), // 'learning', 'assignment', 'auth', 'classroom'
+    action: varchar('action', { length: 50 }).notNull(), // 'view', 'submit', 'complete', 'create', 'update', 'delete'
+    targetType: varchar('target_type', { length: 30 }).notNull(), // 'course', 'module', 'section', 'kp', 'assignment', 'class'
+    targetId: uuid('target_id'), // polymorphic resource ID
+    source: varchar('source', { length: 30 }).notNull().default('web_app'), // 'web_app', 'mobile_app', 'api', 'system'
+    status: varchar('status', { length: 20 }).notNull().default('success'), // 'success', 'failure', 'denied'
+    ipAddress: varchar('ip_address', { length: 100 }),
+    userAgent: text('user_agent'),
+    requestId: varchar('request_id', { length: 100 }),
     metadata: json('metadata').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
+    actorUserIdx: index('activity_log_actor_user_idx').on(table.actorUserId),
+    actorRoleIdx: index('activity_log_actor_role_idx').on(table.actorRole),
     studentIdx: index('activity_log_student_idx').on(table.studentId),
-    activityTypeIdx: index('activity_log_activity_type_idx').on(
+    sessionIdx: index('activity_log_session_idx').on(table.sessionId),
+    activityTypeActionIdx: index('activity_log_activity_type_action_idx').on(
       table.activityType,
+      table.action,
     ),
+    targetIdx: index('activity_log_target_idx').on(
+      table.targetType,
+      table.targetId,
+    ),
+    sourceIdx: index('activity_log_source_idx').on(table.source),
+    statusIdx: index('activity_log_status_idx').on(table.status),
+    requestIdIdx: index('activity_log_request_id_idx').on(table.requestId),
     createdAtIdx: index('activity_log_created_at_idx').on(table.createdAt),
   }),
 );

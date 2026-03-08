@@ -129,9 +129,7 @@ export class AssignmentsController {
 
   @Post('student-assignments/:studentAssignmentId/regrade-ai')
   @Roles('teacher', 'admin')
-  regradeWithAi(
-    @Param('studentAssignmentId') studentAssignmentId: string,
-  ) {
+  regradeWithAi(@Param('studentAssignmentId') studentAssignmentId: string) {
     return this.assignmentsService.regradeWithAi(studentAssignmentId);
   }
 

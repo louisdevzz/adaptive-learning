@@ -249,7 +249,10 @@ export class DashboardService {
       .where(eq(classes.homeroomTeacherId, teacherId));
 
     return Array.from(
-      new Set([...assigned.map((item) => item.classId), ...homeroom.map((item) => item.classId)]),
+      new Set([
+        ...assigned.map((item) => item.classId),
+        ...homeroom.map((item) => item.classId),
+      ]),
     );
   }
 
@@ -401,7 +404,12 @@ export class DashboardService {
           sql`LOWER(${classes.schoolYear}) LIKE ${pattern}`,
         ),
       )
-      .groupBy(classes.id, classes.className, classes.gradeLevel, classes.schoolYear)
+      .groupBy(
+        classes.id,
+        classes.className,
+        classes.gradeLevel,
+        classes.schoolYear,
+      )
       .orderBy(desc(classes.updatedAt))
       .limit(limit);
 
@@ -557,7 +565,10 @@ export class DashboardService {
         gradeLevel: courses.gradeLevel,
       })
       .from(classEnrollment)
-      .innerJoin(classCourses, eq(classEnrollment.classId, classCourses.classId))
+      .innerJoin(
+        classCourses,
+        eq(classEnrollment.classId, classCourses.classId),
+      )
       .innerJoin(courses, eq(classCourses.courseId, courses.id))
       .where(
         and(
@@ -785,7 +796,10 @@ export class DashboardService {
         gradeLevel: courses.gradeLevel,
       })
       .from(classEnrollment)
-      .innerJoin(classCourses, eq(classEnrollment.classId, classCourses.classId))
+      .innerJoin(
+        classCourses,
+        eq(classEnrollment.classId, classCourses.classId),
+      )
       .innerJoin(courses, eq(classCourses.courseId, courses.id))
       .where(
         and(

@@ -93,6 +93,56 @@ export const api = {
     },
   },
 
+  activityLog: {
+    getGlobalRecentActivities: async (params?: { page?: number; limit?: number }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.limit) queryParams.append("limit", params.limit.toString());
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/activity-log/recent?${queryString}`
+        : "/activity-log/recent";
+
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getLoginHistory: async (
+      userId: string,
+      params?: { page?: number; limit?: number }
+    ) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.limit) queryParams.append("limit", params.limit.toString());
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/activity-log/users/${userId}/login-history?${queryString}`
+        : `/activity-log/users/${userId}/login-history`;
+
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getRecentActivities: async (
+      userId: string,
+      params?: { page?: number; limit?: number }
+    ) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.limit) queryParams.append("limit", params.limit.toString());
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/activity-log/users/${userId}/recent?${queryString}`
+        : `/activity-log/users/${userId}/recent`;
+
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+  },
+
   // Users endpoints
   users: {
     resetPassword: async (userId: string, password: string) => {

@@ -59,6 +59,26 @@ type UnifiedUser = (Admin | Teacher | Student | Parent) & {
   lastLogin?: string;
 };
 
+type RecentActivity = {
+  id: string;
+  activityType: string;
+  action: string;
+  targetType: string;
+  targetId?: string | null;
+  actorRole?: string | null;
+  status: string;
+  source: string;
+  ipAddress?: string | null;
+  createdAt: string;
+  metadata?: {
+    description?: string;
+    method?: string;
+    path?: string;
+    reason?: string;
+    error?: string;
+  };
+};
+
 const roleLabels: Record<UserRole, string> = {
   admin: "Quản trị viên",
   teacher: "Giáo viên",
@@ -99,32 +119,74 @@ const formatDate = (dateString?: string): string => {
   });
 };
 
-// Stat Card Component
-function StatCard({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-4">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-sm text-[#717680] dark:text-gray-400">{title}</p>
-          <p className="text-lg font-bold text-[#181d27] dark:text-white">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+const formatRelativeTime = (dateString?: string): string => {
+  if (!dateString) return "Chưa có";
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+
+  return date.toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const getActivityText = (activity: RecentActivity): string => {
+  if (activity.metadata?.description) return activity.metadata.description;
+
+  const failureReasonMap: Record<string, string> = {
+    invalid_password: "sai mật khẩu",
+    user_not_found: "không tìm thấy tài khoản",
+    account_inactive: "tài khoản đã bị khóa",
+  };
+
+  if (activity.status === "failure") {
+    if (activity.action === "login") {
+      const reason = activity.metadata?.reason;
+      const readableReason = reason ? failureReasonMap[reason] || reason : undefined;
+      return readableReason
+        ? `Đăng nhập thất bại (${readableReason})`
+        : "Đăng nhập thất bại";
+    }
+    if (activity.action === "google_login") {
+      return "Đăng nhập Google thất bại";
+    }
+    if (activity.action === "logout") {
+      return "Đăng xuất thất bại";
+    }
+  }
+
+  const actionMap: Record<string, string> = {
+    login: "Đăng nhập thành công",
+    google_login: "Đăng nhập Google",
+    logout: "Đăng xuất",
+    delete_user: "Xóa người dùng",
+    update_user: "Cập nhật thông tin người dùng",
+    create_assignment: "Tạo bài tập mới",
+    grade_assignment: "Chấm điểm bài làm học sinh",
+    submit_assignment: "Nộp bài tập",
+    view_course: "Truy cập khóa học",
+    add_student_to_class: "Thêm học sinh vào lớp",
+    create: "Tạo dữ liệu mới",
+    update: "Cập nhật dữ liệu",
+    delete: "Xóa dữ liệu",
+    view: "Xem dữ liệu",
+  };
+
+  return actionMap[activity.action] || `${activity.action} ${activity.targetType}`;
+};
 
 // Edit User Modal Component
 function EditUserModal({
@@ -515,10 +577,28 @@ export default function UserDetailPage() {
   const userId = params.userId as string;
   const [user, setUser] = useState<UnifiedUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+
+  const fetchRecentActivities = async (targetUserId: string) => {
+    try {
+      setActivitiesLoading(true);
+      const activityData = await api.activityLog.getRecentActivities(targetUserId, {
+        page: 1,
+        limit: 10,
+      });
+      setRecentActivities(activityData?.items || []);
+    } catch (error) {
+      console.error("Error fetching recent activities:", error);
+      setRecentActivities([]);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -537,6 +617,7 @@ export default function UserDetailPage() {
         if (successfulResult && successfulResult.status === "fulfilled") {
           const userData = successfulResult.value as UnifiedUser;
           setUser(userData);
+          await fetchRecentActivities(userId);
         } else {
           toast.error("Không tìm thấy ngưởi dùng");
           router.push("/dashboard/users");
@@ -574,6 +655,7 @@ export default function UserDetailPage() {
           break;
       }
       setUser({ ...user, fullName: data.fullName, email: data.email });
+      await fetchRecentActivities(userId);
       toast.success("Cập nhật thông tin thành công");
     } catch (error) {
       console.error("Error updating user:", error);
@@ -585,12 +667,17 @@ export default function UserDetailPage() {
   const handleResetPassword = async (password: string) => {
     try {
       await api.users.resetPassword(userId, password);
+      await fetchRecentActivities(userId);
       toast.success("Đặt lại mật khẩu thành công");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error resetting password:", error);
+      const normalizedError = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
       const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
+        normalizedError.response?.data?.message ||
+        normalizedError.message ||
         "Không thể đặt lại mật khẩu. Vui lòng thử lại.";
       toast.error(errorMessage);
       throw error;
@@ -631,6 +718,7 @@ export default function UserDetailPage() {
       const newStatus = !user.status;
       // TODO: Implement status toggle API
       setUser({ ...user, status: newStatus });
+      await fetchRecentActivities(userId);
       toast.success(newStatus ? "Đã kích hoạt tài khoản" : "Đã khóa tài khoản");
     } catch (error) {
       console.error("Error toggling status:", error);
@@ -662,6 +750,10 @@ export default function UserDetailPage() {
   const userRole = user.role;
   const userStatus = user.status !== false;
   const RoleIcon = roleIcons[userRole];
+  const latestLoginActivity = recentActivities.find(
+    (activity) => activity.action === "login" || activity.action === "google_login"
+  );
+  const lastLoginAt = latestLoginActivity?.createdAt || user.lastLogin;
 
   // Get role-specific info
   const getRoleInfo = () => {
@@ -813,27 +905,12 @@ export default function UserDetailPage() {
                     Đăng nhập gần nhất
                   </div>
                   <span className="text-sm font-medium text-[#181d27] dark:text-white">
-                    {formatDate(user.lastLogin)}
+                    {formatDate(lastLoginAt)}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                title="Khóa học"
-                value="5"
-                icon={<School className="w-5 h-5 text-[#6244F4]" />}
-                color="bg-[#6244F4/10] dark:bg-blue-900/20"
-              />
-              <StatCard
-                title="Tiến độ"
-                value="78%"
-                icon={<CheckCircle2 className="w-5 h-5 text-green-600" />}
-                color="bg-green-50 dark:bg-green-900/20"
-              />
-            </div>
           </div>
 
           {/* Right Column - Details */}
@@ -880,31 +957,62 @@ export default function UserDetailPage() {
                 </Dropdown>
               </div>
               <div className="divide-y divide-[#e9eaeb] dark:divide-gray-700">
-                {[
-                  { action: "Đăng nhập thành công", time: "Hôm nay, 08:30", type: "login" },
-                  { action: "Cập nhật thông tin cá nhân", time: "Hôm qua, 14:15", type: "update" },
-                  { action: "Hoàn thành bài tập", time: "2 ngày trước", type: "activity" },
-                ].map((activity, index) => (
-                  <div key={index} className="px-6 py-4 flex items-center justify-between hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        activity.type === "login"
-                          ? "bg-green-50 text-green-600"
-                          : activity.type === "update"
-                          ? "bg-[#6244F4/10] text-[#6244F4]"
-                          : "bg-purple-50 text-purple-600"
-                      }`}>
-                        <History className="w-4 h-4" />
-                      </div>
-                      <span className="text-sm text-[#181d27] dark:text-white">{activity.action}</span>
-                    </div>
-                    <span className="text-xs text-[#717680] dark:text-gray-400">{activity.time}</span>
+                {activitiesLoading ? (
+                  <div className="px-6 py-8 text-center text-sm text-[#717680] dark:text-gray-400">
+                    Đang tải hoạt động...
                   </div>
-                ))}
+                ) : recentActivities.length === 0 ? (
+                  <div className="px-6 py-8 text-center text-sm text-[#717680] dark:text-gray-400">
+                    Chưa có dữ liệu hoạt động
+                  </div>
+                ) : (
+                  recentActivities.map((activity) => {
+                    const isFailure = activity.status === "failure";
+                    const isAuthActivity =
+                      activity.action === "login" ||
+                      activity.action === "google_login" ||
+                      activity.action === "logout";
+                    const iconClass = isFailure
+                      ? "bg-red-50 text-red-600"
+                      : isAuthActivity
+                      ? "bg-green-50 text-green-600"
+                      : "bg-[#6244F4]/10 text-[#6244F4]";
+
+                    return (
+                      <div
+                        key={activity.id}
+                        className="px-6 py-4 flex items-center justify-between hover:bg-[#f9fafb] dark:hover:bg-gray-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${iconClass}`}
+                          >
+                            {isFailure ? (
+                              <AlertCircle className="w-4 h-4" />
+                            ) : (
+                              <History className="w-4 h-4" />
+                            )}
+                          </div>
+                          <span className="text-sm text-[#181d27] dark:text-white truncate">
+                            {getActivityText(activity)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#717680] dark:text-gray-400 whitespace-nowrap">
+                          {formatRelativeTime(activity.createdAt)}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
               <div className="px-6 py-3 border-t border-[#e9eaeb] dark:border-gray-700 text-center">
-                <Button variant="light" size="sm" className="text-primary">
-                  Xem tất cả lịch sử
+                <Button
+                  variant="light"
+                  size="sm"
+                  className="text-primary"
+                  onPress={() => fetchRecentActivities(userId)}
+                >
+                  Làm mới
                 </Button>
               </div>
             </div>

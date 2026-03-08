@@ -7,7 +7,6 @@ import {
   BookOpen,
   Users,
   LogOut,
-  Bell,
   School,
   Book,
   Compass,
@@ -309,11 +308,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
         <Link href="/">
           <img src="/logo-text.png" alt="Adapt" className="w-24 object-contain" />
         </Link>
-        <div className="flex items-center gap-3">
-          <button className="relative p-2 text-[#010101] hover:bg-gray-100 rounded-full transition-colors">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 size-2 bg-[#D7F654] rounded-full border border-white" />
-          </button>
+        <div className="flex items-center">
           <button onClick={() => setMobileOpen(true)} className="p-2 text-[#010101] hover:bg-gray-100 rounded-lg transition-colors">
             <Menu className="w-5 h-5" />
           </button>

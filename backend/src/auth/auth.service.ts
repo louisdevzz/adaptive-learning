@@ -12,6 +12,14 @@ import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { db, students, teachers, parents, admins } from '../../db';
 import { FirebaseAdminService } from '../firebase/firebase-admin.service';
+import { ActivityLogService } from '../activity-log/activity-log.service';
+
+interface AuthRequestContext {
+  ipAddress?: string;
+  userAgent?: string;
+  requestId?: string;
+  source?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -21,6 +29,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly firebaseAdminService: FirebaseAdminService,
+    private readonly activityLogService: ActivityLogService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<AuthResponseDto> {
@@ -155,10 +164,36 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(
+    loginDto: LoginDto,
+    requestContext: AuthRequestContext = {},
+  ): Promise<AuthResponseDto & { sessionId?: string }> {
+    const context = this.normalizeRequestContext(requestContext);
+
     // Find user by email
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
+      this.activityLogService
+        .logEvent({
+          activityType: 'auth',
+          action: 'login',
+          targetType: 'auth',
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            email: loginDto.email,
+            reason: 'user_not_found',
+          },
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            'Failed to log auth activity for user_not_found login attempt',
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
       this.logger.warn(
         `Login attempt failed: User not found for email ${loginDto.email}`,
       );
@@ -176,6 +211,31 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      this.activityLogService
+        .logEvent({
+          actorUserId: user.id,
+          actorRole: user.role,
+          studentId: user.role === 'student' ? user.id : undefined,
+          activityType: 'auth',
+          action: 'login',
+          targetType: 'auth',
+          targetId: user.id,
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            email: user.email,
+            reason: 'invalid_password',
+          },
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            'Failed to log auth activity for invalid_password login attempt',
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
       this.logger.warn(
         `Login attempt failed: Invalid password for email ${loginDto.email}`,
       );
@@ -184,6 +244,31 @@ export class AuthService {
 
     // Check if user is active
     if (!user.status) {
+      this.activityLogService
+        .logEvent({
+          actorUserId: user.id,
+          actorRole: user.role,
+          studentId: user.role === 'student' ? user.id : undefined,
+          activityType: 'auth',
+          action: 'login',
+          targetType: 'auth',
+          targetId: user.id,
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            email: user.email,
+            reason: 'account_inactive',
+          },
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            'Failed to log auth activity for account_inactive login attempt',
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
       this.logger.warn(
         `Login attempt failed: Account inactive for email ${loginDto.email}`,
       );
@@ -193,6 +278,33 @@ export class AuthService {
     // Generate JWT token
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
+    const sessionId =
+      user.role === 'student'
+        ? await this.activityLogService.createStudentSession(user.id, {
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent,
+            sessionType: 'login',
+          })
+        : undefined;
+
+    await this.activityLogService.logEvent({
+      actorUserId: user.id,
+      actorRole: user.role,
+      studentId: user.role === 'student' ? user.id : undefined,
+      sessionId,
+      activityType: 'auth',
+      action: 'login',
+      targetType: 'auth',
+      targetId: user.id,
+      status: 'success',
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      requestId: context.requestId,
+      source: context.source,
+      metadata: {
+        email: user.email,
+      },
+    });
 
     this.logger.log(
       `Login successful for user: ${user.email}, role: ${user.role}`,
@@ -207,6 +319,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl || undefined,
       },
       accessToken, // Will be used to set cookie in controller
+      sessionId,
     };
   }
 
@@ -214,7 +327,54 @@ export class AuthService {
     return this.usersService.findById(userId);
   }
 
-  async loginWithGoogle(idToken: string): Promise<AuthResponseDto> {
+  async logout({
+    sessionId,
+    userId,
+    userRole,
+    requestContext = {},
+  }: {
+    sessionId?: string;
+    userId?: string;
+    userRole?: string;
+    requestContext?: AuthRequestContext;
+  }) {
+    const context = this.normalizeRequestContext(requestContext);
+
+    let resolvedSessionId = sessionId;
+    if (resolvedSessionId) {
+      await this.activityLogService.closeStudentSession(resolvedSessionId);
+    } else if (userId && userRole === 'student') {
+      const latestSessionId =
+        await this.activityLogService.closeLatestOpenStudentSession(userId);
+      resolvedSessionId = latestSessionId || undefined;
+    }
+
+    if (userId) {
+      await this.activityLogService.logEvent({
+        actorUserId: userId,
+        actorRole: userRole,
+        studentId: userRole === 'student' ? userId : undefined,
+        sessionId: resolvedSessionId,
+        activityType: 'auth',
+        action: 'logout',
+        targetType: 'auth',
+        targetId: userId,
+        status: 'success',
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        requestId: context.requestId,
+        source: context.source,
+        metadata: {},
+      });
+    }
+  }
+
+  async loginWithGoogle(
+    idToken: string,
+    requestContext: AuthRequestContext = {},
+  ): Promise<AuthResponseDto & { sessionId?: string }> {
+    const context = this.normalizeRequestContext(requestContext);
+
     try {
       // Verify Firebase ID token
       const decodedToken =
@@ -261,6 +421,31 @@ export class AuthService {
 
       // Check if user is active
       if (!user.status) {
+        this.activityLogService
+          .logEvent({
+            actorUserId: user.id,
+            actorRole: user.role,
+            studentId: user.role === 'student' ? user.id : undefined,
+            activityType: 'auth',
+            action: 'google_login',
+            targetType: 'auth',
+            targetId: user.id,
+            status: 'failure',
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent,
+            requestId: context.requestId,
+            source: context.source,
+            metadata: {
+              email,
+              reason: 'account_inactive',
+            },
+          })
+          .catch((error: unknown) => {
+            this.logger.error(
+              'Failed to log auth activity for account_inactive Google login attempt',
+              error instanceof Error ? error.stack : String(error),
+            );
+          });
         this.logger.warn(
           `Google login attempt failed: Account inactive for email ${email}`,
         );
@@ -270,6 +455,33 @@ export class AuthService {
       // Generate JWT token
       const payload = { sub: user.id, email: user.email, role: user.role };
       const accessToken = this.jwtService.sign(payload);
+      const sessionId =
+        user.role === 'student'
+          ? await this.activityLogService.createStudentSession(user.id, {
+              ipAddress: context.ipAddress,
+              userAgent: context.userAgent,
+              sessionType: 'login',
+            })
+          : undefined;
+
+      await this.activityLogService.logEvent({
+        actorUserId: user.id,
+        actorRole: user.role,
+        studentId: user.role === 'student' ? user.id : undefined,
+        sessionId,
+        activityType: 'auth',
+        action: 'google_login',
+        targetType: 'auth',
+        targetId: user.id,
+        status: 'success',
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        requestId: context.requestId,
+        source: context.source,
+        metadata: {
+          email: user.email,
+        },
+      });
 
       this.logger.log(
         `Google login successful for user: ${email}, role: ${user.role}`,
@@ -284,8 +496,27 @@ export class AuthService {
           avatarUrl: user.avatarUrl || undefined,
         },
         accessToken,
+        sessionId,
       };
     } catch (error) {
+      try {
+        await this.activityLogService.logEvent({
+          activityType: 'auth',
+          action: 'google_login',
+          targetType: 'auth',
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            reason:
+              error instanceof Error ? error.message : 'google_login_error',
+          },
+        });
+      } catch (logError) {
+        this.logger.error('Failed to log Google login failure event', logError);
+      }
       this.logger.error('Google login error:', error);
       if (
         error instanceof UnauthorizedException ||
@@ -295,6 +526,17 @@ export class AuthService {
       }
       throw new UnauthorizedException('Invalid Google token');
     }
+  }
+
+  private normalizeRequestContext(
+    requestContext: AuthRequestContext,
+  ): Required<AuthRequestContext> {
+    return {
+      ipAddress: requestContext.ipAddress || 'unknown',
+      userAgent: requestContext.userAgent || 'unknown',
+      requestId: requestContext.requestId || '',
+      source: requestContext.source || 'web_app',
+    };
   }
 
   async getProfile(userId: string) {

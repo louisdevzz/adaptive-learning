@@ -10,7 +10,6 @@ import {
   BookOpen,
   TrendingUp,
   Calendar,
-  Bell,
   Clock,
   Target,
   Award,
@@ -68,11 +67,24 @@ interface DashboardStats {
 
 interface Activity {
   id: string;
-  type: "student_joined" | "course_completed" | "assignment_submitted" | "achievement_earned";
-  title: string;
-  description: string;
-  timestamp: string;
-  user?: { name: string; avatar?: string };
+  actorUserId?: string | null;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  activityType: string;
+  action: string;
+  targetType: string;
+  targetId?: string | null;
+  actorRole?: string | null;
+  status: string;
+  source: string;
+  ipAddress?: string | null;
+  createdAt: string;
+  metadata?: {
+    description?: string;
+    reason?: string;
+    error?: string;
+    email?: string;
+  };
 }
 
 // Welcome Section Component
@@ -95,7 +107,7 @@ function WelcomeSection({ user }: { user: any }) {
           Đây là tình hình hoạt động của hệ thống hôm nay.
         </p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center">
         <Button
           variant="bordered"
           size="sm"
@@ -109,19 +121,6 @@ function WelcomeSection({ user }: { user: any }) {
             month: "long",
             day: "numeric",
           })}
-        </Button>
-        <Button
-          isIconOnly
-          variant="bordered"
-          size="sm"
-          className="border-[#E5E5E5] relative"
-          style={{ backgroundColor: "rgba(98, 68, 244, 0.05)" }}
-        >
-          <Bell className="w-4 h-4" style={{ color: colors.primary }} />
-          <span 
-            className="absolute top-0 right-0 w-2 h-2 rounded-full" 
-            style={{ backgroundColor: colors.lime }}
-          />
         </Button>
       </div>
     </div>
@@ -216,39 +215,84 @@ function QuickStatCard({
 
 // Activity Item Component
 function ActivityItem({ activity }: { activity: Activity }) {
-  const icons = {
-    student_joined: <Users className="w-4 h-4" style={{ color: colors.primary }} />,
-    course_completed: <CheckCircle2 className="w-4 h-4" style={{ color: colors.lime }} />,
-    assignment_submitted: <BookOpen className="w-4 h-4" style={{ color: colors.primary }} />,
-    achievement_earned: <Award className="w-4 h-4" style={{ color: colors.lime }} />,
+  const failureReasonMap: Record<string, string> = {
+    invalid_password: "Sai mật khẩu",
+    user_not_found: "Không tìm thấy tài khoản",
+    account_inactive: "Tài khoản bị khóa",
   };
 
-  const bgColors = {
-    student_joined: "rgba(98, 68, 244, 0.1)",
-    course_completed: "rgba(215, 246, 84, 0.3)",
-    assignment_submitted: "rgba(98, 68, 244, 0.1)",
-    achievement_earned: "rgba(215, 246, 84, 0.3)",
+  const roleLabelMap: Record<string, string> = {
+    admin: "Admin",
+    teacher: "Giáo viên",
+    student: "Học sinh",
+    parent: "Phụ huynh",
   };
+
+  const actorLabel = activity.actorRole
+    ? roleLabelMap[activity.actorRole] || activity.actorRole
+    : "Hệ thống";
+
+  const isFailure = activity.status === "failure";
+  const reason = activity.metadata?.reason;
+  const readableReason =
+    reason && failureReasonMap[reason] ? failureReasonMap[reason] : reason;
+
+  const actionTextMap: Record<string, string> = {
+    login: isFailure ? "Đăng nhập thất bại" : "Đăng nhập thành công",
+    google_login: isFailure
+      ? "Đăng nhập Google thất bại"
+      : "Đăng nhập Google thành công",
+    logout: "Đăng xuất",
+  };
+
+  const fallbackActionLabel = activity.action
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const title =
+    activity.metadata?.description ||
+    actionTextMap[activity.action] ||
+    `${actorLabel} ${fallbackActionLabel}`;
+
+  const actorName =
+    activity.actorName || activity.actorEmail || activity.metadata?.email || actorLabel;
+  const statusLabel = isFailure
+    ? readableReason || activity.metadata?.error || "Thất bại"
+    : "Thành công";
+
+  const badgeStyle = isFailure
+    ? { backgroundColor: "rgba(239, 68, 68, 0.12)", color: "#dc2626" }
+    : activity.activityType === "auth"
+      ? { backgroundColor: "rgba(34, 197, 94, 0.12)", color: "#16a34a" }
+      : { backgroundColor: "rgba(98, 68, 244, 0.1)", color: colors.primary };
+
+  const IconComponent = isFailure
+    ? AlertCircle
+    : activity.activityType === "auth"
+      ? CheckCircle2
+      : activity.activityType === "assignments"
+        ? BookOpen
+        : Users;
 
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-        style={{ backgroundColor: bgColors[activity.type] }}
+        style={{ backgroundColor: badgeStyle.backgroundColor }}
       >
-        {icons[activity.type]}
+        <IconComponent className="w-4 h-4" style={{ color: badgeStyle.color }} />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium" style={{ color: colors.black }}>
-          {activity.title}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate" style={{ color: colors.black }}>
+          {title}
         </p>
-        <p className="text-xs mt-0.5" style={{ color: colors.textMuted }}>
-          {activity.description}
-        </p>
-        <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
-          {formatRelativeTime(activity.timestamp)}
+        <p className="text-xs truncate" style={{ color: colors.textMuted }}>
+          {actorName} • {statusLabel}
         </p>
       </div>
+      <span className="text-xs shrink-0" style={{ color: colors.textMuted }}>
+        {formatRelativeTime(activity.createdAt)}
+      </span>
     </div>
   );
 }
@@ -300,12 +344,39 @@ function AdminDashboardContent({ user }: { user: any }) {
   });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+
+  const normalizeActivities = (items: Activity[] = []) =>
+    items
+      .filter((item) => item.action !== "view" && !item.action.startsWith("view"))
+      .slice(0, 5);
+
+  const fetchRecentActivities = async () => {
+    try {
+      setActivitiesLoading(true);
+      const activityData = await api.activityLog.getGlobalRecentActivities({
+        page: 1,
+        limit: 12,
+      });
+      setActivities(normalizeActivities(activityData?.items || []));
+    } catch (error) {
+      console.error("Error fetching recent activities:", error);
+      setActivities([]);
+      toast.error("Không thể tải hoạt động gần đây");
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const statsData = await api.dashboard.getStats({});
+        const [statsData, activityData] = await Promise.all([
+          api.dashboard.getStats({}),
+          api.activityLog.getGlobalRecentActivities({ page: 1, limit: 12 }),
+        ]);
+
         setStats({
           totalStudents: statsData.totalStudents || 0,
           totalTeachers: statsData.totalTeachers || 0,
@@ -314,12 +385,7 @@ function AdminDashboardContent({ user }: { user: any }) {
           totalClasses: statsData.totalClasses || 0,
           completionRate: statsData.completionRate || 0,
         });
-        setActivities([
-          { id: "1", type: "student_joined", title: "Học sinh mới đã tham gia", description: "Nguyễn Văn A vừa đăng ký vào lớp 10A1", timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-          { id: "2", type: "course_completed", title: "Khóa học hoàn thành", description: "Trần Thị B đã hoàn thành khóa Đại số cơ bản", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
-          { id: "3", type: "assignment_submitted", title: "Bài tập được nộp", description: "5 học sinh vừa nộp bài tập về nhà", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString() },
-          { id: "4", type: "achievement_earned", title: "Thành tích mới", description: "Lê Văn C đạt danh hiệu 'Học sinh xuất sắc'", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-        ]);
+        setActivities(normalizeActivities(activityData?.items || []));
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         toast.error("Không thể tải dữ liệu dashboard");
@@ -433,8 +499,10 @@ function AdminDashboardContent({ user }: { user: any }) {
               size="sm" 
               className="text-sm"
               style={{ color: colors.primary }}
+              onPress={fetchRecentActivities}
+              isLoading={activitiesLoading}
             >
-              Xem tất cả
+              Làm mới
             </Button>
           </div>
           <div 
@@ -442,9 +510,15 @@ function AdminDashboardContent({ user }: { user: any }) {
             style={{ borderColor: "#E5E5E5" }}
           >
             <div className="space-y-2">
-              {activities.map((activity) => (
-                <ActivityItem key={activity.id} activity={activity} />
-              ))}
+              {activities.length === 0 ? (
+                <p className="text-sm py-4 text-center" style={{ color: colors.textMuted }}>
+                  Chưa có dữ liệu hoạt động
+                </p>
+              ) : (
+                activities.map((activity) => (
+                  <ActivityItem key={activity.id} activity={activity} />
+                ))
+              )}
             </div>
           </div>
         </div>
