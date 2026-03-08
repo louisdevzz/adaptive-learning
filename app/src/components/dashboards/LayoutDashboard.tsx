@@ -6,7 +6,7 @@ import { SearchModal } from "./SearchModal";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
-import { Search, Bell } from "lucide-react";
+import { Search } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
 export default function LayoutDashboard({
@@ -286,7 +286,7 @@ export default function LayoutDashboard({
       {/* Main content — offset by sidebar width on desktop */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[64px]" : "lg:ml-[250px]"}`}>
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-[#E5E5E5] px-6 py-3 flex items-center justify-between gap-4 lg:mt-0 mt-[57px]">
+        <header className="sticky top-0 z-30 bg-white border-b border-[#E5E5E5] px-6 py-3 flex items-center gap-4 lg:mt-0 mt-[57px]">
           {/* Search */}
           <button
             onClick={() => setIsSearchOpen(true)}
@@ -302,16 +302,6 @@ export default function LayoutDashboard({
             </kbd>
           </button>
 
-          {/* Right actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              className="relative p-2 text-[#010101] hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 size-2 bg-[#D7F654] rounded-full border border-white"></span>
-            </button>
-          </div>
         </header>
 
         {/* Page Content */}

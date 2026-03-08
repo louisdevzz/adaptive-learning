@@ -53,4 +53,5 @@ export class AuthResponseDto {
     info?: RoleSpecificInfo;
   };
   accessToken?: string; // Internal use only for setting cookie
+  sessionId?: string;
 }

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { and, asc, desc, eq, inArray, lt } from 'drizzle-orm';
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import {
   db,
   assignmentGradingRuns,
@@ -311,8 +311,13 @@ export class AssignmentAiGradingService {
     const path = new URL(url).pathname.toLowerCase();
 
     if (effectiveMime.includes('pdf') || path.endsWith('.pdf')) {
-      const parsed = await pdfParse(buffer);
-      return parsed.text || '';
+      const parser = new PDFParse({ data: buffer });
+      try {
+        const parsed = await parser.getText();
+        return parsed.text || '';
+      } finally {
+        await parser.destroy();
+      }
     }
 
     if (

@@ -7,12 +7,14 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { FirebaseModule } from '../firebase/firebase.module';
+import { ActivityLogModule } from '../activity-log/activity-log.module';
 import type { StringValue } from 'ms';
 
 @Module({
   imports: [
     UsersModule,
     FirebaseModule,
+    ActivityLogModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

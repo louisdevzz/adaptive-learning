@@ -80,13 +80,7 @@ function Navbar() {
             href="/"
             className="flex items-center gap-2 font-heading text-xl font-bold"
           >
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: colors.lime }}
-            >
-              <GraduationCap className="w-5 h-5" style={{ color: colors.black }} />
-            </div>
-            <span style={{ color: colors.primary }}>Adapt</span>
+            <img src="/logo-text.png" alt="Adapt" className="w-28 object-contain" />
           </Link>
           <ul className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (

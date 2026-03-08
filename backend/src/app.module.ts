@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -19,6 +20,8 @@ import { LearningPathsModule } from './learning-paths/learning-paths.module';
 import { ExplorerModule } from './explorer/explorer.module';
 import { CourseAnalyticsModule } from './course-analytics/course-analytics.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ActivityLogModule } from './activity-log/activity-log.module';
+import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 
 @Module({
   imports: [
@@ -52,6 +55,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ExplorerModule,
     CourseAnalyticsModule,
     DashboardModule,
+    ActivityLogModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ActivityLogInterceptor,
+    },
   ],
 })
 export class AppModule {}
