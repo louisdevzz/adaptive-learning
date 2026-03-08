@@ -327,11 +327,7 @@ export class AssignmentsService {
       return result;
     });
 
-    if (
-      hasSubmissionFile &&
-      target.assignment.aiGradingEnabled &&
-      submitDto.submissionMimeType !== 'application/msword'
-    ) {
+    if (hasSubmissionFile && target.assignment.aiGradingEnabled) {
       await this.assignmentAiGradingService.enqueueRun(
         submitDto.studentAssignmentId,
       );

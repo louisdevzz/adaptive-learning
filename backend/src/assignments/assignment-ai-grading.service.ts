@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { and, asc, desc, eq, inArray, lt } from 'drizzle-orm';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import {
   db,
   assignmentGradingRuns,
@@ -273,7 +273,29 @@ export class AssignmentAiGradingService {
     if (!publicUrl) {
       throw new Error('R2_PUBLIC_URL is not configured');
     }
-    if (!url.startsWith(publicUrl)) {
+
+    let expectedBase: URL;
+    let submittedUrl: URL;
+    try {
+      expectedBase = new URL(publicUrl);
+    } catch {
+      throw new Error('R2_PUBLIC_URL is invalid');
+    }
+
+    try {
+      submittedUrl = new URL(url);
+    } catch {
+      throw new Error('Submission URL is invalid');
+    }
+
+    if (submittedUrl.origin !== expectedBase.origin) {
+      throw new Error('Submission URL is not allowed');
+    }
+
+    const expectedPath = expectedBase.pathname.replace(/\/?$/, '/');
+    const submittedPath = submittedUrl.pathname;
+
+    if (expectedPath !== '/' && !submittedPath.startsWith(expectedPath)) {
       throw new Error('Submission URL is not allowed');
     }
   }
@@ -289,13 +311,8 @@ export class AssignmentAiGradingService {
     const path = new URL(url).pathname.toLowerCase();
 
     if (effectiveMime.includes('pdf') || path.endsWith('.pdf')) {
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
-      try {
-        const parsed = await parser.getText();
-        return parsed.text || '';
-      } finally {
-        await parser.destroy();
-      }
+      const parsed = await pdfParse(buffer);
+      return parsed.text || '';
     }
 
     if (
