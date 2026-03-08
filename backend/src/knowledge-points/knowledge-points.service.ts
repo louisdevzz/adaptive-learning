@@ -689,7 +689,7 @@ export class KnowledgePointsService {
 
       // Generate content
       const response = await chatModel.invoke([new HumanMessage(prompt)]);
-      let content = response.content as string;
+      let content = response.content;
 
       // Clean up markdown code blocks if present
       content = content.replace(/```html/g, '').replace(/```/g, '');

@@ -167,26 +167,33 @@ export class AuthService {
   async login(
     loginDto: LoginDto,
     requestContext: AuthRequestContext = {},
-  ): Promise<AuthResponseDto> {
+  ): Promise<AuthResponseDto & { sessionId?: string }> {
     const context = this.normalizeRequestContext(requestContext);
 
     // Find user by email
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
-      await this.activityLogService.logEvent({
-        activityType: 'auth',
-        action: 'login',
-        targetType: 'auth',
-        status: 'failure',
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent,
-        requestId: context.requestId,
-        source: context.source,
-        metadata: {
-          email: loginDto.email,
-          reason: 'user_not_found',
-        },
-      });
+      this.activityLogService
+        .logEvent({
+          activityType: 'auth',
+          action: 'login',
+          targetType: 'auth',
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            email: loginDto.email,
+            reason: 'user_not_found',
+          },
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            'Failed to log auth activity for user_not_found login attempt',
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
       this.logger.warn(
         `Login attempt failed: User not found for email ${loginDto.email}`,
       );
@@ -204,24 +211,31 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      await this.activityLogService.logEvent({
-        actorUserId: user.id,
-        actorRole: user.role,
-        studentId: user.role === 'student' ? user.id : undefined,
-        activityType: 'auth',
-        action: 'login',
-        targetType: 'auth',
-        targetId: user.id,
-        status: 'failure',
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent,
-        requestId: context.requestId,
-        source: context.source,
-        metadata: {
-          email: user.email,
-          reason: 'invalid_password',
-        },
-      });
+      this.activityLogService
+        .logEvent({
+          actorUserId: user.id,
+          actorRole: user.role,
+          studentId: user.role === 'student' ? user.id : undefined,
+          activityType: 'auth',
+          action: 'login',
+          targetType: 'auth',
+          targetId: user.id,
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            email: user.email,
+            reason: 'invalid_password',
+          },
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            'Failed to log auth activity for invalid_password login attempt',
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
       this.logger.warn(
         `Login attempt failed: Invalid password for email ${loginDto.email}`,
       );
@@ -230,24 +244,31 @@ export class AuthService {
 
     // Check if user is active
     if (!user.status) {
-      await this.activityLogService.logEvent({
-        actorUserId: user.id,
-        actorRole: user.role,
-        studentId: user.role === 'student' ? user.id : undefined,
-        activityType: 'auth',
-        action: 'login',
-        targetType: 'auth',
-        targetId: user.id,
-        status: 'failure',
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent,
-        requestId: context.requestId,
-        source: context.source,
-        metadata: {
-          email: user.email,
-          reason: 'account_inactive',
-        },
-      });
+      this.activityLogService
+        .logEvent({
+          actorUserId: user.id,
+          actorRole: user.role,
+          studentId: user.role === 'student' ? user.id : undefined,
+          activityType: 'auth',
+          action: 'login',
+          targetType: 'auth',
+          targetId: user.id,
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            email: user.email,
+            reason: 'account_inactive',
+          },
+        })
+        .catch((error: unknown) => {
+          this.logger.error(
+            'Failed to log auth activity for account_inactive login attempt',
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
       this.logger.warn(
         `Login attempt failed: Account inactive for email ${loginDto.email}`,
       );
@@ -307,62 +328,43 @@ export class AuthService {
   }
 
   async logout({
-    accessToken,
     sessionId,
+    userId,
+    userRole,
     requestContext = {},
   }: {
-    accessToken?: string;
     sessionId?: string;
+    userId?: string;
+    userRole?: string;
     requestContext?: AuthRequestContext;
   }) {
     const context = this.normalizeRequestContext(requestContext);
-    let decodedUser:
-      | { sub?: string; email?: string; role?: string }
-      | null
-      | undefined;
-
-    try {
-      decodedUser = accessToken
-        ? (this.jwtService.decode(accessToken) as {
-            sub?: string;
-            email?: string;
-            role?: string;
-          } | null)
-        : null;
-    } catch {
-      decodedUser = null;
-    }
 
     let resolvedSessionId = sessionId;
     if (resolvedSessionId) {
       await this.activityLogService.closeStudentSession(resolvedSessionId);
-    } else if (decodedUser?.sub && decodedUser.role === 'student') {
+    } else if (userId && userRole === 'student') {
       const latestSessionId =
-        await this.activityLogService.closeLatestOpenStudentSession(
-          decodedUser.sub,
-        );
+        await this.activityLogService.closeLatestOpenStudentSession(userId);
       resolvedSessionId = latestSessionId || undefined;
     }
 
-    if (decodedUser?.sub) {
+    if (userId) {
       await this.activityLogService.logEvent({
-        actorUserId: decodedUser.sub,
-        actorRole: decodedUser.role,
-        studentId:
-          decodedUser.role === 'student' ? decodedUser.sub : undefined,
+        actorUserId: userId,
+        actorRole: userRole,
+        studentId: userRole === 'student' ? userId : undefined,
         sessionId: resolvedSessionId,
         activityType: 'auth',
         action: 'logout',
         targetType: 'auth',
-        targetId: decodedUser.sub,
+        targetId: userId,
         status: 'success',
         ipAddress: context.ipAddress,
         userAgent: context.userAgent,
         requestId: context.requestId,
         source: context.source,
-        metadata: {
-          email: decodedUser.email,
-        },
+        metadata: {},
       });
     }
   }
@@ -370,7 +372,7 @@ export class AuthService {
   async loginWithGoogle(
     idToken: string,
     requestContext: AuthRequestContext = {},
-  ): Promise<AuthResponseDto> {
+  ): Promise<AuthResponseDto & { sessionId?: string }> {
     const context = this.normalizeRequestContext(requestContext);
 
     try {
@@ -419,24 +421,31 @@ export class AuthService {
 
       // Check if user is active
       if (!user.status) {
-        await this.activityLogService.logEvent({
-          actorUserId: user.id,
-          actorRole: user.role,
-          studentId: user.role === 'student' ? user.id : undefined,
-          activityType: 'auth',
-          action: 'google_login',
-          targetType: 'auth',
-          targetId: user.id,
-          status: 'failure',
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent,
-          requestId: context.requestId,
-          source: context.source,
-          metadata: {
-            email,
-            reason: 'account_inactive',
-          },
-        });
+        this.activityLogService
+          .logEvent({
+            actorUserId: user.id,
+            actorRole: user.role,
+            studentId: user.role === 'student' ? user.id : undefined,
+            activityType: 'auth',
+            action: 'google_login',
+            targetType: 'auth',
+            targetId: user.id,
+            status: 'failure',
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent,
+            requestId: context.requestId,
+            source: context.source,
+            metadata: {
+              email,
+              reason: 'account_inactive',
+            },
+          })
+          .catch((error: unknown) => {
+            this.logger.error(
+              'Failed to log auth activity for account_inactive Google login attempt',
+              error instanceof Error ? error.stack : String(error),
+            );
+          });
         this.logger.warn(
           `Google login attempt failed: Account inactive for email ${email}`,
         );
@@ -490,19 +499,24 @@ export class AuthService {
         sessionId,
       };
     } catch (error) {
-      await this.activityLogService.logEvent({
-        activityType: 'auth',
-        action: 'google_login',
-        targetType: 'auth',
-        status: 'failure',
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent,
-        requestId: context.requestId,
-        source: context.source,
-        metadata: {
-          reason: error instanceof Error ? error.message : 'google_login_error',
-        },
-      });
+      try {
+        await this.activityLogService.logEvent({
+          activityType: 'auth',
+          action: 'google_login',
+          targetType: 'auth',
+          status: 'failure',
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          source: context.source,
+          metadata: {
+            reason:
+              error instanceof Error ? error.message : 'google_login_error',
+          },
+        });
+      } catch (logError) {
+        this.logger.error('Failed to log Google login failure event', logError);
+      }
       this.logger.error('Google login error:', error);
       if (
         error instanceof UnauthorizedException ||

@@ -23,6 +23,359 @@ type RequestWithUser = Request & {
 export class ActivityLogInterceptor implements NestInterceptor {
   private readonly logger = new Logger(ActivityLogInterceptor.name);
 
+  private static readonly actionRules: Array<{
+    method: string;
+    pattern: RegExp;
+    action: string;
+  }> = [
+    {
+      method: 'POST',
+      pattern: /^\/users\/[^/]+\/reset-password$/,
+      action: 'reset_user_password',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/users\/[^/]+\/status$/,
+      action: 'update_user_status',
+    },
+    { method: 'PATCH', pattern: /^\/users\/[^/]+$/, action: 'update_user' },
+    { method: 'DELETE', pattern: /^\/users\/[^/]+$/, action: 'delete_user' },
+    { method: 'POST', pattern: /^\/students$/, action: 'create_student' },
+    {
+      method: 'PATCH',
+      pattern: /^\/students\/[^/]+$/,
+      action: 'update_student',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/students\/[^/]+$/,
+      action: 'delete_student',
+    },
+    { method: 'POST', pattern: /^\/teachers$/, action: 'create_teacher' },
+    {
+      method: 'PATCH',
+      pattern: /^\/teachers\/[^/]+$/,
+      action: 'update_teacher',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/teachers\/[^/]+$/,
+      action: 'delete_teacher',
+    },
+    { method: 'POST', pattern: /^\/parents$/, action: 'create_parent' },
+    {
+      method: 'PATCH',
+      pattern: /^\/parents\/[^/]+$/,
+      action: 'update_parent',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/parents\/[^/]+$/,
+      action: 'delete_parent',
+    },
+    { method: 'POST', pattern: /^\/admins$/, action: 'create_admin' },
+    { method: 'PATCH', pattern: /^\/admins\/[^/]+$/, action: 'update_admin' },
+    {
+      method: 'DELETE',
+      pattern: /^\/admins\/[^/]+$/,
+      action: 'delete_admin',
+    },
+    { method: 'POST', pattern: /^\/classes$/, action: 'create_class' },
+    {
+      method: 'PATCH',
+      pattern: /^\/classes\/[^/]+$/,
+      action: 'update_class',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/classes\/[^/]+$/,
+      action: 'delete_class',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/classes\/[^/]+\/students$/,
+      action: 'enroll_student_to_class',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/classes\/[^/]+\/students\/[^/]+$/,
+      action: 'remove_student_from_class',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/classes\/[^/]+\/teachers$/,
+      action: 'assign_teacher_to_class',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/classes\/[^/]+\/teachers\/[^/]+$/,
+      action: 'remove_teacher_from_class',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/classes\/[^/]+\/courses$/,
+      action: 'assign_course_to_class',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/classes\/[^/]+\/courses\/[^/]+\/status$/,
+      action: 'update_class_course_status',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/classes\/[^/]+\/courses\/[^/]+$/,
+      action: 'remove_course_from_class',
+    },
+    { method: 'POST', pattern: /^\/courses$/, action: 'create_course' },
+    {
+      method: 'PATCH',
+      pattern: /^\/courses\/[^/]+$/,
+      action: 'update_course',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/courses\/[^/]+$/,
+      action: 'delete_course',
+    },
+    { method: 'GET', pattern: /^\/courses\/[^/]+$/, action: 'view_course' },
+    {
+      method: 'GET',
+      pattern: /^\/courses\/[^/]+\/learn$/,
+      action: 'start_learning_course',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/courses\/modules$/,
+      action: 'create_module',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/courses\/modules\/[^/]+$/,
+      action: 'update_module',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/courses\/modules\/[^/]+$/,
+      action: 'delete_module',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/courses\/sections$/,
+      action: 'create_section',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/courses\/sections\/[^/]+$/,
+      action: 'update_section',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/courses\/sections\/[^/]+$/,
+      action: 'delete_section',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/courses\/[^/]+\/teachers\/[^/]+$/,
+      action: 'assign_teacher_to_course',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/assignments$/,
+      action: 'create_assignment',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/assignments\/[^/]+$/,
+      action: 'update_assignment',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/assignments\/[^/]+$/,
+      action: 'delete_assignment',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/assignments\/assign-to-students$/,
+      action: 'assign_assignment_to_students',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/assignments\/submit$/,
+      action: 'submit_assignment',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/assignments\/student-assignments\/[^/]+\/grade$/,
+      action: 'grade_assignment',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/assignments\/student-assignments\/[^/]+\/regrade-ai$/,
+      action: 'regrade_assignment_ai',
+    },
+    {
+      method: 'GET',
+      pattern: /^\/assignments\/student-assignments\/[^/]+\/ai-suggestion$/,
+      action: 'view_ai_grading_suggestion',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/assignments\/assign-to-section$/,
+      action: 'assign_assignment_to_section',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/assignments\/sections\/[^/]+\/assignments\/[^/]+$/,
+      action: 'remove_assignment_from_section',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/assignments\/targets$/,
+      action: 'create_assignment_target',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/assignments\/targets\/[^/]+$/,
+      action: 'delete_assignment_target',
+    },
+    {
+      method: 'GET',
+      pattern: /^\/assignments\/[^/]+\/results$/,
+      action: 'view_assignment_results',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/question-bank$/,
+      action: 'create_question',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/question-bank\/[^/]+$/,
+      action: 'update_question',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/question-bank\/[^/]+$/,
+      action: 'delete_question',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/question-bank\/assign-to-kp$/,
+      action: 'assign_question_to_kp',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/question-bank\/kps\/[^/]+\/questions\/[^/]+$/,
+      action: 'remove_question_from_kp',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/question-bank\/generate$/,
+      action: 'generate_question',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/knowledge-points$/,
+      action: 'create_knowledge_point',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/knowledge-points\/[^/]+$/,
+      action: 'update_knowledge_point',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/knowledge-points\/[^/]+$/,
+      action: 'delete_knowledge_point',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/knowledge-points\/assign-to-section$/,
+      action: 'assign_kp_to_section',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/knowledge-points\/sections\/[^/]+\/kps\/[^/]+$/,
+      action: 'remove_kp_from_section',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/knowledge-points\/generate-content$/,
+      action: 'generate_kp_content',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/learning-paths$/,
+      action: 'create_learning_path',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/learning-paths\/[^/]+$/,
+      action: 'update_learning_path',
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/learning-paths\/[^/]+$/,
+      action: 'delete_learning_path',
+    },
+    {
+      method: 'PATCH',
+      pattern: /^\/learning-paths\/[^/]+\/items\/[^/]+\/status$/,
+      action: 'update_learning_path_item_status',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/student-progress\/submit-question$/,
+      action: 'submit_question_answer',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/student-progress\/submit-content-question$/,
+      action: 'submit_content_question_answer',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/student-progress\/track-time$/,
+      action: 'track_time_on_task',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/student-progress\/kp-progress$/,
+      action: 'update_kp_progress',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/upload\/avatar$/,
+      action: 'upload_avatar',
+    },
+    { method: 'POST', pattern: /^\/upload\/file$/, action: 'upload_file' },
+    {
+      method: 'POST',
+      pattern: /^\/upload\/document$/,
+      action: 'upload_document',
+    },
+    {
+      method: 'POST',
+      pattern: /^\/explorer\/courses\/[^/]+\/clone$/,
+      action: 'clone_course',
+    },
+    {
+      method: 'GET',
+      pattern: /^\/explorer\/courses$/,
+      action: 'browse_public_courses',
+    },
+    {
+      method: 'GET',
+      pattern: /^\/explorer\/courses\/[^/]+$/,
+      action: 'view_public_course',
+    },
+    {
+      method: 'GET',
+      pattern: /^\/dashboard\/search$/,
+      action: 'search_dashboard',
+    },
+  ];
+
   constructor(private readonly activityLogService: ActivityLogService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -42,13 +395,24 @@ export class ActivityLogInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    const startTime = Date.now();
+
     return next.handle().pipe(
       tap({
         next: () => {
+          const durationMs = Date.now() - startTime;
+          const statusCode =
+            context.switchToHttp().getResponse<{ statusCode?: number }>()
+              .statusCode ?? 200;
           void this.activityLogService
             .logEvent({
               ...activity,
               status: 'success',
+              metadata: {
+                ...activity.metadata,
+                statusCode,
+                durationMs,
+              },
             })
             .catch((error) =>
               this.logger.warn(
@@ -57,12 +421,19 @@ export class ActivityLogInterceptor implements NestInterceptor {
             );
         },
         error: (error) => {
+          const durationMs = Date.now() - startTime;
+          const statusCode: number =
+            error instanceof Error && 'status' in error
+              ? (error as { status: number }).status
+              : 500;
           void this.activityLogService
             .logEvent({
               ...activity,
               status: 'failure',
               metadata: {
                 ...activity.metadata,
+                statusCode,
+                durationMs,
                 error:
                   error instanceof Error
                     ? error.message
@@ -96,7 +467,7 @@ export class ActivityLogInterceptor implements NestInterceptor {
 
   private shouldPersistAction(action: string) {
     if (!action) return false;
-    return action !== 'view' && !action.startsWith('view');
+    return action !== 'view';
   }
 
   private buildActivityPayload(
@@ -115,7 +486,7 @@ export class ActivityLogInterceptor implements NestInterceptor {
       actorUserId: user.userId,
       actorRole: user.role,
       studentId: user.role === 'student' ? user.userId : undefined,
-      sessionId: request.cookies?.session_id,
+      sessionId: request.cookies?.session_id as string | undefined,
       activityType,
       action,
       targetType,
@@ -144,360 +515,7 @@ export class ActivityLogInterceptor implements NestInterceptor {
   }
 
   private resolveAction(method: string, normalizedPath: string) {
-    const actionRules: Array<{
-      method: string;
-      pattern: RegExp;
-      action: string;
-    }> = [
-      {
-        method: 'POST',
-        pattern: /^\/users\/[^/]+\/reset-password$/,
-        action: 'reset_user_password',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/users\/[^/]+\/status$/,
-        action: 'update_user_status',
-      },
-      { method: 'PATCH', pattern: /^\/users\/[^/]+$/, action: 'update_user' },
-      { method: 'DELETE', pattern: /^\/users\/[^/]+$/, action: 'delete_user' },
-      { method: 'POST', pattern: /^\/students$/, action: 'create_student' },
-      {
-        method: 'PATCH',
-        pattern: /^\/students\/[^/]+$/,
-        action: 'update_student',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/students\/[^/]+$/,
-        action: 'delete_student',
-      },
-      { method: 'POST', pattern: /^\/teachers$/, action: 'create_teacher' },
-      {
-        method: 'PATCH',
-        pattern: /^\/teachers\/[^/]+$/,
-        action: 'update_teacher',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/teachers\/[^/]+$/,
-        action: 'delete_teacher',
-      },
-      { method: 'POST', pattern: /^\/parents$/, action: 'create_parent' },
-      {
-        method: 'PATCH',
-        pattern: /^\/parents\/[^/]+$/,
-        action: 'update_parent',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/parents\/[^/]+$/,
-        action: 'delete_parent',
-      },
-      { method: 'POST', pattern: /^\/admins$/, action: 'create_admin' },
-      { method: 'PATCH', pattern: /^\/admins\/[^/]+$/, action: 'update_admin' },
-      {
-        method: 'DELETE',
-        pattern: /^\/admins\/[^/]+$/,
-        action: 'delete_admin',
-      },
-      { method: 'POST', pattern: /^\/classes$/, action: 'create_class' },
-      {
-        method: 'PATCH',
-        pattern: /^\/classes\/[^/]+$/,
-        action: 'update_class',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/classes\/[^/]+$/,
-        action: 'delete_class',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/classes\/[^/]+\/students$/,
-        action: 'enroll_student_to_class',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/classes\/[^/]+\/students\/[^/]+$/,
-        action: 'remove_student_from_class',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/classes\/[^/]+\/teachers$/,
-        action: 'assign_teacher_to_class',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/classes\/[^/]+\/teachers\/[^/]+$/,
-        action: 'remove_teacher_from_class',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/classes\/[^/]+\/courses$/,
-        action: 'assign_course_to_class',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/classes\/[^/]+\/courses\/[^/]+\/status$/,
-        action: 'update_class_course_status',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/classes\/[^/]+\/courses\/[^/]+$/,
-        action: 'remove_course_from_class',
-      },
-      { method: 'POST', pattern: /^\/courses$/, action: 'create_course' },
-      {
-        method: 'PATCH',
-        pattern: /^\/courses\/[^/]+$/,
-        action: 'update_course',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/courses\/[^/]+$/,
-        action: 'delete_course',
-      },
-      { method: 'GET', pattern: /^\/courses\/[^/]+$/, action: 'view_course' },
-      {
-        method: 'GET',
-        pattern: /^\/courses\/[^/]+\/learn$/,
-        action: 'start_learning_course',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/courses\/modules$/,
-        action: 'create_module',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/courses\/modules\/[^/]+$/,
-        action: 'update_module',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/courses\/modules\/[^/]+$/,
-        action: 'delete_module',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/courses\/sections$/,
-        action: 'create_section',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/courses\/sections\/[^/]+$/,
-        action: 'update_section',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/courses\/sections\/[^/]+$/,
-        action: 'delete_section',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/courses\/[^/]+\/teachers\/[^/]+$/,
-        action: 'assign_teacher_to_course',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/assignments$/,
-        action: 'create_assignment',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/assignments\/[^/]+$/,
-        action: 'update_assignment',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/assignments\/[^/]+$/,
-        action: 'delete_assignment',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/assignments\/assign-to-students$/,
-        action: 'assign_assignment_to_students',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/assignments\/submit$/,
-        action: 'submit_assignment',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/assignments\/student-assignments\/[^/]+\/grade$/,
-        action: 'grade_assignment',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/assignments\/student-assignments\/[^/]+\/regrade-ai$/,
-        action: 'regrade_assignment_ai',
-      },
-      {
-        method: 'GET',
-        pattern: /^\/assignments\/student-assignments\/[^/]+\/ai-suggestion$/,
-        action: 'view_ai_grading_suggestion',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/assignments\/assign-to-section$/,
-        action: 'assign_assignment_to_section',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/assignments\/sections\/[^/]+\/assignments\/[^/]+$/,
-        action: 'remove_assignment_from_section',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/assignments\/targets$/,
-        action: 'create_assignment_target',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/assignments\/targets\/[^/]+$/,
-        action: 'delete_assignment_target',
-      },
-      {
-        method: 'GET',
-        pattern: /^\/assignments\/[^/]+\/results$/,
-        action: 'view_assignment_results',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/question-bank$/,
-        action: 'create_question',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/question-bank\/[^/]+$/,
-        action: 'update_question',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/question-bank\/[^/]+$/,
-        action: 'delete_question',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/question-bank\/assign-to-kp$/,
-        action: 'assign_question_to_kp',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/question-bank\/kps\/[^/]+\/questions\/[^/]+$/,
-        action: 'remove_question_from_kp',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/question-bank\/generate$/,
-        action: 'generate_question',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/knowledge-points$/,
-        action: 'create_knowledge_point',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/knowledge-points\/[^/]+$/,
-        action: 'update_knowledge_point',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/knowledge-points\/[^/]+$/,
-        action: 'delete_knowledge_point',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/knowledge-points\/assign-to-section$/,
-        action: 'assign_kp_to_section',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/knowledge-points\/sections\/[^/]+\/kps\/[^/]+$/,
-        action: 'remove_kp_from_section',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/knowledge-points\/generate-content$/,
-        action: 'generate_kp_content',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/learning-paths$/,
-        action: 'create_learning_path',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/learning-paths\/[^/]+$/,
-        action: 'update_learning_path',
-      },
-      {
-        method: 'DELETE',
-        pattern: /^\/learning-paths\/[^/]+$/,
-        action: 'delete_learning_path',
-      },
-      {
-        method: 'PATCH',
-        pattern: /^\/learning-paths\/[^/]+\/items\/[^/]+\/status$/,
-        action: 'update_learning_path_item_status',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/student-progress\/submit-question$/,
-        action: 'submit_question_answer',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/student-progress\/submit-content-question$/,
-        action: 'submit_content_question_answer',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/student-progress\/track-time$/,
-        action: 'track_time_on_task',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/student-progress\/kp-progress$/,
-        action: 'update_kp_progress',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/upload\/avatar$/,
-        action: 'upload_avatar',
-      },
-      { method: 'POST', pattern: /^\/upload\/file$/, action: 'upload_file' },
-      {
-        method: 'POST',
-        pattern: /^\/upload\/document$/,
-        action: 'upload_document',
-      },
-      {
-        method: 'POST',
-        pattern: /^\/explorer\/courses\/[^/]+\/clone$/,
-        action: 'clone_course',
-      },
-      {
-        method: 'GET',
-        pattern: /^\/explorer\/courses$/,
-        action: 'browse_public_courses',
-      },
-      {
-        method: 'GET',
-        pattern: /^\/explorer\/courses\/[^/]+$/,
-        action: 'view_public_course',
-      },
-      {
-        method: 'GET',
-        pattern: /^\/dashboard\/search$/,
-        action: 'search_dashboard',
-      },
-    ];
-
-    const matchedRule = actionRules.find(
+    const matchedRule = ActivityLogInterceptor.actionRules.find(
       (rule) => rule.method === method && rule.pattern.test(normalizedPath),
     );
     if (matchedRule) {
@@ -736,10 +754,16 @@ export class ActivityLogInterceptor implements NestInterceptor {
       request.url;
     if (!rawPath) return '';
 
-    return rawPath
+    let normalized = rawPath
       .replace(/^\/api/, '')
       .replace(/\?.*$/, '')
       .replace(/\/+/g, '/');
+
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.slice(0, -1);
+    }
+
+    return normalized;
   }
 
   private getResourceFromPath(normalizedPath: string) {
