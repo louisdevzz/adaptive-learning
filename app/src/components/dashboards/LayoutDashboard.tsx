@@ -66,6 +66,7 @@ export default function LayoutDashboard({
           if (
             [
               "courses",
+              "assignments",
               "classes",
               "admins",
               "teachers",
@@ -94,6 +95,10 @@ export default function LayoutDashboard({
               case "courses":
                 const course = await api.courses.getById(entityId);
                 name = course?.title;
+                break;
+              case "assignments":
+                const assignment = await api.assignments.getById(entityId);
+                name = assignment?.title;
                 break;
               case "classes":
                 const classData = await api.classes.getById(entityId);
@@ -201,6 +206,7 @@ export default function LayoutDashboard({
       "knowledge-points": "Điểm kiến thức",
       explorer: "Khám phá",
       classes: "Lớp học",
+      assignments: "Bài tập",
       reports: "Báo cáo",
       "my-courses": "Khóa học của tôi",
       "learning-path": "Lộ trình học tập",
@@ -219,6 +225,7 @@ export default function LayoutDashboard({
       parents: { create: "Tạo phụ huynh", edit: "Sửa phụ huynh" },
       admins: { create: "Tạo quản trị viên", edit: "Sửa quản trị viên" },
       users: { create: "Tạo người dùng", edit: "Sửa người dùng" },
+      assignments: { create: "Tạo bài tập", edit: "Sửa bài tập" },
     };
 
     const segments = pathname.split("/").filter(Boolean);

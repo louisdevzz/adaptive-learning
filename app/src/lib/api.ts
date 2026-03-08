@@ -905,6 +905,149 @@ export const api = {
     },
   },
 
+  // Assignments endpoints
+  assignments: {
+    getAll: async (params?: { teacherId?: string; isPublished?: boolean }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.teacherId) queryParams.append("teacherId", params.teacherId);
+      if (params?.isPublished !== undefined) {
+        queryParams.append("isPublished", params.isPublished.toString());
+      }
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/assignments?${queryString}` : "/assignments";
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getById: async (id: string) => {
+      const response = await apiClient.get(`/assignments/${id}`);
+      return response.data;
+    },
+
+    getByIdWithDetails: async (id: string) => {
+      const response = await apiClient.get(`/assignments/${id}/details`);
+      return response.data;
+    },
+
+    create: async (data: {
+      teacherId: string;
+      title: string;
+      description?: string;
+      assignmentType:
+        | "practice"
+        | "quiz"
+        | "exam"
+        | "homework"
+        | "test"
+        | "adaptive";
+      dueDate?: string;
+      isPublished?: boolean;
+      attachmentName?: string;
+      attachmentMimeType?: string;
+      attachmentUrl?: string;
+    }) => {
+      const response = await apiClient.post("/assignments", data);
+      return response.data;
+    },
+
+    update: async (
+      id: string,
+      data: {
+        teacherId?: string;
+        title?: string;
+        description?: string | null;
+        assignmentType?:
+          | "practice"
+          | "quiz"
+          | "exam"
+          | "homework"
+          | "test"
+          | "adaptive";
+        dueDate?: string;
+        isPublished?: boolean;
+        attachmentName?: string | null;
+        attachmentMimeType?: string | null;
+        attachmentUrl?: string | null;
+      }
+    ) => {
+      const response = await apiClient.patch(`/assignments/${id}`, data);
+      return response.data;
+    },
+
+    delete: async (id: string) => {
+      const response = await apiClient.delete(`/assignments/${id}`);
+      return response.data;
+    },
+
+    createTarget: async (data: {
+      assignmentId: string;
+      targetType: "student" | "class" | "group" | "auto" | "section";
+      targetId: string;
+      assignedBy: string;
+    }) => {
+      const response = await apiClient.post("/assignments/targets", data);
+      return response.data;
+    },
+
+    getTargets: async (assignmentId: string) => {
+      const response = await apiClient.get(`/assignments/${assignmentId}/targets`);
+      return response.data;
+    },
+
+    removeTarget: async (targetId: string) => {
+      const response = await apiClient.delete(`/assignments/targets/${targetId}`);
+      return response.data;
+    },
+
+    assignToStudents: async (data: {
+      assignmentId: string;
+      studentIds: string[];
+    }) => {
+      const response = await apiClient.post("/assignments/assign-to-students", data);
+      return response.data;
+    },
+
+    getStudentAssignments: async (studentId: string) => {
+      const response = await apiClient.get(`/assignments/students/${studentId}`);
+      return response.data;
+    },
+
+    getStudentAssignment: async (studentId: string, assignmentId: string) => {
+      const response = await apiClient.get(
+        `/assignments/students/${studentId}/assignments/${assignmentId}`
+      );
+      return response.data;
+    },
+
+    submitAssignment: async (data: {
+      studentAssignmentId: string;
+      answers?: { questionId: string; answer: unknown }[];
+      submissionUrl?: string;
+      submissionName?: string;
+      submissionMimeType?: string;
+    }) => {
+      const response = await apiClient.post("/assignments/submit", data);
+      return response.data;
+    },
+
+    gradeStudentAssignment: async (
+      studentAssignmentId: string,
+      data: { totalScore: number }
+    ) => {
+      const response = await apiClient.patch(
+        `/assignments/student-assignments/${studentAssignmentId}/grade`,
+        data
+      );
+      return response.data;
+    },
+
+    getAssignmentResults: async (assignmentId: string) => {
+      const response = await apiClient.get(`/assignments/${assignmentId}/results`);
+      return response.data;
+    },
+  },
+
   // Upload endpoints
   upload: {
     avatar: async (
