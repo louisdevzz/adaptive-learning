@@ -24,9 +24,8 @@ import {
   getAccessibleSectionIds,
 } from '../courses/helpers/course-access.helper';
 import { GenerateContentDto } from './dto/generate-content.dto';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage } from '@langchain/core/messages';
+import { createChatModel } from '../common/ai/chat-model.factory';
 
 @Injectable()
 export class KnowledgePointsService {
@@ -683,32 +682,13 @@ export class KnowledgePointsService {
     Output the complete, working HTML now:`;
 
     try {
-      // Initialize AI model based on selection
-      let model;
-      if (generateDto.aiModel === 'openai') {
-        const openaiApiKey = process.env.OPENAI_API_KEY;
-        if (!openaiApiKey) {
-          throw new BadRequestException('OpenAI API key is not configured');
-        }
-        model = new ChatOpenAI({
-          modelName: 'gpt-4o-mini',
-          temperature: 0.7,
-          apiKey: openaiApiKey,
-        });
-      } else {
-        const googleApiKey = process.env.GOOGLE_API_KEY;
-        if (!googleApiKey) {
-          throw new BadRequestException('Google API key is not configured');
-        }
-        model = new ChatGoogleGenerativeAI({
-          model: 'gemini-1.5-flash',
-          temperature: 0.7,
-          apiKey: googleApiKey,
-        });
-      }
+      const { chatModel } = createChatModel({
+        provider: generateDto.aiModel,
+        temperature: 0.7,
+      });
 
       // Generate content
-      const response = await model.invoke([new HumanMessage(prompt)]);
+      const response = await chatModel.invoke([new HumanMessage(prompt)]);
       let content = response.content as string;
 
       // Clean up markdown code blocks if present

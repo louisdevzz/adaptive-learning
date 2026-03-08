@@ -21,7 +21,7 @@ export class GenerateContentDto {
   @IsEnum(['visualization'])
   contentType: 'visualization';
 
-  @IsNotEmpty()
-  @IsEnum(['openai', 'gemini'])
-  aiModel: 'openai' | 'gemini';
+  @IsOptional()
+  @IsEnum(['openai', 'gemini', 'kimi-code', 'kimi'])
+  aiModel?: 'openai' | 'gemini' | 'kimi-code' | 'kimi';
 }

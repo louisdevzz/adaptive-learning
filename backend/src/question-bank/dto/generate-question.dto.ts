@@ -18,9 +18,9 @@ export class GenerateQuestionDto {
   @IsOptional()
   knowledgePointDescription?: string;
 
-  @IsEnum(['openai', 'gemini'])
-  @IsNotEmpty()
-  aiModel: 'openai' | 'gemini';
+  @IsEnum(['openai', 'gemini', 'kimi-code', 'kimi'])
+  @IsOptional()
+  aiModel?: 'openai' | 'gemini' | 'kimi-code' | 'kimi';
 
   @IsEnum(['multiple_choice', 'true_false', 'fill_in_blank', 'short_answer'])
   @IsNotEmpty()
