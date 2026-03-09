@@ -133,7 +133,32 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
     return `${Math.floor(diffMinutes / 1440)} ngày trước`;
   };
 
-  const notificationItems = useMemo(() => notifications || [], [notifications]);
+  type MenuItemKind =
+    | { kind: "header" }
+    | { kind: "loading" }
+    | { kind: "empty" }
+    | { kind: "notification"; data: NotificationItem }
+    | { kind: "mark-all" };
+
+  const menuItems = useMemo<Array<MenuItemKind & { key: string }>>(() => {
+    const notificationItems = notifications || [];
+    const items: Array<MenuItemKind & { key: string }> = [
+      { key: "header", kind: "header" },
+    ];
+    if (isLoading && notificationItems.length === 0) {
+      items.push({ key: "loading", kind: "loading" });
+    } else if (notificationItems.length === 0) {
+      items.push({ key: "empty", kind: "empty" });
+    } else {
+      for (const n of notificationItems) {
+        items.push({ key: n.id, kind: "notification", data: n });
+      }
+    }
+    if (unreadCount > 0) {
+      items.push({ key: "mark-all", kind: "mark-all" });
+    }
+    return items;
+  }, [notifications, isLoading, unreadCount]);
 
   return (
     <Dropdown
@@ -165,78 +190,89 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
 
       <DropdownMenu
         aria-label="Notifications menu"
+        items={menuItems}
         classNames={{
           base: "bg-white border border-[#E5E5E5] rounded-xl shadow-lg w-[320px] max-h-[380px] overflow-y-auto",
         }}
       >
-        <DropdownItem
-          key="header"
-          isReadOnly
-          className="text-xs text-[#666666] cursor-default"
-        >
-          {unreadCount > 0
-            ? `Bạn có ${unreadCount} thông báo chưa đọc`
-            : "Không có thông báo mới"}
-        </DropdownItem>
-
-        {notificationItems.length === 0 && !isLoading ? (
-          <DropdownItem
-            key="empty"
-            isReadOnly
-            className="text-sm text-[#666666] cursor-default"
-          >
-            Chưa có thông báo nào
-          </DropdownItem>
-        ) : null}
-
-        {isLoading && notificationItems.length === 0 ? (
-          <DropdownItem
-            key="loading"
-            isReadOnly
-            className="text-sm text-[#666666] cursor-default"
-          >
-            Đang tải thông báo...
-          </DropdownItem>
-        ) : null}
-
-        {notificationItems.map((notification) => (
-          <DropdownItem
-            key={notification.id}
-            textValue={`${notification.title} ${notification.message}`}
-            onPress={() => void handleNotificationPress(notification)}
-            className={`py-2.5 ${
-              notification.isRead ? "" : "bg-[#6244F4]/5"
-            }`}
-          >
-            <div className="space-y-1">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-semibold text-[#010101] truncate">
-                  {notification.title}
+        {(item) => {
+          if (item.kind === "header") {
+            return (
+              <DropdownItem
+                key="header"
+                isReadOnly
+                className="text-xs text-[#666666] cursor-default"
+              >
+                {unreadCount > 0
+                  ? `Bạn có ${unreadCount} thông báo chưa đọc`
+                  : "Không có thông báo mới"}
+              </DropdownItem>
+            );
+          }
+          if (item.kind === "loading") {
+            return (
+              <DropdownItem
+                key="loading"
+                isReadOnly
+                className="text-sm text-[#666666] cursor-default"
+              >
+                Đang tải thông báo...
+              </DropdownItem>
+            );
+          }
+          if (item.kind === "empty") {
+            return (
+              <DropdownItem
+                key="empty"
+                isReadOnly
+                className="text-sm text-[#666666] cursor-default"
+              >
+                Chưa có thông báo nào
+              </DropdownItem>
+            );
+          }
+          if (item.kind === "mark-all") {
+            return (
+              <DropdownItem
+                key="mark-all"
+                startContent={<CheckCheck className="w-4 h-4 text-[#6244F4]" />}
+                onPress={() => void markAllAsRead()}
+                className="text-sm font-medium text-[#6244F4]"
+              >
+                Đánh dấu tất cả đã đọc
+              </DropdownItem>
+            );
+          }
+          // kind === "notification"
+          const notification = item.data;
+          return (
+            <DropdownItem
+              key={notification.id}
+              textValue={`${notification.title} ${notification.message}`}
+              onPress={() => void handleNotificationPress(notification)}
+              className={`py-2.5 ${
+                notification.isRead ? "" : "bg-[#6244F4]/5"
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold text-[#010101] truncate">
+                    {notification.title}
+                  </p>
+                  {!notification.isRead && (
+                    <span className="w-2 h-2 rounded-full bg-[#6244F4] mt-1" />
+                  )}
+                </div>
+                <p className="text-xs text-[#666666]">
+                  {notification.message}
                 </p>
-                {!notification.isRead && (
-                  <span className="w-2 h-2 rounded-full bg-[#6244F4] mt-1" />
-                )}
+                <p className="text-[11px] text-[#999999]">
+                  {relativeTime(notification.createdAt)}
+                </p>
               </div>
-              <p className="text-xs text-[#666666]">
-                {notification.message}
-              </p>
-              <p className="text-[11px] text-[#999999]">
-                {relativeTime(notification.createdAt)}
-              </p>
-            </div>
-          </DropdownItem>
-        ))}
-
-        {unreadCount > 0 ? (
-          <DropdownItem
-            key="mark-all"
-            startContent={<CheckCheck className="w-4 h-4 text-[#6244F4]" />}
-            onPress={() => void markAllAsRead()}
-            className="text-sm font-medium text-[#6244F4]"
-          >
-            Đánh dấu tất cả đã đọc
-          </DropdownItem>
-        ) : null}
+            </DropdownItem>
+          );
+        }}
       </DropdownMenu>
     </Dropdown>
   );
