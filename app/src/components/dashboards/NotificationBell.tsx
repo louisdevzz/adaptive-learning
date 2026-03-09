@@ -26,12 +26,32 @@ interface NotificationBellProps {
   collapsed?: boolean;
 }
 
+/** Returns the URL only when it is a safe, relative internal path. */
+function toSafeInternalUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  // Must start with '/' and must not be a protocol-relative URL (e.g. //evil.com)
+  if (url.startsWith("/") && !url.startsWith("//") && !url.includes("://")) {
+    return url;
+  }
+  return null;
+}
+
 export function NotificationBell({ collapsed = false }: NotificationBellProps) {
   const router = useRouter();
   const { user } = useUser();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+
+  const loadUnreadCount = async () => {
+    if (!user) return;
+    try {
+      const unreadResult = await api.notifications.getUnreadCount();
+      setUnreadCount(Number(unreadResult?.unreadCount || 0));
+    } catch (error) {
+      console.error("Failed to load unread count:", error);
+    }
+  };
 
   const loadNotifications = async (silent = false) => {
     if (!user) return;
@@ -60,7 +80,7 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
     void loadNotifications();
 
     const interval = setInterval(() => {
-      void loadNotifications(true);
+      void loadUnreadCount();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -97,8 +117,9 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
     if (!notification.isRead) {
       await markAsRead(notification.id);
     }
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl);
+    const safeUrl = toSafeInternalUrl(notification.actionUrl);
+    if (safeUrl) {
+      router.push(safeUrl);
     }
   };
 

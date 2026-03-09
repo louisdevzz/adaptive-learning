@@ -129,7 +129,7 @@ export class NotificationsService {
           eq(notifications.isRead, false),
         ),
       )
-      .returning({ id: notifications.id });
+      .returning({ one: sql<number>`1` });
 
     return { updatedCount: updatedRows.length };
   }
