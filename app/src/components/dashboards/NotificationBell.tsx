@@ -179,7 +179,7 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
             : "Không có thông báo mới"}
         </DropdownItem>
 
-        {notificationItems.length === 0 && !isLoading && (
+        {notificationItems.length === 0 && !isLoading ? (
           <DropdownItem
             key="empty"
             isReadOnly
@@ -187,9 +187,9 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
           >
             Chưa có thông báo nào
           </DropdownItem>
-        )}
+        ) : null}
 
-        {isLoading && notificationItems.length === 0 && (
+        {isLoading && notificationItems.length === 0 ? (
           <DropdownItem
             key="loading"
             isReadOnly
@@ -197,7 +197,7 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
           >
             Đang tải thông báo...
           </DropdownItem>
-        )}
+        ) : null}
 
         {notificationItems.map((notification) => (
           <DropdownItem
@@ -227,7 +227,7 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
           </DropdownItem>
         ))}
 
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <DropdownItem
             key="mark-all"
             startContent={<CheckCheck className="w-4 h-4 text-[#6244F4]" />}
@@ -236,7 +236,7 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
           >
             Đánh dấu tất cả đã đọc
           </DropdownItem>
-        )}
+        ) : null}
       </DropdownMenu>
     </Dropdown>
   );
