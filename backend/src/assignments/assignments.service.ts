@@ -201,17 +201,17 @@ export class AssignmentsService {
 
     await db.insert(studentAssignments).values(studentAssignmentValues);
 
-    try {
-      await this.notificationsService.notifyAssignmentAssignedToStudents(
+    this.notificationsService
+      .notifyAssignmentAssignedToStudents(
         assignDto.studentIds,
         assignDto.assignmentId,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to notify new assignments for assignment ${assignDto.assignmentId}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    }
+      )
+      .catch((error: unknown) => {
+        this.logger.error(
+          `Failed to notify new assignments for assignment ${assignDto.assignmentId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
 
     return { message: 'Assignment assigned to students successfully' };
   }
@@ -493,21 +493,21 @@ export class AssignmentsService {
       return created;
     });
 
-    try {
-      await this.notificationsService.notifyAssignmentGraded(
+    this.notificationsService
+      .notifyAssignmentGraded(
         target[0].studentId,
         target[0].assignmentId,
         result.totalScore,
         result.maxScore,
         result.accuracy,
         approvedBy,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to notify grading result for student assignment ${studentAssignmentId}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    }
+      )
+      .catch((error: unknown) => {
+        this.logger.error(
+          `Failed to notify grading result for student assignment ${studentAssignmentId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
 
     return result;
   }
