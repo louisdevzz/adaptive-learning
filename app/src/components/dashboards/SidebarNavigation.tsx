@@ -18,7 +18,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   UserCircle,
-  KeyRound,
   ClipboardList,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -139,7 +138,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
   );
 
   // ── Full sidebar content (shared between desktop + mobile drawer) ─────────
-  const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
+  const renderSidebarContent = (collapsed = false) => (
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* Logo */}
@@ -300,7 +299,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
       <aside
         className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white border-r border-[#E5E5E5] z-40 transition-all duration-300 ${isCollapsed ? "w-[64px]" : "w-[250px]"}`}
       >
-        <SidebarContent collapsed={isCollapsed} />
+        {renderSidebarContent(isCollapsed)}
       </aside>
 
       {/* Mobile: top bar */}
@@ -308,7 +307,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
         <Link href="/">
           <img src="/logo-text.png" alt="Adapt" className="w-24 object-contain" />
         </Link>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <button onClick={() => setMobileOpen(true)} className="p-2 text-[#010101] hover:bg-gray-100 rounded-lg transition-colors">
             <Menu className="w-5 h-5" />
           </button>
@@ -324,7 +323,7 @@ export function SidebarNavigation({ isCollapsed, onToggleCollapse }: SidebarNavi
               <X className="w-4 h-4" />
             </button>
             {/* Mobile always shows expanded */}
-            <SidebarContent collapsed={false} />
+            {renderSidebarContent(false)}
           </aside>
         </div>
       )}
