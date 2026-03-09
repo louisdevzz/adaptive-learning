@@ -799,6 +799,42 @@ export const activityLog = pgTable(
   }),
 );
 
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipientId: uuid('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    actorUserId: uuid('actor_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    relatedStudentId: uuid('related_student_id').references(() => students.id, {
+      onDelete: 'set null',
+    }),
+    type: varchar('type', { length: 50 }).notNull(), // 'assignment_assigned', 'progress_update', ...
+    title: text('title').notNull(),
+    message: text('message').notNull(),
+    actionUrl: text('action_url'),
+    metadata: json('metadata').notNull(),
+    isRead: boolean('is_read').notNull().default(false),
+    readAt: timestamp('read_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    recipientIdx: index('notifications_recipient_idx').on(table.recipientId),
+    recipientReadIdx: index('notifications_recipient_read_idx').on(
+      table.recipientId,
+      table.isRead,
+    ),
+    createdAtIdx: index('notifications_created_at_idx').on(table.createdAt),
+    typeIdx: index('notifications_type_idx').on(table.type),
+    relatedStudentIdx: index('notifications_related_student_idx').on(
+      table.relatedStudentId,
+    ),
+  }),
+);
+
 // =============================================
 // CLASSES & ENROLLMENTS
 // =============================================

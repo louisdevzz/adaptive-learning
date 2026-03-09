@@ -3,6 +3,7 @@
 import { SidebarNavigation } from "./SidebarNavigation";
 import { DashboardBreadcrumbs } from "./DashboardBreadcrumbs";
 import { SearchModal } from "./SearchModal";
+import { NotificationBell } from "./NotificationBell";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
@@ -146,7 +147,10 @@ export default function LayoutDashboard({
                     successfulResult &&
                     successfulResult.status === "fulfilled"
                   ) {
-                    name = (successfulResult.value as any)?.fullName;
+                    const candidate = successfulResult.value as {
+                      fullName?: string;
+                    };
+                    name = candidate?.fullName;
                   }
                 } catch (error) {
                   console.error(
@@ -185,7 +189,6 @@ export default function LayoutDashboard({
     };
 
     fetchEntityName();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   // Generate breadcrumb items based on pathname
@@ -301,6 +304,11 @@ export default function LayoutDashboard({
               <span>K</span>
             </kbd>
           </button>
+          {user && (
+            <div className="ml-auto">
+              <NotificationBell />
+            </div>
+          )}
 
         </header>
 

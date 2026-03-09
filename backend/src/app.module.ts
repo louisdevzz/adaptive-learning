@@ -21,6 +21,7 @@ import { ExplorerModule } from './explorer/explorer.module';
 import { CourseAnalyticsModule } from './course-analytics/course-analytics.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 
 @Module({
@@ -56,6 +57,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
     CourseAnalyticsModule,
     DashboardModule,
     ActivityLogModule,
+    NotificationsModule,
   ],
   providers: [
     {

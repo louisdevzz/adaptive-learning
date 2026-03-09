@@ -1454,6 +1454,62 @@ export const api = {
     },
   },
 
+  notifications: {
+    getMy: async (params?: {
+      page?: number;
+      limit?: number;
+      unreadOnly?: boolean;
+      type?: string;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.limit) queryParams.append("limit", params.limit.toString());
+      if (params?.unreadOnly !== undefined) {
+        queryParams.append("unreadOnly", String(params.unreadOnly));
+      }
+      if (params?.type) queryParams.append("type", params.type);
+
+      const query = queryParams.toString();
+      const url = query ? `/notifications/me?${query}` : "/notifications/me";
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getUnreadCount: async () => {
+      const response = await apiClient.get("/notifications/me/unread-count");
+      return response.data;
+    },
+
+    markAsRead: async (notificationId: string) => {
+      const response = await apiClient.patch(
+        `/notifications/${notificationId}/read`
+      );
+      return response.data;
+    },
+
+    markAllAsRead: async () => {
+      const response = await apiClient.patch("/notifications/me/read-all");
+      return response.data;
+    },
+
+    createProgressAlert: async (
+      studentId: string,
+      data: {
+        message: string;
+        title?: string;
+        courseName?: string;
+        masteryScore?: number;
+        actionUrl?: string;
+      }
+    ) => {
+      const response = await apiClient.post(
+        `/notifications/students/${studentId}/progress-alert`,
+        data
+      );
+      return response.data;
+    },
+  },
+
   // Dashboard endpoints
   dashboard: {
     getTeacherStats: async () => {

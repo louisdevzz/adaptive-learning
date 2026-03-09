@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { eq, and, inArray, SQL } from 'drizzle-orm';
 import {
@@ -26,11 +27,15 @@ import { GradeStudentAssignmentDto } from './dto/grade-student-assignment.dto';
 import { AssignToSectionDto } from './dto/assign-to-section.dto';
 import { CreateAssignmentTargetDto } from './dto/create-assignment-target.dto';
 import { AssignmentAiGradingService } from './assignment-ai-grading.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AssignmentsService {
+  private readonly logger = new Logger(AssignmentsService.name);
+
   constructor(
     private readonly assignmentAiGradingService: AssignmentAiGradingService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ==================== ASSIGNMENTS ====================
@@ -195,6 +200,18 @@ export class AssignmentsService {
     }));
 
     await db.insert(studentAssignments).values(studentAssignmentValues);
+
+    this.notificationsService
+      .notifyAssignmentAssignedToStudents(
+        assignDto.studentIds,
+        assignDto.assignmentId,
+      )
+      .catch((error: unknown) => {
+        this.logger.error(
+          `Failed to notify new assignments for assignment ${assignDto.assignmentId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
 
     return { message: 'Assignment assigned to students successfully' };
   }
@@ -420,7 +437,7 @@ export class AssignmentsService {
     const gradingSource = gradeDto.gradingSource ?? 'manual';
     const approvalNote = gradeDto.approvalNote?.trim() || null;
 
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       await tx
         .update(studentAssignments)
         .set({
@@ -475,6 +492,24 @@ export class AssignmentsService {
 
       return created;
     });
+
+    this.notificationsService
+      .notifyAssignmentGraded(
+        target[0].studentId,
+        target[0].assignmentId,
+        result.totalScore,
+        result.maxScore,
+        result.accuracy,
+        approvedBy,
+      )
+      .catch((error: unknown) => {
+        this.logger.error(
+          `Failed to notify grading result for student assignment ${studentAssignmentId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
+
+    return result;
   }
 
   async getLatestAiSuggestion(studentAssignmentId: string) {
@@ -735,6 +770,18 @@ export class AssignmentsService {
         }));
 
         await db.insert(studentAssignments).values(studentAssignmentValues);
+
+        try {
+          await this.notificationsService.notifyAssignmentAssignedToStudents(
+            newStudentIds,
+            assignmentId,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to notify section assignment expansion for assignment ${assignmentId}`,
+            error instanceof Error ? error.stack : undefined,
+          );
+        }
       }
     }
   }
@@ -820,6 +867,18 @@ export class AssignmentsService {
         }));
 
         await db.insert(studentAssignments).values(studentAssignmentValues);
+
+        try {
+          await this.notificationsService.notifyAssignmentAssignedToStudents(
+            newStudentIds,
+            assignmentId,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to notify assignment target expansion for assignment ${assignmentId}`,
+            error instanceof Error ? error.stack : undefined,
+          );
+        }
       }
     }
   }
