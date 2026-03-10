@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -23,7 +24,18 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('API Key is required');
     }
 
-    if (apiKey !== validApiKey) {
+    if (!validApiKey) {
+      throw new UnauthorizedException('API Key is not configured');
+    }
+
+    // Use constant-time comparison to prevent timing attacks
+    const apiKeyBuffer = Buffer.from(String(apiKey));
+    const validApiKeyBuffer = Buffer.from(validApiKey);
+    const isValid =
+      apiKeyBuffer.length === validApiKeyBuffer.length &&
+      crypto.timingSafeEqual(apiKeyBuffer, validApiKeyBuffer);
+
+    if (!isValid) {
       throw new UnauthorizedException('Invalid API Key');
     }
 

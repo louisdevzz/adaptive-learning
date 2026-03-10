@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import DOMPurify from "dompurify";
 import {
   ChevronRight,
   FolderOpen,
@@ -920,7 +921,7 @@ export default function CourseEditPage() {
                         </h3>
                         <div
                           className="prose dark:prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: selectedKp.content.theory }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedKp.content.theory) }}
                         />
                       </div>
                     )}
@@ -932,7 +933,7 @@ export default function CourseEditPage() {
                           Trực quan hoá
                         </h3>
                         <div
-                          dangerouslySetInnerHTML={{ __html: selectedKp.content.visualization }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedKp.content.visualization) }}
                         />
                       </div>
                     )}

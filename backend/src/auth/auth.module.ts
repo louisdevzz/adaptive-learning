@@ -20,10 +20,14 @@ import type { StringValue } from 'ms';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+        if (!jwtSecret) {
+          throw new Error(
+            'JWT_SECRET environment variable is not set. Please configure it before starting the application.',
+          );
+        }
         return {
-          secret:
-            configService.get<string>('JWT_SECRET') ||
-            'your-secret-key-change-this',
+          secret: jwtSecret,
           signOptions: {
             expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ||
               '7D') as StringValue,
