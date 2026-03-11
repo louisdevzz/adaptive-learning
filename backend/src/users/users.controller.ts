@@ -18,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -69,7 +70,6 @@ export class UsersController {
   }
 
   @Post(':id/reset-password')
-  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   async resetPassword(
     @Param('id') id: string,

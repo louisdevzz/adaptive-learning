@@ -24,16 +24,40 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, etc)
-      if (!origin) return callback(null, true);
-
-      // Check if origin is in allowed list or is a Vercel deployment
-      if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-        callback(null, true);
-      } else {
-        logger.warn(`Blocked CORS request from origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+      // Block requests with no origin to prevent CSRF from non-browser clients
+      // in production; allow in development for tools like curl/Postman
+      if (!origin) {
+        const nodeEnv = configService.get<string>('NODE_ENV');
+        if (nodeEnv === 'production') {
+          return callback(new Error('Origin header is required'), false);
+        }
+        return callback(null, true);
       }
+
+      // Check if origin is in the explicit allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow Vercel preview deployments only for the specific project
+      // Pattern: https://<project>-<hash>-<scope>.vercel.app
+      // We restrict to HTTPS only and validate it's a proper Vercel subdomain
+      const vercelAllowPattern = configService.get<string>(
+        'CORS_VERCEL_PATTERN',
+      );
+      if (vercelAllowPattern) {
+        try {
+          const vercelRegex = new RegExp(vercelAllowPattern);
+          if (vercelRegex.test(origin)) {
+            return callback(null, true);
+          }
+        } catch {
+          // Invalid regex pattern - skip vercel check
+        }
+      }
+
+      logger.warn(`Blocked CORS request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
