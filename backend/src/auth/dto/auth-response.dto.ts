@@ -52,5 +52,5 @@ export class AuthResponseDto {
     avatarUrl?: string;
     info?: RoleSpecificInfo;
   };
-  accessToken?: string; // Internal use only for setting cookie
+  accessToken?: string; // Also returned in body so the frontend can set the cookie on its own domain
 }

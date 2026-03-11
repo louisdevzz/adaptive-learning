@@ -37,6 +37,8 @@ export class AuthController {
       path: '/',
     });
 
+    // Return accessToken in body so the frontend can set the cookie on its own
+    // domain (needed for cross-domain deployments, e.g. Vercel)
     return result;
   }
 
@@ -47,10 +49,10 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, sessionId, ...response } =
+    const { sessionId, ...response } =
       await this.authService.login(loginDto, this.buildRequestContext(req));
 
-    res.cookie('access_token', accessToken, {
+    res.cookie('access_token', response.accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -68,6 +70,8 @@ export class AuthController {
       });
     }
 
+    // Return accessToken in body so the frontend can set the cookie on its own
+    // domain (needed for cross-domain deployments, e.g. Vercel)
     return response;
   }
 
@@ -78,13 +82,13 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, sessionId, ...response } =
+    const { sessionId, ...response } =
       await this.authService.loginWithGoogle(
         idToken,
         this.buildRequestContext(req),
       );
 
-    res.cookie('access_token', accessToken, {
+    res.cookie('access_token', response.accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -102,6 +106,8 @@ export class AuthController {
       });
     }
 
+    // Return accessToken in body so the frontend can set the cookie on its own
+    // domain (needed for cross-domain deployments, e.g. Vercel)
     return response;
   }
 
