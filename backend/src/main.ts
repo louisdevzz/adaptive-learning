@@ -24,13 +24,9 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Block requests with no origin to prevent CSRF from non-browser clients
-      // in production; allow in development for tools like curl/Postman
+      // Allow requests with no origin (direct browser navigation, curl, server-to-server).
+      // CORS protects browser cross-origin access and should not fail these requests.
       if (!origin) {
-        const nodeEnv = configService.get<string>('NODE_ENV');
-        if (nodeEnv === 'production') {
-          return callback(new Error('Origin header is required'), false);
-        }
         return callback(null, true);
       }
 
@@ -57,7 +53,7 @@ async function bootstrap() {
       }
 
       logger.warn(`Blocked CORS request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

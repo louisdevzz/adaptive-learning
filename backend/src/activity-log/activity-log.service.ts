@@ -27,12 +27,28 @@ interface LogEventInput {
 
 @Injectable()
 export class ActivityLogService {
+  private isUuid(value?: string): value is string {
+    if (!value) {
+      return false;
+    }
+
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    );
+  }
+
+  private normalizeSessionId(sessionId?: string): string | undefined {
+    return this.isUuid(sessionId) ? sessionId : undefined;
+  }
+
   async logEvent(input: LogEventInput) {
+    const sessionId = this.normalizeSessionId(input.sessionId);
+
     await db.insert(activityLog).values({
       actorUserId: input.actorUserId,
       actorRole: input.actorRole,
       studentId: input.studentId,
-      sessionId: input.sessionId,
+      sessionId,
       activityType: input.activityType,
       action: input.action,
       targetType: input.targetType,
@@ -66,11 +82,19 @@ export class ActivityLogService {
   }
 
   async closeStudentSession(sessionId: string): Promise<void> {
+    const normalizedSessionId = this.normalizeSessionId(sessionId);
+    if (!normalizedSessionId) {
+      return;
+    }
+
     await db
       .update(studentSession)
       .set({ endTime: new Date() })
       .where(
-        and(eq(studentSession.id, sessionId), isNull(studentSession.endTime)),
+        and(
+          eq(studentSession.id, normalizedSessionId),
+          isNull(studentSession.endTime),
+        ),
       );
   }
 

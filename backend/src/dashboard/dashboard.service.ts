@@ -870,6 +870,17 @@ export class DashboardService {
       .from(courses)
       .where(and(...courseConditions));
 
+    // Get total classes count
+    const classConditions: any[] = [];
+    if (gradeLevel) {
+      classConditions.push(eq(classes.gradeLevel, gradeLevel));
+    }
+
+    const [totalClassesResult] = await db
+      .select({ count: count() })
+      .from(classes)
+      .where(classConditions.length > 0 ? and(...classConditions) : undefined);
+
     // Calculate average progress across all students
     const progressData = await db
       .select({
@@ -917,6 +928,7 @@ export class DashboardService {
     return {
       totalStudents: totalStudentsResult?.count || 0,
       totalTeachers: totalTeachersResult?.count || 0,
+      totalClasses: totalClassesResult?.count || 0,
       activeCourses: activeCoursesResult?.count || 0,
       averageProgress,
       dropoutRate: parseFloat(dropoutRate),

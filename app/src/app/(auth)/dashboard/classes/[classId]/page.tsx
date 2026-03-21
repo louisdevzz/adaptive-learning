@@ -661,7 +661,7 @@ export default function ClassPage() {
                               <DropdownItem
                                 key="view"
                                 as={Link}
-                                href={`/dashboard/users/${enrollment.student.id}`}
+                                href={`/dashboard/students/${enrollment.student.id}`}
                                 startContent={
                                   <ArrowUpRight className="w-4 h-4" />
                                 }
@@ -671,7 +671,7 @@ export default function ClassPage() {
                               <DropdownItem
                                 key="progress"
                                 as={Link}
-                                href={`/dashboard/users/${enrollment.student.id}/progress`}
+                                href={`/dashboard/students/${enrollment.student.id}/progress`}
                                 startContent={
                                   <TrendingUp className="w-4 h-4" />
                                 }

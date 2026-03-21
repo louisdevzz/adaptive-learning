@@ -34,8 +34,6 @@ import {
   Chip,
 } from "@heroui/react";
 import { parseDate, today, getLocalTimeZone, DateValue } from "@internationalized/date";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { Document, Paragraph, Table, TableCell, TableRow, Packer, AlignmentType, WidthType } from "docx";
 
@@ -691,203 +689,219 @@ type TeacherReportData = {
   dateRange: { start: string; end: string };
 };
 
+type ReportRole = "admin" | "teacher";
+type ReportExportExtension = "pdf" | "xlsx" | "docx";
+
+const getReportRoleLabel = (role: ReportRole): string =>
+  role === "admin" ? "tong-quan-he-thong" : "giao-vien";
+
+const buildReportFileName = (
+  role: ReportRole,
+  dateRange: { start: string; end: string },
+  extension: ReportExportExtension
+): string =>
+  `bao-cao-${getReportRoleLabel(role)}-${dateRange.start}-den-${dateRange.end}.${extension}`;
+
+const buildPdfTable = (
+  headers: string[],
+  rows: Array<Array<string | number>>
+) => ({
+  table: {
+    headerRows: 1,
+    widths: headers.map(() => "*"),
+    body: [headers, ...rows.map((row) => row.map((cell) => String(cell ?? "")))],
+  },
+  layout: "lightHorizontalLines" as const,
+  margin: [0, 6, 0, 12] as [number, number, number, number],
+  fontSize: 10,
+});
+
 async function exportToPDF(
-  role: "admin" | "teacher",
+  role: ReportRole,
   data: AdminReportData | TeacherReportData
 ) {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+  const [pdfMakeModule, pdfFontsModule] = await Promise.all([
+    import("pdfmake/build/pdfmake"),
+    import("pdfmake/build/vfs_fonts"),
+  ]);
 
-  // Title
-  doc.setFontSize(20);
-  doc.text(
-    role === "admin" ? "BÁO CÁO TỔNG QUAN HỆ THỐNG" : "BÁO CÁO GIÁO VIÊN",
-    pageWidth / 2,
-    20,
-    { align: "center" }
-  );
+  const pdfMakeCandidate = (
+    (pdfMakeModule as Record<string, unknown>).default ??
+    (pdfMakeModule as Record<string, unknown>)["module.exports"] ??
+    pdfMakeModule
+  ) as {
+    createPdf?: (docDefinition: unknown) => {
+      download: (fileName?: string, cb?: () => void) => void;
+    };
+    addVirtualFileSystem?: (vfs: Record<string, string>) => void;
+    vfs?: Record<string, string>;
+  };
 
-  // Date range
-  doc.setFontSize(12);
-  doc.text(
-    `Từ ngày: ${data.dateRange.start} đến ${data.dateRange.end}`,
-    pageWidth / 2,
-    30,
-    { align: "center" }
-  );
+  const fontContainer = (
+    (pdfFontsModule as Record<string, unknown>).default ??
+    (pdfFontsModule as Record<string, unknown>)["module.exports"] ??
+    pdfFontsModule
+  ) as {
+    pdfMake?: { vfs?: Record<string, string> };
+    vfs?: Record<string, string>;
+    [fontFile: string]: unknown;
+  };
 
-  let yPos = 45;
+  const vfsFromContainer =
+    fontContainer.pdfMake?.vfs ??
+    fontContainer.vfs ??
+    (fontContainer["Roboto-Regular.ttf"]
+      ? (fontContainer as Record<string, string>)
+      : undefined);
+
+  if (!vfsFromContainer) {
+    throw new Error("Không thể tải bộ font PDF Unicode");
+  }
+
+  if (typeof pdfMakeCandidate.addVirtualFileSystem === "function") {
+    pdfMakeCandidate.addVirtualFileSystem(vfsFromContainer);
+  } else {
+    pdfMakeCandidate.vfs = vfsFromContainer;
+  }
+
+  if (typeof pdfMakeCandidate.createPdf !== "function") {
+    throw new Error("Không thể khởi tạo trình xuất PDF");
+  }
+
+  const title =
+    role === "admin" ? "BÁO CÁO TỔNG QUAN HỆ THỐNG" : "BÁO CÁO GIÁO VIÊN";
+
+  const content: Array<Record<string, unknown>> = [
+    { text: title, style: "title", alignment: "center" },
+    {
+      text: `Từ ngày: ${data.dateRange.start} đến ${data.dateRange.end}`,
+      style: "subtitle",
+      alignment: "center",
+      margin: [0, 0, 0, 10],
+    },
+  ];
 
   if (role === "admin") {
     const adminData = data as AdminReportData;
 
-    // Stats table
-    doc.setFontSize(14);
-    doc.text("1. Thống kê tổng quan", 14, yPos);
-    yPos += 10;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Chỉ số", "Giá trị"]],
-      body: [
-        ["Tổng học sinh", adminData.stats.totalStudents],
-        ["Tổng giáo viên", adminData.stats.totalTeachers],
-        ["Khóa học active", adminData.stats.activeCourses],
-        ["Tiến độ trung bình", `${adminData.stats.averageProgress}%`],
-        ["Tỷ lệ bỏ học", `${adminData.stats.dropoutRate}%`],
-        ["Thời gian học TB", `${adminData.stats.avgStudyTimeMinutes} phút`],
-      ],
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    // Top courses
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    doc.setFontSize(14);
-    doc.text("2. Top khóa học", 14, yPos);
-    yPos += 10;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Thứ hạng", "Tên khóa học", "Môn học", "Tiến độ"]],
-      body: adminData.topCourses.map((c, i) => [
-        i + 1,
-        c.name,
-        c.subject,
-        `${c.progress}%`,
-      ]),
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    // Difficult KPs
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    doc.setFontSize(14);
-    doc.text("3. Điểm kiến thức khó", 14, yPos);
-    yPos += 10;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Tên KP", "Tỷ lệ sai", "Số lần thử"]],
-      body: adminData.difficultKPs.map((kp) => [
-        kp.name,
-        `${kp.failRate}%`,
-        kp.totalAttempts,
-      ]),
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    // Low progress classes
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    doc.setFontSize(14);
-    doc.text("4. Lớp cần chú ý", 14, yPos);
-    yPos += 10;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Lớp", "Khối", "Tiến độ TB", "Vấn đề"]],
-      body: adminData.lowProgressClasses.map((c) => [
-        c.className,
-        c.gradeLevel,
-        `${c.avgMastery}%`,
-        c.issue,
-      ]),
-    });
+    content.push(
+      { text: "1. Thống kê tổng quan", style: "sectionHeader" },
+      buildPdfTable(
+        ["Chỉ số", "Giá trị"],
+        [
+          ["Tổng học sinh", adminData.stats.totalStudents],
+          ["Tổng giáo viên", adminData.stats.totalTeachers],
+          ["Khóa học active", adminData.stats.activeCourses],
+          ["Tiến độ trung bình", `${adminData.stats.averageProgress}%`],
+          ["Tỷ lệ bỏ học", `${adminData.stats.dropoutRate}%`],
+          ["Thời gian học TB", `${adminData.stats.avgStudyTimeMinutes} phút`],
+        ]
+      ),
+      { text: "2. Top khóa học", style: "sectionHeader" },
+      buildPdfTable(
+        ["Thứ hạng", "Tên khóa học", "Môn học", "Tiến độ"],
+        adminData.topCourses.map((c, i) => [i + 1, c.name, c.subject, `${c.progress}%`])
+      ),
+      { text: "3. Điểm kiến thức khó", style: "sectionHeader" },
+      buildPdfTable(
+        ["Tên KP", "Tỷ lệ sai", "Số lần thử"],
+        adminData.difficultKPs.map((kp) => [kp.name, `${kp.failRate}%`, kp.totalAttempts])
+      ),
+      { text: "4. Lớp cần chú ý", style: "sectionHeader" },
+      buildPdfTable(
+        ["Lớp", "Khối", "Tiến độ TB", "Vấn đề"],
+        adminData.lowProgressClasses.map((c) => [
+          c.className,
+          c.gradeLevel,
+          `${c.avgMastery}%`,
+          c.issue,
+        ])
+      )
+    );
   } else {
     const teacherData = data as TeacherReportData;
 
-    // Stats table
-    doc.setFontSize(14);
-    doc.text("1. Thống kê tổng quan", 14, yPos);
-    yPos += 10;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Chỉ số", "Giá trị"]],
-      body: [
-        ["Số lớp chủ nhiệm", teacherData.stats.totalClasses],
-        ["Tổng học sinh", teacherData.stats.totalStudents],
-        ["Số khóa học", teacherData.stats.totalCourses],
-        ["Tổng bài tập", teacherData.stats.totalAssignments],
-        ["Tiến độ trung bình", `${teacherData.stats.averageProgress}%`],
-      ],
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    // Class details
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    doc.setFontSize(14);
-    doc.text("2. Chi tiết các lớp", 14, yPos);
-    yPos += 10;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Lớp", "Khối", "Số học sinh", "Tiến độ"]],
-      body: teacherData.stats.classes.map((c) => [
-        c.name,
-        c.gradeLevel || "-",
-        c.students,
-        `${c.progress}%`,
-      ]),
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    // Struggling students
-    if (teacherData.stats.strugglingStudents.length > 0) {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      }
-      doc.setFontSize(14);
-      doc.text("3. Học sinh cần hỗ trợ", 14, yPos);
-      yPos += 10;
-
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Học sinh", "Lớp", "Tiến độ", "Vấn đề"]],
-        body: teacherData.stats.strugglingStudents.map((s) => [
-          s.name,
-          s.className,
-          `${s.avgMastery}%`,
-          s.issue,
-        ]),
-      });
-    }
-  }
-
-  // Footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(10);
-    doc.text(
-      `Trang ${i} / ${pageCount}`,
-      pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
-      { align: "center" }
+    content.push(
+      { text: "1. Thống kê tổng quan", style: "sectionHeader" },
+      buildPdfTable(
+        ["Chỉ số", "Giá trị"],
+        [
+          ["Số lớp chủ nhiệm", teacherData.stats.totalClasses],
+          ["Tổng học sinh", teacherData.stats.totalStudents],
+          ["Số khóa học", teacherData.stats.totalCourses],
+          ["Tổng bài tập", teacherData.stats.totalAssignments],
+          ["Tiến độ trung bình", `${teacherData.stats.averageProgress}%`],
+        ]
+      ),
+      { text: "2. Chi tiết các lớp", style: "sectionHeader" },
+      buildPdfTable(
+        ["Lớp", "Khối", "Số học sinh", "Tiến độ"],
+        teacherData.stats.classes.map((c) => [
+          c.name,
+          c.gradeLevel || "-",
+          c.students,
+          `${c.progress}%`,
+        ])
+      )
     );
+
+    if (teacherData.stats.strugglingStudents.length > 0) {
+      content.push(
+        { text: "3. Học sinh cần hỗ trợ", style: "sectionHeader" },
+        buildPdfTable(
+          ["Học sinh", "Lớp", "Tiến độ", "Vấn đề"],
+          teacherData.stats.strugglingStudents.map((s) => [
+            s.name,
+            s.className,
+            `${s.avgMastery}%`,
+            s.issue,
+          ])
+        )
+      );
+    }
   }
 
-  doc.save(`bao-cao-${role}-${data.dateRange.start}-${data.dateRange.end}.pdf`);
+  const docDefinition = {
+    pageSize: "A4",
+    pageMargins: [32, 40, 32, 40] as [number, number, number, number],
+    defaultStyle: {
+      font: "Roboto",
+      fontSize: 10,
+    },
+    styles: {
+      title: {
+        fontSize: 18,
+        bold: true,
+      },
+      subtitle: {
+        fontSize: 11,
+      },
+      sectionHeader: {
+        fontSize: 13,
+        bold: true,
+        margin: [0, 8, 0, 4] as [number, number, number, number],
+      },
+    },
+    footer: (currentPage: number, pageCount: number) => ({
+      text: `Trang ${currentPage} / ${pageCount}`,
+      alignment: "center",
+      fontSize: 9,
+      margin: [0, 0, 0, 10] as [number, number, number, number],
+    }),
+    content,
+  };
+
+  const fileName = buildReportFileName(role, data.dateRange, "pdf");
+
+  await new Promise<void>((resolve) => {
+    pdfMakeCandidate.createPdf!(docDefinition).download(fileName, () =>
+      resolve()
+    );
+  });
 }
 
 function exportToExcel(
-  role: "admin" | "teacher",
+  role: ReportRole,
   data: AdminReportData | TeacherReportData
 ) {
   const wb = XLSX.utils.book_new();
@@ -1002,11 +1016,11 @@ function exportToExcel(
     }
   }
 
-  XLSX.writeFile(wb, `bao-cao-${role}-${data.dateRange.start}-${data.dateRange.end}.xlsx`);
+  XLSX.writeFile(wb, buildReportFileName(role, data.dateRange, "xlsx"));
 }
 
 async function exportToWord(
-  role: "admin" | "teacher",
+  role: ReportRole,
   data: AdminReportData | TeacherReportData
 ) {
   const docChildren: Paragraph[] = [];
@@ -1272,7 +1286,7 @@ async function exportToWord(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `bao-cao-${role}-${data.dateRange.start}-${data.dateRange.end}.docx`;
+  a.download = buildReportFileName(role, data.dateRange, "docx");
   a.click();
   URL.revokeObjectURL(url);
 }

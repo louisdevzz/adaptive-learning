@@ -293,7 +293,7 @@ export default function LayoutDashboard({
           {/* Search */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="flex items-center bg-[#f5f5f5] rounded-lg px-3 py-2 w-full max-w-sm hover:bg-[#eeeeee] transition-all text-left"
+            className="flex items-center cursor-pointer bg-[#f5f5f5] rounded-lg px-3 py-2 w-full max-w-sm hover:bg-[#eeeeee] transition-all text-left"
           >
             <Search className="w-4 h-4 text-[#666666] shrink-0" />
             <span className="text-sm ml-2 flex-1 text-[#666666]">

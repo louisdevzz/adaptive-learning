@@ -342,7 +342,7 @@ export class AuthService {
     const context = this.normalizeRequestContext(requestContext);
 
     let resolvedSessionId = sessionId;
-    if (resolvedSessionId) {
+    if (userRole === 'student' && resolvedSessionId) {
       await this.activityLogService.closeStudentSession(resolvedSessionId);
     } else if (userId && userRole === 'student') {
       const latestSessionId =
@@ -355,7 +355,7 @@ export class AuthService {
         actorUserId: userId,
         actorRole: userRole,
         studentId: userRole === 'student' ? userId : undefined,
-        sessionId: resolvedSessionId,
+        sessionId: userRole === 'student' ? resolvedSessionId : undefined,
         activityType: 'auth',
         action: 'logout',
         targetType: 'auth',
