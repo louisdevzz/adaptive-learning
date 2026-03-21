@@ -764,6 +764,65 @@ export const learningStyleAssessments = pgTable(
   }),
 );
 
+export const externalResourceCache = pgTable(
+  'external_resource_cache',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kpId: uuid('kp_id')
+      .notNull()
+      .references(() => knowledgePoint.id, { onDelete: 'cascade' }),
+    query: text('query').notNull(),
+    resourceType: varchar('resource_type', { length: 20 }).notNull(),
+    url: text('url').notNull(),
+    title: text('title').notNull(),
+    source: varchar('source', { length: 50 }).notNull(),
+    language: varchar('language', { length: 10 }).notNull().default('vi'),
+    relevanceScore: integer('relevance_score').notNull(),
+    metadata: json('metadata').notNull(),
+    fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
+    expiresAt: timestamp('expires_at').notNull(),
+  },
+  (table) => ({
+    kpExpiresIdx: index('external_resource_cache_kp_expires_idx').on(
+      table.kpId,
+      table.expiresAt,
+    ),
+    sourceIdx: index('external_resource_cache_source_idx').on(table.source),
+    scoreIdx: index('external_resource_cache_score_idx').on(table.relevanceScore),
+  }),
+);
+
+export const studentResourceInteractions = pgTable(
+  'student_resource_interactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    resourceId: uuid('resource_id')
+      .notNull()
+      .references(() => externalResourceCache.id, { onDelete: 'cascade' }),
+    kpId: uuid('kp_id')
+      .notNull()
+      .references(() => knowledgePoint.id, { onDelete: 'cascade' }),
+    action: varchar('action', { length: 20 }).notNull(),
+    masteryBefore: integer('mastery_before'),
+    masteryAfter: integer('mastery_after'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    studentResourceIdx: index('student_resource_interactions_student_resource_idx').on(
+      table.studentId,
+      table.resourceId,
+    ),
+    studentKpIdx: index('student_resource_interactions_student_kp_idx').on(
+      table.studentId,
+      table.kpId,
+    ),
+    actionIdx: index('student_resource_interactions_action_idx').on(table.action),
+  }),
+);
+
 export const studentSession = pgTable(
   'student_session',
   {

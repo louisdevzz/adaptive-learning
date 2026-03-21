@@ -26,6 +26,7 @@ import {
   Loader2,
   GraduationCap,
 } from "lucide-react";
+import { ResourceList } from "@/components/resource-recommendations/ResourceList";
 import {
   BarChart,
   Bar,
@@ -558,6 +559,24 @@ export default function ProgressPage() {
                 )}
               </div>
             </div>
+
+            {/* All KPs Table */}
+            {weakKPs.length > 0 && user?.id && (
+              <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 lg:col-span-2">
+                <h3 className="text-lg font-bold mb-4">Gợi ý tài liệu cá nhân hóa cho KP yếu</h3>
+                <div className="space-y-5">
+                  {weakKPs.map((kp) => (
+                    <ResourceList
+                      key={kp.kpId}
+                      studentId={user.id}
+                      kpId={kp.kpId}
+                      kpTitle={kp.kpTitle}
+                      masteryScore={kp.masteryScore}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* All KPs Table */}
             <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#e9eaeb] dark:border-gray-700 p-5 lg:col-span-2">

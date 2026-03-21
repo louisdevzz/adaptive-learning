@@ -1492,6 +1492,37 @@ export const api = {
     },
   },
 
+  resourceRecommendations: {
+    getForKp: async (studentId: string, kpId: string) => {
+      const response = await apiClient.get(
+        `/resource-recommendations/${studentId}/kp/${kpId}`,
+      );
+      return response.data;
+    },
+
+    getSuggested: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/resource-recommendations/${studentId}/suggested`,
+      );
+      return response.data;
+    },
+
+    recordInteraction: async (data: {
+      studentId: string;
+      resourceId: string;
+      kpId: string;
+      action: 'viewed' | 'completed' | 'helpful' | 'not_helpful';
+      masteryBefore?: number;
+      masteryAfter?: number;
+    }) => {
+      const response = await apiClient.post(
+        '/resource-recommendations/interaction',
+        data,
+      );
+      return response.data;
+    },
+  },
+
   notifications: {
     getMy: async (params?: {
       page?: number;
