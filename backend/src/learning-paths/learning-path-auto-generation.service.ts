@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
 import { eq, and, lt, inArray, count, avg } from 'drizzle-orm';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import {
   db,
   learningPath,
@@ -16,6 +17,8 @@ import {
   classEnrollment,
 } from '../../db';
 import { PrerequisiteService } from './prerequisite.service';
+import { RecommendationService } from './recommendation.service';
+import { createChatModel } from '../common/ai/chat-model.factory';
 
 interface WeakArea {
   kpId: string;
@@ -30,6 +33,7 @@ interface LearningPathItemInput {
   itemId: string;
   orderIndex: number;
   status: 'not_started' | 'in_progress' | 'completed';
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -41,7 +45,10 @@ export class LearningPathAutoGenerationService {
   private isRunning = false;
   private readonly processingStudents = new Set<string>();
 
-  constructor(private readonly prerequisiteService: PrerequisiteService) {}
+  constructor(
+    private readonly prerequisiteService: PrerequisiteService,
+    private readonly recommendationService: RecommendationService,
+  ) {}
 
   /**
    * Scheduled job: Auto-generate/update learning paths for all active students every hour
@@ -144,10 +151,14 @@ export class LearningPathAutoGenerationService {
 
     this.processingStudents.add(studentId);
     try {
-      // 1. Identify weak areas
+      // 1. Generate recommendations (also persists to recommendation_events)
+      const recommendations =
+        await this.recommendationService.generateRecommendations(studentId);
+
+      // 2. Identify weak areas
       const weakAreas = await this.identifyWeakAreas(studentId);
 
-      if (weakAreas.length === 0) {
+      if (weakAreas.length === 0 && recommendations.length === 0) {
         this.logger.debug(
           `Student ${studentId} has no weak areas, skipping path generation`,
         );
@@ -155,22 +166,38 @@ export class LearningPathAutoGenerationService {
       }
 
       this.logger.log(
-        `Student ${studentId} has ${weakAreas.length} weak areas to address`,
+        `Student ${studentId} has ${weakAreas.length} weak areas and ${recommendations.length} recommendations`,
       );
 
-      // 2. Expand with prerequisites
-      const kpIds = weakAreas.map((wa) => wa.kpId);
-      const expandedKpIds =
-        await this.prerequisiteService.expandWithPrerequisites(kpIds);
+      // 3. Merge weak areas with recommendation-prioritized KPs
+      const recommendedKpIds = recommendations.map((r) => r.kpId);
+      const weakKpIds = weakAreas.map((wa) => wa.kpId);
 
-      // 3. Limit to max items
+      // Prioritize recommended KPs, then fill with remaining weak areas
+      const orderedKpIds = [
+        ...recommendedKpIds,
+        ...weakKpIds.filter((id) => !recommendedKpIds.includes(id)),
+      ];
+
+      // 4. Expand with prerequisites
+      const expandedKpIds =
+        await this.prerequisiteService.expandWithPrerequisites(orderedKpIds);
+
+      // 5. Limit to max items
       const limitedKpIds = expandedKpIds.slice(0, this.MAX_ITEMS_PER_PATH);
 
-      // 4. Get or create learning path
+      // 6. Generate item reasons with AI
+      const kpTitles = await this.getKpTitles(limitedKpIds);
+      const itemReasons = await this.generateItemReasons(
+        limitedKpIds,
+        kpTitles,
+        recommendations,
+      );
+
+      // 7. Get or create learning path
       const existingPath = await this.getActivePath(studentId);
 
       if (existingPath) {
-        // Check if significant changes are needed
         const currentItems = await this.getPathItems(existingPath.id);
         const needsUpdate = this.detectSignificantChanges(
           currentItems,
@@ -185,6 +212,7 @@ export class LearningPathAutoGenerationService {
             existingPath.id,
             studentId,
             limitedKpIds,
+            itemReasons,
           );
         } else {
           this.logger.debug(
@@ -193,7 +221,7 @@ export class LearningPathAutoGenerationService {
         }
       } else {
         this.logger.log(`Creating new learning path for student ${studentId}`);
-        await this.createNewPath(studentId, limitedKpIds);
+        await this.createNewPath(studentId, limitedKpIds, itemReasons);
       }
     } finally {
       this.processingStudents.delete(studentId);
@@ -327,20 +355,21 @@ export class LearningPathAutoGenerationService {
   private async createNewPath(
     studentId: string,
     kpIds: string[],
+    itemReasons?: Map<string, string>,
   ): Promise<void> {
     const items: LearningPathItemInput[] = kpIds.map((kpId, index) => ({
       itemType: 'kp',
       itemId: kpId,
       orderIndex: index,
       status: 'not_started',
+      metadata: { reason: itemReasons?.get(kpId) || null },
     }));
 
-    // Generate title and description
+    // Generate AI-powered title and description
     const title = await this.generatePathTitle(studentId, kpIds);
     const description = await this.generatePathDescription(studentId, kpIds);
 
     await db.transaction(async (tx) => {
-      // Create learning path
       const [path] = await tx
         .insert(learningPath)
         .values({
@@ -352,12 +381,15 @@ export class LearningPathAutoGenerationService {
         })
         .returning();
 
-      // Create items
       if (items.length > 0) {
         await tx.insert(learningPathItems).values(
           items.map((item) => ({
             learningPathId: path.id,
-            ...item,
+            itemType: item.itemType,
+            itemId: item.itemId,
+            orderIndex: item.orderIndex,
+            status: item.status,
+            metadata: item.metadata,
           })),
         );
       }
@@ -375,11 +407,10 @@ export class LearningPathAutoGenerationService {
     pathId: string,
     studentId: string,
     kpIds: string[],
+    itemReasons?: Map<string, string>,
   ): Promise<void> {
-    // Get existing items to preserve progress
     const existingItems = await this.getPathItems(pathId);
 
-    // Build new items, preserving status for existing KPs
     const newItems: LearningPathItemInput[] = kpIds.map((kpId, index) => {
       const existingItem = existingItems.find(
         (item) => item.itemType === 'kp' && item.itemId === kpId,
@@ -392,15 +423,14 @@ export class LearningPathAutoGenerationService {
         status:
           (existingItem?.status as LearningPathItemInput['status']) ||
           'not_started',
+        metadata: { reason: itemReasons?.get(kpId) || null },
       };
     });
 
-    // Generate updated title and description
     const title = await this.generatePathTitle(studentId, kpIds);
     const description = await this.generatePathDescription(studentId, kpIds);
 
     await db.transaction(async (tx) => {
-      // Update path metadata
       await tx
         .update(learningPath)
         .set({
@@ -410,17 +440,19 @@ export class LearningPathAutoGenerationService {
         })
         .where(eq(learningPath.id, pathId));
 
-      // Delete old items
       await tx
         .delete(learningPathItems)
         .where(eq(learningPathItems.learningPathId, pathId));
 
-      // Insert new items
       if (newItems.length > 0) {
         await tx.insert(learningPathItems).values(
           newItems.map((item) => ({
             learningPathId: pathId,
-            ...item,
+            itemType: item.itemType,
+            itemId: item.itemId,
+            orderIndex: item.orderIndex,
+            status: item.status,
+            metadata: item.metadata,
           })),
         );
       }
@@ -432,7 +464,7 @@ export class LearningPathAutoGenerationService {
   }
 
   /**
-   * Generate a descriptive title for the learning path
+   * Generate an AI-powered title for the learning path
    */
   private async generatePathTitle(
     studentId: string,
@@ -442,21 +474,49 @@ export class LearningPathAutoGenerationService {
       return 'Lộ trình học tập cá nhân hóa';
     }
 
-    // Get course info for the first few KPs
+    // Get course info for context
     const courseInfo = await this.getCourseInfoForKps(kpIds.slice(0, 3));
+    const subjects = [...new Set(courseInfo.map((c) => c.subject))];
+    const kpTitles = await this.getKpTitles(kpIds);
+    const titleList = kpIds
+      .slice(0, 5)
+      .map((id) => kpTitles.get(id) || id)
+      .join(', ');
 
-    if (courseInfo.length > 0) {
-      const subjects = [...new Set(courseInfo.map((c) => c.subject))];
-      if (subjects.length === 1) {
-        return `Ôn tập ${subjects[0]} - Lộ trình tự động`;
+    try {
+      const { chatModel } = createChatModel({ temperature: 0.7 });
+      const response = await chatModel.invoke([
+        new SystemMessage(
+          'You generate concise Vietnamese learning path titles (max 60 chars). ' +
+            'Return only the title, no quotes or explanation.',
+        ),
+        new HumanMessage(
+          `Create a learning path title for a student studying: ${titleList}` +
+            (subjects.length > 0 ? `\nSubjects: ${subjects.join(', ')}` : '') +
+            `\nNumber of items: ${kpIds.length}`,
+        ),
+      ]);
+
+      const title = response.content.trim();
+      if (title.length > 0 && title.length <= 100) {
+        return title;
       }
+    } catch (error) {
+      this.logger.warn(
+        'AI title generation failed, using fallback:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     }
 
+    // Fallback
+    if (subjects.length === 1) {
+      return `Ôn tập ${subjects[0]} - Lộ trình tự động`;
+    }
     return 'Lộ trình cải thiện kiến thức';
   }
 
   /**
-   * Generate a description for the learning path
+   * Generate an AI-powered description for the learning path
    */
   private async generatePathDescription(
     studentId: string,
@@ -480,12 +540,117 @@ export class LearningPathAutoGenerationService {
       );
 
     const avgMastery = Math.round(Number(weakAreas[0]?.avgMastery || 0));
+    const kpTitles = await this.getKpTitles(kpIds);
+    const titleList = kpIds
+      .slice(0, 5)
+      .map((id) => kpTitles.get(id) || id)
+      .join(', ');
 
+    try {
+      const { chatModel } = createChatModel({ temperature: 0.7 });
+      const response = await chatModel.invoke([
+        new SystemMessage(
+          'You generate concise Vietnamese learning path descriptions (2-3 sentences). ' +
+            'Include the number of items and current mastery level. ' +
+            'Return only the description, no quotes.',
+        ),
+        new HumanMessage(
+          `Create a description for a learning path:\n` +
+            `Topics: ${titleList}\n` +
+            `Total items: ${kpIds.length}\n` +
+            `Current average mastery: ${avgMastery}%`,
+        ),
+      ]);
+
+      const description = response.content.trim();
+      if (description.length > 0 && description.length <= 500) {
+        return description;
+      }
+    } catch (error) {
+      this.logger.warn(
+        'AI description generation failed, using fallback:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+
+    // Fallback
     return (
       `Lộ trình tự động với ${kpIds.length} mục tiêu. ` +
       `Mức độ nắm vững hiện tại: ${avgMastery}%. ` +
       `Được tối ưu theo thứ tự kiến thức tiên quyết.`
     );
+  }
+
+  /**
+   * Generate AI reasons for each item in the learning path (batch call)
+   */
+  private async generateItemReasons(
+    kpIds: string[],
+    kpTitles: Map<string, string>,
+    recommendations: { kpId: string; reason: string }[],
+  ): Promise<Map<string, string>> {
+    const reasons = new Map<string, string>();
+
+    // Pre-fill from recommendations
+    for (const rec of recommendations) {
+      if (kpIds.includes(rec.kpId)) {
+        reasons.set(rec.kpId, rec.reason);
+      }
+    }
+
+    // Fill remaining with AI
+    const missingKpIds = kpIds.filter((id) => !reasons.has(id));
+    if (missingKpIds.length === 0) return reasons;
+
+    try {
+      const { chatModel } = createChatModel({ temperature: 0.3 });
+
+      const kpList = missingKpIds
+        .map((id) => `- ${kpTitles.get(id) || id} (kpId: ${id})`)
+        .join('\n');
+
+      const response = await chatModel.invoke([
+        new SystemMessage(
+          'You generate brief Vietnamese reasons (1 sentence each) explaining ' +
+            'why each knowledge point is included in a learning path. ' +
+            'Return valid JSON only.',
+        ),
+        new HumanMessage(
+          `Generate reasons for including these KPs in a learning path:\n${kpList}\n\n` +
+            `Return JSON: {"<kpId>": "reason in Vietnamese", ...}`,
+        ),
+      ]);
+
+      const parsed = JSON.parse(response.content);
+      if (typeof parsed === 'object' && parsed !== null) {
+        for (const [kpId, reason] of Object.entries(parsed)) {
+          if (typeof reason === 'string' && missingKpIds.includes(kpId)) {
+            reasons.set(kpId, reason);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        'AI item reason generation failed:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+
+    return reasons;
+  }
+
+  /**
+   * Get KP titles for a list of IDs
+   */
+  private async getKpTitles(kpIds: string[]): Promise<Map<string, string>> {
+    if (kpIds.length === 0) return new Map();
+
+    const rows = await db
+      .select({ id: knowledgePoint.id, title: knowledgePoint.title })
+      .from(knowledgePoint)
+      .where(inArray(knowledgePoint.id, kpIds));
+
+    return new Map(rows.map((r) => [r.id, r.title]));
   }
 
   /**

@@ -39,7 +39,7 @@ npm run lint            # ESLint
 - **Database:** PostgreSQL via Neon serverless, ORM is Drizzle (`backend/db/schema.ts` — 24 tables)
 - **Auth:** JWT stored in HTTP-only cookies + Firebase Google sign-in. Guards: `JwtAuthGuard`, `RolesGuard`, `ApiKeyGuard`
 - **API prefix:** All endpoints are under NestJS default routing. Global API key validation via `x-api-key` header
-- **File storage:** Cloudflare R2 (S3-compatible) via AWS SDK v3
+- **File storage:** Cloudflare R2 (S3-compatible) via AWS SDK
 - **AI:** LangChain + OpenAI + Google Gemini for content generation (knowledge points)
 
 **Module structure** — each feature is a NestJS module under `backend/src/`:

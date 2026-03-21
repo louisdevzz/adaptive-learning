@@ -97,7 +97,7 @@ export default function AboutPage() {
               Tổng quan
             </h2>
             <p className="font-normal leading-[30px] text-[#535862] text-xl max-w-4xl">
-              Adaptive Learning Platform v3.0 là hệ thống cá nhân hóa học tập dựa trên phân rã kiến thức, mô hình dự đoán và theo dõi năng lực theo thời gian thực. Hệ thống được thiết kế để giúp mỗi học sinh nhận được lộ trình học phù hợp với năng lực và tốc độ riêng. Bằng cách sử dụng kiến trúc Course → Module → Section → Knowledge Point và mô hình Mastery Tracking, nền tảng cung cấp khả năng đánh giá, gợi ý học tập và điều chỉnh nội dung một cách tự động nhằm tối ưu hiệu quả học tập.
+              Adaptive Learning Platform là hệ thống cá nhân hóa học tập dựa trên phân rã kiến thức, mô hình dự đoán và theo dõi năng lực theo thời gian thực. Hệ thống được thiết kế để giúp mỗi học sinh nhận được lộ trình học phù hợp với năng lực và tốc độ riêng. Bằng cách sử dụng kiến trúc Course → Module → Section → Knowledge Point và mô hình Mastery Tracking, nền tảng cung cấp khả năng đánh giá, gợi ý học tập và điều chỉnh nội dung một cách tự động nhằm tối ưu hiệu quả học tập.
             </p>
           </div>
         </div>

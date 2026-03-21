@@ -81,6 +81,30 @@ export class DashboardController {
     );
   }
 
+  @Get('admin-report-insights')
+  @Roles('admin')
+  async getAdminReportInsights(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.dashboardService.getAdminReportInsights(startDate, endDate);
+  }
+
+  @Get('teacher-report-insights')
+  @Roles('teacher')
+  async getTeacherReportInsights(
+    @Req() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const teacherId = req.user.userId;
+    return this.dashboardService.getTeacherReportInsights(
+      teacherId,
+      startDate,
+      endDate,
+    );
+  }
+
   @Get('search')
   @Roles('admin', 'teacher', 'student', 'parent')
   async search(

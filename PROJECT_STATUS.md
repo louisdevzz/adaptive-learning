@@ -6,7 +6,7 @@
 
 ## 🎯 System Overview
 
-**Adaptive Learning Platform v3.0** is an intelligent personalized learning platform based on:
+**Adaptive Learning Platform** is an intelligent personalized learning platform based on:
 - Breaking down knowledge into small units (Knowledge Points)
 - Real-time Mastery Tracking
 - Automatic content recommendations based on student ability
@@ -343,7 +343,7 @@ adaptive-learning/
 
 ### 12. 🎨 Frontend UI
 
-#### Landing Page (v3.0 Redesign)
+#### Landing Page (Redesign)
 | Section | Status |
 |---------|--------|
 | Hero Section | ✅ Complete (Redesigned) |

@@ -41,7 +41,7 @@ const dinRoundMedium = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Adaptive Learning Platform v3.0 - Học tập thông minh, cá nhân hóa",
+  title: "Adaptive Learning Platform - Học tập thông minh, cá nhân hóa",
   description:
     "Nền tảng học tập thông minh được thiết kế để cá nhân hoá hành trình học của từng học sinh. Hệ thống phân rã kiến thức thành các đơn vị nhỏ (Knowledge Points), theo dõi mức độ nắm vững theo thờigian thực và tự động đề xuất nội dung phù hợp với năng lực hiện tại.",
   keywords: [
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Adaptive Learning Platform v3.0 - Học tập thông minh, cá nhân hóa",
+    title: "Adaptive Learning Platform - Học tập thông minh, cá nhân hóa",
     description:
       "Nền tảng học tập thông minh với cá nhân hóa theo thờigian thực. Phân rã kiến thức, theo dõi mastery và tự động đề xuất nội dung phù hợp.",
     type: "website",
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Adaptive Learning Platform v3.0",
+    title: "Adaptive Learning Platform",
     description:
       "Nền tảng học tập thông minh với cá nhân hóa theo thờigian thực",
     creator: "@adaptivelearning",

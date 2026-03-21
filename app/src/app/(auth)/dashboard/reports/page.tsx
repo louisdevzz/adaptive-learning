@@ -94,6 +94,63 @@ type LearningHealthData = {
   completions: number;
 };
 
+type AdminReportInsights = {
+  studentsByGrade: Array<{
+    gradeLevel: number;
+    studentCount: number;
+    avgMastery: number;
+  }>;
+  masteryBands: {
+    excellent: number;
+    good: number;
+    average: number;
+    atRisk: number;
+  };
+  weeklyActivity: Array<{
+    date: string;
+    attempts: number;
+    activeStudents: number;
+  }>;
+  summary: {
+    totalStudentsWithMastery: number;
+    atRiskStudents: number;
+    engagementRate: number;
+  };
+};
+
+type TeacherReportInsights = {
+  classRanking: Array<{
+    classId: string;
+    className: string;
+    gradeLevel: number | null;
+    studentCount: number;
+    avgMastery: number;
+  }>;
+  masteryBands: {
+    excellent: number;
+    good: number;
+    average: number;
+    atRisk: number;
+  };
+  weeklyActivity: Array<{
+    date: string;
+    attempts: number;
+    activeStudents: number;
+  }>;
+  atRiskByClass: Array<{
+    classId: string;
+    className: string;
+    atRiskStudents: number;
+    totalStudents: number;
+    atRiskRate: number;
+  }>;
+  summary: {
+    trackedStudents: number;
+    atRiskStudents: number;
+    averageClassMastery: number;
+  };
+};
+
 // Teacher Report Data Types
 type TeacherStats = {
   totalClasses: number;
@@ -171,6 +228,11 @@ function AdminReportsView({
     `/dashboard/learning-health?startDate=${startDate}&endDate=${endDate}`,
     fetcher
   );
+  const { data: adminInsights, isLoading: insightsLoading } =
+    useSWR<AdminReportInsights>(
+      `/dashboard/admin-report-insights?startDate=${startDate}&endDate=${endDate}`,
+      fetcher
+    );
 
   const isLoading =
     statsLoading ||
@@ -179,7 +241,8 @@ function AdminReportsView({
     distributionLoading ||
     teachersLoading ||
     lowProgressLoading ||
-    healthLoading;
+    healthLoading ||
+    insightsLoading;
 
   // Collect data for export
   useEffect(() => {
@@ -190,7 +253,8 @@ function AdminReportsView({
       classDistribution &&
       teacherHighlights &&
       lowProgressClasses &&
-      learningHealth
+      learningHealth &&
+      adminInsights
     ) {
       onDataLoaded({
         stats,
@@ -200,6 +264,7 @@ function AdminReportsView({
         teacherHighlights,
         lowProgressClasses,
         learningHealth,
+        insights: adminInsights,
         dateRange: { start: startDate, end: endDate },
       });
     }
@@ -211,6 +276,7 @@ function AdminReportsView({
     teacherHighlights,
     lowProgressClasses,
     learningHealth,
+    adminInsights,
     startDate,
     endDate,
     onDataLoaded,
@@ -269,7 +335,7 @@ function AdminReportsView({
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Courses */}
-        <Card>
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
           <CardHeader>
             <h3 className="text-lg font-bold">Top khóa học</h3>
             <p className="text-sm text-gray-500">
@@ -299,7 +365,7 @@ function AdminReportsView({
         </Card>
 
         {/* Difficult Knowledge Points */}
-        <Card>
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
           <CardHeader>
             <h3 className="text-lg font-bold">Điểm kiến thức khó</h3>
             <p className="text-sm text-gray-500">
@@ -334,7 +400,7 @@ function AdminReportsView({
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Class Distribution */}
-        <Card>
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
           <CardHeader>
             <h3 className="text-lg font-bold">Phân bố lớp học</h3>
             <p className="text-sm text-gray-500">Số học sinh theo lớp</p>
@@ -362,7 +428,7 @@ function AdminReportsView({
         </Card>
 
         {/* Teacher Highlights */}
-        <Card>
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
           <CardHeader>
             <h3 className="text-lg font-bold">Giáo viên tiêu biểu</h3>
             <p className="text-sm text-gray-500">Hoạt động tích cực nhất</p>
@@ -397,7 +463,7 @@ function AdminReportsView({
       </div>
 
       {/* Low Progress Classes */}
-      <Card>
+      <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
         <CardHeader>
           <h3 className="text-lg font-bold">Lớp cần chú ý</h3>
           <p className="text-sm text-gray-500">Các lớp có tiến độ thấp</p>
@@ -431,7 +497,7 @@ function AdminReportsView({
       </Card>
 
       {/* Learning Health Chart */}
-      <Card>
+      <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
         <CardHeader>
           <h3 className="text-lg font-bold">Sức khỏe học tập</h3>
           <p className="text-sm text-gray-500">
@@ -464,6 +530,145 @@ function AdminReportsView({
           </div>
         </CardBody>
       </Card>
+
+      {/* Advanced Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <h3 className="text-lg font-bold">Phân tầng năng lực học sinh</h3>
+            <p className="text-sm text-gray-500">
+              Theo mức mastery tổng hợp toàn hệ thống
+            </p>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              {[
+                { label: "Xuất sắc (>=85)", value: adminInsights?.masteryBands.excellent || 0, color: "bg-emerald-500" },
+                { label: "Tốt (70-84)", value: adminInsights?.masteryBands.good || 0, color: "bg-blue-500" },
+                { label: "Trung bình (50-69)", value: adminInsights?.masteryBands.average || 0, color: "bg-amber-500" },
+                { label: "Cần hỗ trợ (<50)", value: adminInsights?.masteryBands.atRisk || 0, color: "bg-red-500" },
+              ].map((band) => {
+                const total =
+                  (adminInsights?.summary.totalStudentsWithMastery || 0) || 1;
+                const percent = Math.round((band.value / total) * 100);
+
+                return (
+                  <div key={band.label} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{band.label}</span>
+                      <span className="font-semibold">
+                        {band.value} ({percent}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${band.color}`}
+                        style={{ width: `${Math.max(percent, 3)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                <p className="text-gray-500">HS có dữ liệu mastery</p>
+                <p className="text-xl font-bold">
+                  {adminInsights?.summary.totalStudentsWithMastery || 0}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="text-gray-500">HS cần hỗ trợ</p>
+                <p className="text-xl font-bold text-red-600">
+                  {adminInsights?.summary.atRiskStudents || 0}
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <h3 className="text-lg font-bold">Hoạt động học tập theo tuần</h3>
+            <p className="text-sm text-gray-500">
+              Lượt làm bài và số học sinh hoạt động mỗi ngày
+            </p>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-2">
+              {(adminInsights?.weeklyActivity || []).length === 0 ? (
+                <p className="text-sm text-gray-500">Chưa có dữ liệu hoạt động.</p>
+              ) : (
+                (adminInsights?.weeklyActivity || []).map((item) => {
+                  const maxAttempts = Math.max(
+                    ...((adminInsights?.weeklyActivity || []).map((entry) => entry.attempts) || [1])
+                  );
+                  const attemptPercent =
+                    maxAttempts > 0
+                      ? Math.round((item.attempts / maxAttempts) * 100)
+                      : 0;
+
+                  return (
+                    <div
+                      key={item.date}
+                      className="p-3 rounded-lg bg-gray-50 border border-gray-200"
+                    >
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>{item.date}</span>
+                        <span className="font-semibold">{item.attempts} lượt</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${Math.max(attemptPercent, 4)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {item.activeStudents} học sinh hoạt động
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+        <CardHeader>
+          <h3 className="text-lg font-bold">Mastery trung bình theo khối</h3>
+          <p className="text-sm text-gray-500">
+            So sánh quy mô và chất lượng học theo từng khối
+          </p>
+        </CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {(adminInsights?.studentsByGrade || []).map((grade) => (
+              <div
+                key={grade.gradeLevel}
+                className="p-4 rounded-lg border border-gray-200 bg-white"
+              >
+                <p className="text-sm text-gray-500">Khối {grade.gradeLevel}</p>
+                <p className="text-2xl font-bold mt-1">{grade.studentCount}</p>
+                <p className="text-xs text-gray-500">học sinh</p>
+                <div className="mt-3">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span>Mastery TB</span>
+                    <span className="font-semibold">{grade.avgMastery}%</span>
+                  </div>
+                  <Progress
+                    value={grade.avgMastery}
+                    size="sm"
+                    color={grade.avgMastery >= 70 ? "success" : grade.avgMastery >= 50 ? "warning" : "danger"}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }
@@ -484,18 +689,23 @@ function TeacherReportsView({
     "/dashboard/teacher-stats",
     fetcher
   );
+  const { data: insights, isLoading: insightsLoading } = useSWR<TeacherReportInsights>(
+    `/dashboard/teacher-report-insights?startDate=${startDate}&endDate=${endDate}`,
+    fetcher
+  );
 
-  const isLoading = statsLoading;
+  const isLoading = statsLoading || insightsLoading;
 
   // Collect data for export
   useEffect(() => {
-    if (stats) {
+    if (stats && insights) {
       onDataLoaded({
         stats,
+        insights,
         dateRange: { start: startDate, end: endDate },
       });
     }
-  }, [stats, startDate, endDate, onDataLoaded]);
+  }, [stats, insights, startDate, endDate, onDataLoaded]);
 
   if (isLoading) {
     return (
@@ -542,8 +752,8 @@ function TeacherReportsView({
       </div>
 
       {/* Class Details */}
-      <Card>
-        <CardHeader>
+      <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+        <CardHeader className="flex flex-row gap-2">
           <h3 className="text-lg font-bold">Tiến độ các lớp</h3>
           <p className="text-sm text-gray-500">
             Chi tiết tiến độ học tập theo lớp
@@ -583,8 +793,8 @@ function TeacherReportsView({
       </Card>
 
       {/* Struggling Students */}
-      <Card>
-        <CardHeader>
+      <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+        <CardHeader className="flex flex-row gap-2">
           <h3 className="text-lg font-bold">Học sinh cần hỗ trợ</h3>
           <p className="text-sm text-gray-500">
             Học sinh có tiến độ thấp (dưới 50%)
@@ -641,6 +851,144 @@ function TeacherReportsView({
           )}
         </CardBody>
       </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <h3 className="text-lg font-bold">Phân tầng mastery lớp phụ trách</h3>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              {[
+                { label: "Xuất sắc (>=85)", value: insights?.masteryBands.excellent || 0, color: "bg-emerald-500" },
+                { label: "Tốt (70-84)", value: insights?.masteryBands.good || 0, color: "bg-blue-500" },
+                { label: "Trung bình (50-69)", value: insights?.masteryBands.average || 0, color: "bg-amber-500" },
+                { label: "Cần hỗ trợ (<50)", value: insights?.masteryBands.atRisk || 0, color: "bg-red-500" },
+              ].map((band) => {
+                const total = (insights?.summary.trackedStudents || 0) || 1;
+                const percent = Math.round((band.value / total) * 100);
+
+                return (
+                  <div key={band.label} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>{band.label}</span>
+                      <span className="font-semibold">{band.value} ({percent}%)</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${band.color}`}
+                        style={{ width: `${Math.max(percent, 3)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+              <div className="p-2 rounded-lg border border-gray-200 bg-gray-50">
+                <p className="text-gray-500">HS theo dõi</p>
+                <p className="font-bold text-lg">{insights?.summary.trackedStudents || 0}</p>
+              </div>
+              <div className="p-2 rounded-lg border border-red-100 bg-red-50">
+                <p className="text-gray-500">HS rủi ro</p>
+                <p className="font-bold text-lg text-red-600">{insights?.summary.atRiskStudents || 0}</p>
+              </div>
+              <div className="p-2 rounded-lg border border-cyan-100 bg-cyan-50">
+                <p className="text-gray-500">Mastery lớp</p>
+                <p className="font-bold text-lg text-cyan-700">{insights?.summary.averageClassMastery || 0}%</p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <h3 className="text-lg font-bold">Xu hướng hoạt động theo ngày</h3>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-2">
+              {(insights?.weeklyActivity || []).length === 0 ? (
+                <p className="text-sm text-gray-500">Chưa có dữ liệu hoạt động.</p>
+              ) : (
+                (insights?.weeklyActivity || []).map((item) => {
+                  const maxAttempts = Math.max(
+                    ...((insights?.weeklyActivity || []).map((entry) => entry.attempts) || [1])
+                  );
+                  const attemptPercent =
+                    maxAttempts > 0
+                      ? Math.round((item.attempts / maxAttempts) * 100)
+                      : 0;
+
+                  return (
+                    <div
+                      key={item.date}
+                      className="p-3 rounded-lg bg-gray-50 border border-gray-200"
+                    >
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>{item.date}</span>
+                        <span className="font-semibold">{item.attempts} lượt</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${Math.max(attemptPercent, 4)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {item.activeStudents} học sinh hoạt động
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
+        <CardHeader className='flex flex-row gap-2'>
+          <h3 className="text-lg font-bold">Lớp có tỷ lệ học sinh rủi ro cao</h3>
+          <p className="text-sm text-gray-500">
+            Ưu tiên can thiệp theo tỷ lệ học sinh dưới ngưỡng 50%
+          </p>
+        </CardHeader>
+        <CardBody>
+          {(insights?.atRiskByClass || []).length === 0 ? (
+            <p className="text-sm text-gray-500">Không có dữ liệu lớp rủi ro.</p>
+          ) : (
+            <div className="space-y-3">
+              {(insights?.atRiskByClass || []).map((item) => (
+                <div
+                  key={item.classId}
+                  className="p-3 rounded-lg border border-gray-200 bg-white"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="font-semibold">{item.className}</p>
+                    <Chip
+                      size="sm"
+                      color={item.atRiskRate >= 40 ? "danger" : item.atRiskRate >= 20 ? "warning" : "success"}
+                      variant="flat"
+                    >
+                      {item.atRiskRate}%
+                    </Chip>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {item.atRiskStudents}/{item.totalStudents} học sinh cần hỗ trợ
+                  </p>
+                  <Progress
+                    value={item.atRiskRate}
+                    size="sm"
+                    color={item.atRiskRate >= 40 ? "danger" : item.atRiskRate >= 20 ? "warning" : "success"}
+                    className="mt-2"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }
@@ -658,7 +1006,7 @@ function StatCard({
   color: string;
 }) {
   return (
-    <Card>
+    <Card shadow="none" className="border border-gray-200 dark:border-gray-700">
       <CardBody className="flex flex-row items-center gap-4">
         <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center`}>
           <Icon className="w-6 h-6" />
@@ -681,12 +1029,30 @@ type AdminReportData = {
   teacherHighlights: TeacherHighlight[];
   lowProgressClasses: LowProgressClass[];
   learningHealth: LearningHealthData[];
+  insights: AdminReportInsights;
   dateRange: { start: string; end: string };
 };
 
 type TeacherReportData = {
   stats: TeacherStats;
+  insights: TeacherReportInsights;
   dateRange: { start: string; end: string };
+};
+
+type TeacherAnalysis = {
+  totalStudentsFromClasses: number;
+  averageClassSize: number;
+  bestClass: TeacherStats["classes"][number] | null;
+  lowestClass: TeacherStats["classes"][number] | null;
+  classesAtOrAbove70: number;
+  classesBelow50: number;
+  strugglingStudentsCount: number;
+  strugglingStudentsRate: number;
+  progressDistribution: Array<{
+    label: string;
+    count: number;
+    percentage: number;
+  }>;
 };
 
 type ReportRole = "admin" | "teacher";
@@ -715,6 +1081,87 @@ const buildPdfTable = (
   margin: [0, 6, 0, 12] as [number, number, number, number],
   fontSize: 10,
 });
+
+const getClassPerformanceLabel = (progress: number): string => {
+  if (progress >= 85) return "Xuất sắc";
+  if (progress >= 70) return "Tốt";
+  if (progress >= 50) return "Trung bình";
+  return "Cần cải thiện";
+};
+
+const getSupportPriority = (avgMastery: number): string => {
+  if (avgMastery < 30) return "Ưu tiên cao";
+  if (avgMastery < 50) return "Ưu tiên vừa";
+  return "Theo dõi";
+};
+
+const buildTeacherAnalysis = (stats: TeacherStats): TeacherAnalysis => {
+  const classes = stats.classes ?? [];
+  const strugglingStudents = stats.strugglingStudents ?? [];
+
+  const totalStudentsFromClasses = classes.reduce(
+    (accumulator, classItem) => accumulator + classItem.students,
+    0
+  );
+
+  const averageClassSize =
+    classes.length > 0
+      ? Math.round((totalStudentsFromClasses / classes.length) * 10) / 10
+      : 0;
+
+  const sortedByProgress = [...classes].sort((a, b) => b.progress - a.progress);
+  const bestClass = sortedByProgress[0] ?? null;
+  const lowestClass =
+    sortedByProgress.length > 0 ? sortedByProgress[sortedByProgress.length - 1] : null;
+
+  const classesAtOrAbove70 = classes.filter((classItem) => classItem.progress >= 70).length;
+  const classesBelow50 = classes.filter((classItem) => classItem.progress < 50).length;
+
+  const strugglingStudentsCount = strugglingStudents.length;
+  const strugglingStudentsRate =
+    totalStudentsFromClasses > 0
+      ? Math.round((strugglingStudentsCount / totalStudentsFromClasses) * 1000) / 10
+      : 0;
+
+  const distributionBase = [
+    {
+      label: ">= 85% (Xuất sắc)",
+      count: classes.filter((classItem) => classItem.progress >= 85).length,
+    },
+    {
+      label: "70% - 84% (Tốt)",
+      count: classes.filter((classItem) => classItem.progress >= 70 && classItem.progress < 85).length,
+    },
+    {
+      label: "50% - 69% (Trung bình)",
+      count: classes.filter((classItem) => classItem.progress >= 50 && classItem.progress < 70).length,
+    },
+    {
+      label: "< 50% (Cần cải thiện)",
+      count: classes.filter((classItem) => classItem.progress < 50).length,
+    },
+  ];
+
+  const progressDistribution = distributionBase.map((item) => ({
+    ...item,
+    percentage:
+      classes.length > 0
+        ? Math.round((item.count / classes.length) * 1000) / 10
+        : 0,
+  }));
+
+  return {
+    totalStudentsFromClasses,
+    averageClassSize,
+    bestClass,
+    lowestClass,
+    classesAtOrAbove70,
+    classesBelow50,
+    strugglingStudentsCount,
+    strugglingStudentsRate,
+    progressDistribution,
+  };
+};
 
 async function exportToPDF(
   role: ReportRole,
@@ -779,10 +1226,36 @@ async function exportToPDF(
       alignment: "center",
       margin: [0, 0, 0, 10],
     },
+    {
+      text: `Thời điểm xuất: ${new Date().toLocaleString("vi-VN")}`,
+      style: "subtitle",
+      alignment: "center",
+      margin: [0, 0, 0, 10],
+    },
   ];
 
   if (role === "admin") {
     const adminData = data as AdminReportData;
+    const masteryBands = [
+      {
+        label: "Xuất sắc (>=85)",
+        count: adminData.insights.masteryBands.excellent,
+      },
+      {
+        label: "Tốt (70-84)",
+        count: adminData.insights.masteryBands.good,
+      },
+      {
+        label: "Trung bình (50-69)",
+        count: adminData.insights.masteryBands.average,
+      },
+      {
+        label: "Cần hỗ trợ (<50)",
+        count: adminData.insights.masteryBands.atRisk,
+      },
+    ];
+    const totalStudentsWithMastery =
+      adminData.insights.summary.totalStudentsWithMastery || 1;
 
     content.push(
       { text: "1. Thống kê tổng quan", style: "sectionHeader" },
@@ -795,19 +1268,50 @@ async function exportToPDF(
           ["Tiến độ trung bình", `${adminData.stats.averageProgress}%`],
           ["Tỷ lệ bỏ học", `${adminData.stats.dropoutRate}%`],
           ["Thời gian học TB", `${adminData.stats.avgStudyTimeMinutes} phút`],
+          [
+            "Tỷ lệ tương tác",
+            `${adminData.insights.summary.engagementRate}%`,
+          ],
         ]
       ),
-      { text: "2. Top khóa học", style: "sectionHeader" },
+      { text: "2. Phân tầng năng lực học sinh", style: "sectionHeader" },
+      buildPdfTable(
+        ["Nhóm năng lực", "Số học sinh", "Tỷ lệ"],
+        masteryBands.map((item) => [
+          item.label,
+          item.count,
+          `${Math.round((item.count / totalStudentsWithMastery) * 100)}%`,
+        ])
+      ),
+      { text: "3. Mastery trung bình theo khối", style: "sectionHeader" },
+      buildPdfTable(
+        ["Khối", "Số học sinh", "Mastery TB"],
+        adminData.insights.studentsByGrade.map((grade) => [
+          `Khối ${grade.gradeLevel}`,
+          grade.studentCount,
+          `${grade.avgMastery}%`,
+        ])
+      ),
+      { text: "4. Hoạt động học tập theo ngày", style: "sectionHeader" },
+      buildPdfTable(
+        ["Ngày", "Lượt làm bài", "HS hoạt động"],
+        adminData.insights.weeklyActivity.map((item) => [
+          item.date,
+          item.attempts,
+          item.activeStudents,
+        ])
+      ),
+      { text: "5. Top khóa học", style: "sectionHeader" },
       buildPdfTable(
         ["Thứ hạng", "Tên khóa học", "Môn học", "Tiến độ"],
         adminData.topCourses.map((c, i) => [i + 1, c.name, c.subject, `${c.progress}%`])
       ),
-      { text: "3. Điểm kiến thức khó", style: "sectionHeader" },
+      { text: "6. Điểm kiến thức khó", style: "sectionHeader" },
       buildPdfTable(
         ["Tên KP", "Tỷ lệ sai", "Số lần thử"],
         adminData.difficultKPs.map((kp) => [kp.name, `${kp.failRate}%`, kp.totalAttempts])
       ),
-      { text: "4. Lớp cần chú ý", style: "sectionHeader" },
+      { text: "7. Lớp cần chú ý", style: "sectionHeader" },
       buildPdfTable(
         ["Lớp", "Khối", "Tiến độ TB", "Vấn đề"],
         adminData.lowProgressClasses.map((c) => [
@@ -820,6 +1324,13 @@ async function exportToPDF(
     );
   } else {
     const teacherData = data as TeacherReportData;
+    const analysis = buildTeacherAnalysis(teacherData.stats);
+    const classRanking = [...teacherData.stats.classes].sort(
+      (a, b) => b.progress - a.progress
+    );
+    const strugglingStudentsSorted = [...teacherData.stats.strugglingStudents].sort(
+      (a, b) => a.avgMastery - b.avgMastery
+    );
 
     content.push(
       { text: "1. Thống kê tổng quan", style: "sectionHeader" },
@@ -833,31 +1344,76 @@ async function exportToPDF(
           ["Tiến độ trung bình", `${teacherData.stats.averageProgress}%`],
         ]
       ),
-      { text: "2. Chi tiết các lớp", style: "sectionHeader" },
+      { text: "2. Phân tích tổng hợp", style: "sectionHeader" },
       buildPdfTable(
-        ["Lớp", "Khối", "Số học sinh", "Tiến độ"],
-        teacherData.stats.classes.map((c) => [
+        ["Chỉ số phân tích", "Giá trị"],
+        [
+          ["Tổng học sinh từ dữ liệu lớp", analysis.totalStudentsFromClasses],
+          ["Sĩ số trung bình/lớp", analysis.averageClassSize],
+          [
+            "Lớp có tiến độ cao nhất",
+            analysis.bestClass
+              ? `${analysis.bestClass.name} (${analysis.bestClass.progress}%)`
+              : "Không có dữ liệu",
+          ],
+          [
+            "Lớp cần ưu tiên nhất",
+            analysis.lowestClass
+              ? `${analysis.lowestClass.name} (${analysis.lowestClass.progress}%)`
+              : "Không có dữ liệu",
+          ],
+          ["Số lớp đạt từ 70%", analysis.classesAtOrAbove70],
+          ["Số lớp dưới 50%", analysis.classesBelow50],
+          [
+            "Học sinh cần hỗ trợ",
+            `${analysis.strugglingStudentsCount} (${analysis.strugglingStudentsRate}%)`,
+          ],
+        ]
+      ),
+      { text: "3. Phân bố chất lượng lớp", style: "sectionHeader" },
+      buildPdfTable(
+        ["Nhóm tiến độ", "Số lớp", "Tỷ lệ"],
+        analysis.progressDistribution.map((item) => [
+          item.label,
+          item.count,
+          `${item.percentage}%`,
+        ])
+      ),
+      { text: "4. Chi tiết lớp (xếp hạng)", style: "sectionHeader" },
+      buildPdfTable(
+        ["#", "Lớp", "Khối", "Sĩ số", "Tiến độ", "Đánh giá"],
+        classRanking.map((c, index) => [
+          index + 1,
           c.name,
           c.gradeLevel || "-",
           c.students,
           `${c.progress}%`,
+          getClassPerformanceLabel(c.progress),
         ])
       )
     );
 
-    if (teacherData.stats.strugglingStudents.length > 0) {
+    if (strugglingStudentsSorted.length > 0) {
       content.push(
-        { text: "3. Học sinh cần hỗ trợ", style: "sectionHeader" },
+        { text: "5. Học sinh cần hỗ trợ (ưu tiên)", style: "sectionHeader" },
         buildPdfTable(
-          ["Học sinh", "Lớp", "Tiến độ", "Vấn đề"],
-          teacherData.stats.strugglingStudents.map((s) => [
+          ["#", "Học sinh", "Lớp", "Mastery", "Mức ưu tiên", "Vấn đề"],
+          strugglingStudentsSorted.map((s, index) => [
+            index + 1,
             s.name,
             s.className,
             `${s.avgMastery}%`,
+            getSupportPriority(s.avgMastery),
             s.issue,
           ])
         )
       );
+    } else {
+      content.push({
+        text: "5. Học sinh cần hỗ trợ: Không có học sinh nào dưới ngưỡng cảnh báo trong giai đoạn đã chọn.",
+        style: "subtitle",
+        margin: [0, 6, 0, 0],
+      });
     }
   }
 
@@ -908,6 +1464,12 @@ function exportToExcel(
 
   if (role === "admin") {
     const adminData = data as AdminReportData;
+    const masteryBandRows = [
+      ["Xuất sắc (>=85)", adminData.insights.masteryBands.excellent],
+      ["Tốt (70-84)", adminData.insights.masteryBands.good],
+      ["Trung bình (50-69)", adminData.insights.masteryBands.average],
+      ["Cần hỗ trợ (<50)", adminData.insights.masteryBands.atRisk],
+    ];
 
     // Stats sheet
     const statsWs = XLSX.utils.aoa_to_sheet([
@@ -922,8 +1484,41 @@ function exportToExcel(
       ["Tiến độ trung bình", `${adminData.stats.averageProgress}%`],
       ["Tỷ lệ bỏ học", `${adminData.stats.dropoutRate}%`],
       ["Thời gian học TB", `${adminData.stats.avgStudyTimeMinutes} phút`],
+      ["Tỷ lệ tương tác", `${adminData.insights.summary.engagementRate}%`],
     ]);
     XLSX.utils.book_append_sheet(wb, statsWs, "Thống kê");
+
+    const masteryWs = XLSX.utils.aoa_to_sheet([
+      ["PHÂN TẦNG NĂNG LỰC HỌC SINH"],
+      ["Nhóm năng lực", "Số học sinh"],
+      ...masteryBandRows,
+      [],
+      ["Tổng HS có dữ liệu mastery", adminData.insights.summary.totalStudentsWithMastery],
+      ["HS cần hỗ trợ", adminData.insights.summary.atRiskStudents],
+    ]);
+    XLSX.utils.book_append_sheet(wb, masteryWs, "Phân tầng HS");
+
+    const gradeMasteryWs = XLSX.utils.aoa_to_sheet([
+      ["MASTERY TRUNG BÌNH THEO KHỐI"],
+      ["Khối", "Số học sinh", "Mastery TB"],
+      ...adminData.insights.studentsByGrade.map((grade) => [
+        `Khối ${grade.gradeLevel}`,
+        grade.studentCount,
+        `${grade.avgMastery}%`,
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, gradeMasteryWs, "Mastery theo khối");
+
+    const weeklyActivityWs = XLSX.utils.aoa_to_sheet([
+      ["HOẠT ĐỘNG HỌC TẬP THEO NGÀY"],
+      ["Ngày", "Lượt làm bài", "HS hoạt động"],
+      ...adminData.insights.weeklyActivity.map((item) => [
+        item.date,
+        item.attempts,
+        item.activeStudents,
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, weeklyActivityWs, "Hoạt động");
 
     // Top courses sheet
     const coursesWs = XLSX.utils.aoa_to_sheet([
@@ -971,6 +1566,13 @@ function exportToExcel(
     XLSX.utils.book_append_sheet(wb, healthWs, "Sức khỏe học tập");
   } else {
     const teacherData = data as TeacherReportData;
+    const analysis = buildTeacherAnalysis(teacherData.stats);
+    const classRanking = [...teacherData.stats.classes].sort(
+      (a, b) => b.progress - a.progress
+    );
+    const strugglingStudentsSorted = [...teacherData.stats.strugglingStudents].sort(
+      (a, b) => a.avgMastery - b.avgMastery
+    );
 
     // Stats sheet
     const statsWs = XLSX.utils.aoa_to_sheet([
@@ -987,28 +1589,66 @@ function exportToExcel(
     ]);
     XLSX.utils.book_append_sheet(wb, statsWs, "Thống kê");
 
+    const analysisWs = XLSX.utils.aoa_to_sheet([
+      ["PHÂN TÍCH TỔNG HỢP"],
+      ["Chỉ số phân tích", "Giá trị"],
+      ["Tổng học sinh từ dữ liệu lớp", analysis.totalStudentsFromClasses],
+      ["Sĩ số trung bình/lớp", analysis.averageClassSize],
+      [
+        "Lớp có tiến độ cao nhất",
+        analysis.bestClass
+          ? `${analysis.bestClass.name} (${analysis.bestClass.progress}%)`
+          : "Không có dữ liệu",
+      ],
+      [
+        "Lớp cần ưu tiên nhất",
+        analysis.lowestClass
+          ? `${analysis.lowestClass.name} (${analysis.lowestClass.progress}%)`
+          : "Không có dữ liệu",
+      ],
+      ["Số lớp đạt từ 70%", analysis.classesAtOrAbove70],
+      ["Số lớp dưới 50%", analysis.classesBelow50],
+      [
+        "Học sinh cần hỗ trợ",
+        `${analysis.strugglingStudentsCount} (${analysis.strugglingStudentsRate}%)`,
+      ],
+      [],
+      ["PHÂN BỐ CHẤT LƯỢNG LỚP"],
+      ["Nhóm tiến độ", "Số lớp", "Tỷ lệ"],
+      ...analysis.progressDistribution.map((item) => [
+        item.label,
+        item.count,
+        `${item.percentage}%`,
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, analysisWs, "Phân tích");
+
     // Class details sheet
     const classesWs = XLSX.utils.aoa_to_sheet([
-      ["CHI TIẾT CÁC LỚP"],
-      ["Lớp", "Khối", "Số học sinh", "Tiến độ"],
-      ...teacherData.stats.classes.map((c) => [
+      ["CHI TIẾT CÁC LỚP (XẾP HẠNG)"],
+      ["#", "Lớp", "Khối", "Số học sinh", "Tiến độ", "Đánh giá"],
+      ...classRanking.map((c, index) => [
+        index + 1,
         c.name,
         c.gradeLevel || "-",
         c.students,
         `${c.progress}%`,
+        getClassPerformanceLabel(c.progress),
       ]),
     ]);
     XLSX.utils.book_append_sheet(wb, classesWs, "Chi tiết lớp");
 
     // Struggling students sheet
-    if (teacherData.stats.strugglingStudents.length > 0) {
+    if (strugglingStudentsSorted.length > 0) {
       const strugglingWs = XLSX.utils.aoa_to_sheet([
-        ["HỌC SINH CẦN HỖ TRỢ"],
-        ["Học sinh", "Lớp", "Tiến độ", "Vấn đề"],
-        ...teacherData.stats.strugglingStudents.map((s) => [
+        ["HỌC SINH CẦN HỖ TRỢ (ƯU TIÊN)"],
+        ["#", "Học sinh", "Lớp", "Tiến độ", "Mức ưu tiên", "Vấn đề"],
+        ...strugglingStudentsSorted.map((s, index) => [
+          index + 1,
           s.name,
           s.className,
           `${s.avgMastery}%`,
+          getSupportPriority(s.avgMastery),
           s.issue,
         ]),
       ]);
@@ -1041,6 +1681,12 @@ async function exportToWord(
 
   if (role === "admin") {
     const adminData = data as AdminReportData;
+    const masteryBands = [
+      ["Xuất sắc (>=85)", adminData.insights.masteryBands.excellent],
+      ["Tốt (70-84)", adminData.insights.masteryBands.good],
+      ["Trung bình (50-69)", adminData.insights.masteryBands.average],
+      ["Cần hỗ trợ (<50)", adminData.insights.masteryBands.atRisk],
+    ];
 
     // Stats section
     docChildren.push(
@@ -1088,14 +1734,129 @@ async function exportToWord(
             }),
           ],
         }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Tỷ lệ bỏ học")] }),
+            new TableCell({
+              children: [new Paragraph(`${adminData.stats.dropoutRate}%`)],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Thời gian học trung bình")] }),
+            new TableCell({
+              children: [new Paragraph(`${adminData.stats.avgStudyTimeMinutes} phút`)],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Tỷ lệ tương tác")] }),
+            new TableCell({
+              children: [new Paragraph(`${adminData.insights.summary.engagementRate}%`)],
+            }),
+          ],
+        }),
       ],
       width: { size: 100, type: WidthType.PERCENTAGE },
     });
     docChildren.push(new Paragraph({ children: [statsTable] }), new Paragraph({ text: "" }));
 
+    docChildren.push(
+      new Paragraph({ text: "2. PHÂN TẦNG NĂNG LỰC HỌC SINH", heading: "Heading2" }),
+      new Paragraph({ text: "" })
+    );
+
+    const masteryTable = new Table({
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Nhóm năng lực")] }),
+            new TableCell({ children: [new Paragraph("Số học sinh")] }),
+          ],
+        }),
+        ...masteryBands.map(
+          (item) =>
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph(String(item[0]))] }),
+                new TableCell({ children: [new Paragraph(String(item[1]))] }),
+              ],
+            })
+        ),
+      ],
+      width: { size: 100, type: WidthType.PERCENTAGE },
+    });
+    docChildren.push(new Paragraph({ children: [masteryTable] }), new Paragraph({ text: "" }));
+
+    docChildren.push(
+      new Paragraph({ text: "3. MASTERY TRUNG BÌNH THEO KHỐI", heading: "Heading2" }),
+      new Paragraph({ text: "" })
+    );
+
+    const gradeMasteryTable = new Table({
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Khối")] }),
+            new TableCell({ children: [new Paragraph("Số học sinh")] }),
+            new TableCell({ children: [new Paragraph("Mastery TB")] }),
+          ],
+        }),
+        ...adminData.insights.studentsByGrade.map(
+          (grade) =>
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph(`Khối ${grade.gradeLevel}`)] }),
+                new TableCell({ children: [new Paragraph(grade.studentCount.toString())] }),
+                new TableCell({ children: [new Paragraph(`${grade.avgMastery}%`)] }),
+              ],
+            })
+        ),
+      ],
+      width: { size: 100, type: WidthType.PERCENTAGE },
+    });
+    docChildren.push(
+      new Paragraph({ children: [gradeMasteryTable] }),
+      new Paragraph({ text: "" })
+    );
+
+    docChildren.push(
+      new Paragraph({ text: "4. HOẠT ĐỘNG HỌC TẬP THEO NGÀY", heading: "Heading2" }),
+      new Paragraph({ text: "" })
+    );
+
+    const weeklyActivityTable = new Table({
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Ngày")] }),
+            new TableCell({ children: [new Paragraph("Lượt làm bài")] }),
+            new TableCell({ children: [new Paragraph("HS hoạt động")] }),
+          ],
+        }),
+        ...adminData.insights.weeklyActivity.map(
+          (item) =>
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph(item.date)] }),
+                new TableCell({ children: [new Paragraph(item.attempts.toString())] }),
+                new TableCell({ children: [new Paragraph(item.activeStudents.toString())] }),
+              ],
+            })
+        ),
+      ],
+      width: { size: 100, type: WidthType.PERCENTAGE },
+    });
+    docChildren.push(
+      new Paragraph({ children: [weeklyActivityTable] }),
+      new Paragraph({ text: "" })
+    );
+
     // Top courses
     docChildren.push(
-      new Paragraph({ text: "2. TOP KHÓA HỌC", heading: "Heading2" }),
+      new Paragraph({ text: "5. TOP KHÓA HỌC", heading: "Heading2" }),
       new Paragraph({ text: "" })
     );
 
@@ -1127,7 +1888,7 @@ async function exportToWord(
 
     // Low progress classes
     docChildren.push(
-      new Paragraph({ text: "3. LỚP CẦN CHÚ Ý", heading: "Heading2" }),
+      new Paragraph({ text: "6. LỚP CẦN CHÚ Ý", heading: "Heading2" }),
       new Paragraph({ text: "" })
     );
 
@@ -1158,6 +1919,13 @@ async function exportToWord(
     docChildren.push(new Paragraph({ children: [lowTable] }));
   } else {
     const teacherData = data as TeacherReportData;
+    const analysis = buildTeacherAnalysis(teacherData.stats);
+    const classRanking = [...teacherData.stats.classes].sort(
+      (a, b) => b.progress - a.progress
+    );
+    const strugglingStudentsSorted = [...teacherData.stats.strugglingStudents].sort(
+      (a, b) => a.avgMastery - b.avgMastery
+    );
 
     // Stats section
     docChildren.push(
@@ -1210,9 +1978,84 @@ async function exportToWord(
     });
     docChildren.push(new Paragraph({ children: [statsTable] }), new Paragraph({ text: "" }));
 
+    docChildren.push(
+      new Paragraph({ text: "2. PHÂN TÍCH TỔNG HỢP", heading: "Heading2" }),
+      new Paragraph({ text: "" })
+    );
+
+    const analysisTable = new Table({
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Chỉ số phân tích")] }),
+            new TableCell({ children: [new Paragraph("Giá trị")] }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Tổng học sinh từ dữ liệu lớp")] }),
+            new TableCell({
+              children: [new Paragraph(analysis.totalStudentsFromClasses.toString())],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Sĩ số trung bình/lớp")] }),
+            new TableCell({
+              children: [new Paragraph(analysis.averageClassSize.toString())],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Lớp có tiến độ cao nhất")] }),
+            new TableCell({
+              children: [
+                new Paragraph(
+                  analysis.bestClass
+                    ? `${analysis.bestClass.name} (${analysis.bestClass.progress}%)`
+                    : "Không có dữ liệu"
+                ),
+              ],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Lớp cần ưu tiên nhất")] }),
+            new TableCell({
+              children: [
+                new Paragraph(
+                  analysis.lowestClass
+                    ? `${analysis.lowestClass.name} (${analysis.lowestClass.progress}%)`
+                    : "Không có dữ liệu"
+                ),
+              ],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph("Học sinh cần hỗ trợ")] }),
+            new TableCell({
+              children: [
+                new Paragraph(
+                  `${analysis.strugglingStudentsCount} (${analysis.strugglingStudentsRate}%)`
+                ),
+              ],
+            }),
+          ],
+        }),
+      ],
+      width: { size: 100, type: WidthType.PERCENTAGE },
+    });
+
+    docChildren.push(new Paragraph({ children: [analysisTable] }), new Paragraph({ text: "" }));
+
     // Class details
     docChildren.push(
-      new Paragraph({ text: "2. CHI TIẾT CÁC LỚP", heading: "Heading2" }),
+      new Paragraph({ text: "3. CHI TIẾT CÁC LỚP", heading: "Heading2" }),
       new Paragraph({ text: "" })
     );
 
@@ -1226,14 +2069,20 @@ async function exportToWord(
             new TableCell({ children: [new Paragraph("Tiến độ")] }),
           ],
         }),
-        ...teacherData.stats.classes.map(
+        ...classRanking.map(
           (c) =>
             new TableRow({
               children: [
                 new TableCell({ children: [new Paragraph(c.name)] }),
                 new TableCell({ children: [new Paragraph(c.gradeLevel?.toString() || "-")] }),
                 new TableCell({ children: [new Paragraph(c.students.toString())] }),
-                new TableCell({ children: [new Paragraph(`${c.progress}%`)] }),
+                new TableCell({
+                  children: [
+                    new Paragraph(
+                      `${c.progress}% (${getClassPerformanceLabel(c.progress)})`
+                    ),
+                  ],
+                }),
               ],
             })
         ),
@@ -1243,10 +2092,10 @@ async function exportToWord(
     docChildren.push(new Paragraph({ children: [classesTable] }));
 
     // Struggling students
-    if (teacherData.stats.strugglingStudents.length > 0) {
+    if (strugglingStudentsSorted.length > 0) {
       docChildren.push(
         new Paragraph({ text: "" }),
-        new Paragraph({ text: "3. HỌC SINH CẦN HỖ TRỢ", heading: "Heading2" }),
+        new Paragraph({ text: "4. HỌC SINH CẦN HỖ TRỢ", heading: "Heading2" }),
         new Paragraph({ text: "" })
       );
 
@@ -1260,13 +2109,19 @@ async function exportToWord(
               new TableCell({ children: [new Paragraph("Vấn đề")] }),
             ],
           }),
-          ...teacherData.stats.strugglingStudents.map(
+          ...strugglingStudentsSorted.map(
             (s) =>
               new TableRow({
                 children: [
                   new TableCell({ children: [new Paragraph(s.name)] }),
                   new TableCell({ children: [new Paragraph(s.className)] }),
-                  new TableCell({ children: [new Paragraph(`${s.avgMastery}%`)] }),
+                  new TableCell({
+                    children: [
+                      new Paragraph(
+                        `${s.avgMastery}% (${getSupportPriority(s.avgMastery)})`
+                      ),
+                    ],
+                  }),
                   new TableCell({ children: [new Paragraph(s.issue)] }),
                 ],
               })

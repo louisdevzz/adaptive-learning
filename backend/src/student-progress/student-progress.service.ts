@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -15,19 +16,27 @@ import {
   knowledgePoint,
   questionAttempts,
   questionBank,
+  questionMetadata,
   kpExercises,
   timeOnTask,
   sectionKpMap,
   modules,
   sections,
+  courses,
 } from '../../db';
 import { UpdateKpProgressDto } from './dto/update-kp-progress.dto';
 import { SubmitQuestionAttemptDto } from './dto/submit-question-attempt.dto';
 import { SubmitContentQuestionDto } from './dto/submit-content-question.dto';
+import { BktMasteryService } from './bkt-mastery.service';
 
 @Injectable()
 export class StudentProgressService {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  private readonly logger = new Logger(StudentProgressService.name);
+
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly bktMasteryService: BktMasteryService,
+  ) {}
 
   // ==================== STUDENT KP PROGRESS ====================
 
@@ -383,34 +392,40 @@ export class StudentProgressService {
         })
         .returning();
 
-      // Get all attempts for this KP to calculate mastery score
-      const allAttempts = await tx
-        .select()
+      // Count total attempts for confidence calculation
+      const [attemptCount] = await tx
+        .select({
+          count: sql<number>`COUNT(*)`,
+        })
         .from(questionAttempts)
         .where(
           and(
             eq(questionAttempts.studentId, submitDto.studentId),
             eq(questionAttempts.kpId, submitDto.kpId),
           ),
-        )
-        .orderBy(desc(questionAttempts.attemptTime));
+        );
 
-      // Simplified mastery calculation (Option 3)
-      // If latest attempt is correct: mastery = 100%
-      // Otherwise: mastery = 0%
-      const latestAttempt = allAttempts[0];
-      const totalAttempts = allAttempts.length;
+      const totalAttempts = Number(attemptCount?.count || 1);
 
-      if (!latestAttempt) {
-        throw new BadRequestException('Failed to create attempt');
-      }
+      // BKT mastery calculation
+      // Get question metadata for BKT parameter derivation
+      const qMeta = await tx
+        .select({
+          difficulty: questionMetadata.difficulty,
+          discrimination: questionMetadata.discrimination,
+        })
+        .from(questionMetadata)
+        .where(eq(questionMetadata.questionId, submitDto.questionId))
+        .limit(1);
 
-      // Simple logic: latest attempt correct = 100% mastery
-      const masteryScore = latestAttempt.isCorrect ? 100 : 0;
-      const confidence = Math.min(100, Math.round((totalAttempts / 10) * 100)); // Confidence based on attempt count
+      const bktParams = this.bktMasteryService.deriveBktParams({
+        questionDifficulty: qMeta[0]?.difficulty,
+        discrimination: qMeta[0]?.discrimination,
+        kpDifficultyLevel: kpResult[0].difficultyLevel,
+      });
 
-      // Get existing progress
-      const existing = await tx
+      // Get existing progress to use as prior
+      const existingForBkt = await tx
         .select()
         .from(studentKpProgress)
         .where(
@@ -421,10 +436,27 @@ export class StudentProgressService {
         )
         .limit(1);
 
-      const oldScore = existing.length > 0 ? existing[0].masteryScore : 0;
+      const priorPL =
+        existingForBkt.length > 0
+          ? this.bktMasteryService.masteryScoreToPL(
+              existingForBkt[0].masteryScore,
+            )
+          : bktParams.pL; // Use P(L0) default for first attempt
+
+      const bktResult = this.bktMasteryService.updateMastery(
+        priorPL,
+        isCorrect,
+        bktParams,
+      );
+
+      const masteryScore = bktResult.masteryScore;
+      const confidence = Math.min(100, Math.round((totalAttempts / 10) * 100));
+
+      const oldScore =
+        existingForBkt.length > 0 ? existingForBkt[0].masteryScore : 0;
 
       // Update or create progress
-      if (existing.length > 0) {
+      if (existingForBkt.length > 0) {
         await tx
           .update(studentKpProgress)
           .set({
@@ -433,7 +465,7 @@ export class StudentProgressService {
             lastAttemptId: attempt.id,
             lastUpdated: new Date(),
           })
-          .where(eq(studentKpProgress.id, existing[0].id));
+          .where(eq(studentKpProgress.id, existingForBkt[0].id));
       } else {
         await tx.insert(studentKpProgress).values({
           studentId: submitDto.studentId,
@@ -472,6 +504,11 @@ export class StudentProgressService {
       oldMasteryScore: txResult.oldMasteryScore,
       timestamp: new Date(),
     });
+
+    // Update aggregated course mastery asynchronously
+    this.updateCourseMastery(submitDto.studentId, submitDto.kpId).catch((err) =>
+      this.logger.error('Course mastery update failed:', err?.message),
+    );
 
     return {
       attempt: txResult.attempt,
@@ -781,6 +818,107 @@ export class StudentProgressService {
       totalMinutes: Math.round(totalSeconds / 60),
       totalHours: Math.round((totalSeconds / 3600) * 10) / 10,
     };
+  }
+
+  // ==================== WEEKLY ACTIVITY ====================
+
+  // ==================== COURSE MASTERY AGGREGATION ====================
+
+  async updateCourseMastery(studentId: string, kpId: string): Promise<void> {
+    try {
+      // Find courses containing this KP
+      const courseResults = await db
+        .select({
+          courseId: courses.id,
+        })
+        .from(sectionKpMap)
+        .innerJoin(sections, eq(sectionKpMap.sectionId, sections.id))
+        .innerJoin(modules, eq(sections.moduleId, modules.id))
+        .innerJoin(courses, eq(modules.courseId, courses.id))
+        .where(eq(sectionKpMap.kpId, kpId));
+
+      for (const { courseId } of courseResults) {
+        // Get all KP IDs in this course
+        const courseKps = await db
+          .select({ kpId: sectionKpMap.kpId })
+          .from(sectionKpMap)
+          .innerJoin(sections, eq(sectionKpMap.sectionId, sections.id))
+          .innerJoin(modules, eq(sections.moduleId, modules.id))
+          .where(eq(modules.courseId, courseId));
+
+        const kpIds = courseKps.map((k) => k.kpId);
+        if (kpIds.length === 0) continue;
+
+        // Get student progress for all KPs in course
+        const progressRows = await db
+          .select({
+            kpId: studentKpProgress.kpId,
+            masteryScore: studentKpProgress.masteryScore,
+          })
+          .from(studentKpProgress)
+          .where(
+            and(
+              eq(studentKpProgress.studentId, studentId),
+              inArray(studentKpProgress.kpId, kpIds),
+            ),
+          );
+
+        // Calculate overall mastery (average of all KPs, unstarted = 0)
+        const scoreMap = new Map(
+          progressRows.map((r) => [r.kpId, r.masteryScore]),
+        );
+        const totalScore = kpIds.reduce(
+          (sum, id) => sum + (scoreMap.get(id) || 0),
+          0,
+        );
+        const overallMasteryScore = Math.round(totalScore / kpIds.length);
+
+        // Identify strengths (>= 80) and weaknesses (< 40)
+        const strengths = progressRows
+          .filter((r) => r.masteryScore >= 80)
+          .map((r) => r.kpId);
+        const weaknesses = progressRows
+          .filter((r) => r.masteryScore < 40)
+          .map((r) => r.kpId);
+
+        // Upsert student_mastery
+        const existing = await db
+          .select()
+          .from(studentMastery)
+          .where(
+            and(
+              eq(studentMastery.studentId, studentId),
+              eq(studentMastery.courseId, courseId),
+            ),
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          await db
+            .update(studentMastery)
+            .set({
+              overallMasteryScore,
+              strengths,
+              weaknesses,
+              updatedAt: new Date(),
+            })
+            .where(eq(studentMastery.id, existing[0].id));
+        } else {
+          await db.insert(studentMastery).values({
+            studentId,
+            courseId,
+            overallMasteryScore,
+            strengths,
+            weaknesses,
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to update course mastery for student ${studentId}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
   }
 
   // ==================== WEEKLY ACTIVITY ====================

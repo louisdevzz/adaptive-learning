@@ -130,7 +130,7 @@
 ## [Unreleased] - 2026-02-20
 
 ### Added
-- **UI/UX Redesign v3.0**: Complete redesign of Adaptive Learning Platform interface
+- **UI/UX Redesign**: Complete redesign of Adaptive Learning Platform interface
 - **Firebase Integration**: Firebase integration for enhanced dashboard features
 - **Adaptive Learning Features**: Updated and improved adaptive learning features
 

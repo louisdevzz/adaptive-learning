@@ -1604,6 +1604,38 @@ export const api = {
       return response.data;
     },
 
+    getAdminReportInsights: async (params?: {
+      startDate?: string;
+      endDate?: string;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append("startDate", params.startDate);
+      if (params?.endDate) queryParams.append("endDate", params.endDate);
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/dashboard/admin-report-insights?${queryString}`
+        : "/dashboard/admin-report-insights";
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getTeacherReportInsights: async (params?: {
+      startDate?: string;
+      endDate?: string;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append("startDate", params.startDate);
+      if (params?.endDate) queryParams.append("endDate", params.endDate);
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/dashboard/teacher-report-insights?${queryString}`
+        : "/dashboard/teacher-report-insights";
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
     search: async (
       q: string,
       category: string = "all",

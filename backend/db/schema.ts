@@ -622,8 +622,10 @@ export const studentKpProgress = pgTable(
       .references(() => knowledgePoint.id, { onDelete: 'cascade' }),
     masteryScore: integer('mastery_score').notNull(), // 0-100
     confidence: integer('confidence').notNull(), // 0-100, confidence in mastery score
-    lastAttemptId: uuid('last_attempt_id')
-      .references(() => questionAttempts.id, { onDelete: 'cascade' }),
+    lastAttemptId: uuid('last_attempt_id').references(
+      () => questionAttempts.id,
+      { onDelete: 'cascade' },
+    ),
     lastUpdated: timestamp('last_updated').notNull().defaultNow(),
   },
   (table) => ({
@@ -969,6 +971,7 @@ export const learningPathItems = pgTable(
     itemId: uuid('item_id').notNull(), // ID of KP, section, or assignment
     orderIndex: integer('order_index').notNull(),
     status: varchar('status', { length: 20 }).notNull(), // 'not_started', 'in_progress', 'completed'
+    metadata: json('metadata').default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

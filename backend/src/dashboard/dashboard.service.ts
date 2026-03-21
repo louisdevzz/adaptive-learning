@@ -1380,4 +1380,267 @@ export class DashboardService {
       strugglingStudents,
     };
   }
+
+  async getAdminReportInsights(startDate?: string, endDate?: string) {
+    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(end.getTime() - 13 * 24 * 60 * 60 * 1000);
+
+    const studentsByGradeRaw = await db
+      .select({
+        gradeLevel: students.gradeLevel,
+        studentCount: sql<number>`COUNT(DISTINCT ${students.id})`,
+        avgMastery: sql<number>`COALESCE(AVG(${studentMastery.overallMasteryScore}), 0)`,
+      })
+      .from(students)
+      .leftJoin(studentMastery, eq(students.id, studentMastery.studentId))
+      .groupBy(students.gradeLevel)
+      .orderBy(asc(students.gradeLevel));
+
+    const weeklyActivityRaw = await db
+      .select({
+        date: sql<string>`DATE(${questionAttempts.attemptTime})`,
+        attempts: count(questionAttempts.id),
+        activeStudents: sql<number>`COUNT(DISTINCT ${questionAttempts.studentId})`,
+      })
+      .from(questionAttempts)
+      .where(
+        and(
+          gte(questionAttempts.attemptTime, start),
+          lte(questionAttempts.attemptTime, end),
+        ),
+      )
+      .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
+      .orderBy(asc(sql`DATE(${questionAttempts.attemptTime})`));
+
+    const studentMasteryAvgRows = await db
+      .select({
+        studentId: studentMastery.studentId,
+        avgMastery: sql<number>`COALESCE(AVG(${studentMastery.overallMasteryScore}), 0)`,
+      })
+      .from(studentMastery)
+      .groupBy(studentMastery.studentId);
+
+    const masteryBands = {
+      excellent: 0,
+      good: 0,
+      average: 0,
+      atRisk: 0,
+    };
+
+    for (const row of studentMasteryAvgRows) {
+      const mastery = Math.round(parseFloat(row.avgMastery.toString()));
+      if (mastery >= 85) masteryBands.excellent += 1;
+      else if (mastery >= 70) masteryBands.good += 1;
+      else if (mastery >= 50) masteryBands.average += 1;
+      else masteryBands.atRisk += 1;
+    }
+
+    const totalStudentsWithMastery = studentMasteryAvgRows.length;
+    const activeStudentsInRange =
+      weeklyActivityRaw.reduce(
+        (max, item) => Math.max(max, item.activeStudents || 0),
+        0,
+      ) || 0;
+
+    const engagementRate =
+      totalStudentsWithMastery > 0
+        ? Math.round((activeStudentsInRange / totalStudentsWithMastery) * 1000) /
+          10
+        : 0;
+
+    return {
+      studentsByGrade: studentsByGradeRaw.map((item) => ({
+        gradeLevel: item.gradeLevel,
+        studentCount: item.studentCount,
+        avgMastery: Math.round(parseFloat(item.avgMastery.toString())),
+      })),
+      masteryBands,
+      weeklyActivity: weeklyActivityRaw.map((item) => ({
+        date: item.date,
+        attempts: item.attempts,
+        activeStudents: item.activeStudents,
+      })),
+      summary: {
+        totalStudentsWithMastery,
+        atRiskStudents: masteryBands.atRisk,
+        engagementRate,
+      },
+    };
+  }
+
+  async getTeacherReportInsights(
+    teacherId: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const classIds = await this.getTeacherClassIds(teacherId);
+    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(end.getTime() - 13 * 24 * 60 * 60 * 1000);
+
+    if (classIds.length === 0) {
+      return {
+        classRanking: [],
+        masteryBands: {
+          excellent: 0,
+          good: 0,
+          average: 0,
+          atRisk: 0,
+        },
+        weeklyActivity: [],
+        atRiskByClass: [],
+        summary: {
+          trackedStudents: 0,
+          atRiskStudents: 0,
+          averageClassMastery: 0,
+        },
+      };
+    }
+
+    const classRankingRaw = await db
+      .select({
+        classId: classes.id,
+        className: classes.className,
+        gradeLevel: classes.gradeLevel,
+        studentCount: sql<number>`COUNT(DISTINCT ${classEnrollment.studentId})`,
+        avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
+      })
+      .from(classes)
+      .leftJoin(classEnrollment, eq(classes.id, classEnrollment.classId))
+      .leftJoin(
+        studentKpProgress,
+        eq(classEnrollment.studentId, studentKpProgress.studentId),
+      )
+      .where(
+        and(
+          inArray(classes.id, classIds),
+          eq(classEnrollment.status, 'active'),
+        ),
+      )
+      .groupBy(classes.id, classes.className, classes.gradeLevel)
+      .orderBy(desc(sql`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`));
+
+    const studentAvgRows = await db
+      .select({
+        classId: classEnrollment.classId,
+        className: classes.className,
+        studentId: classEnrollment.studentId,
+        avgMastery: sql<number>`COALESCE(AVG(${studentKpProgress.masteryScore}), 0)`,
+      })
+      .from(classEnrollment)
+      .innerJoin(classes, eq(classEnrollment.classId, classes.id))
+      .leftJoin(
+        studentKpProgress,
+        eq(classEnrollment.studentId, studentKpProgress.studentId),
+      )
+      .where(
+        and(
+          inArray(classEnrollment.classId, classIds),
+          eq(classEnrollment.status, 'active'),
+        ),
+      )
+      .groupBy(
+        classEnrollment.classId,
+        classes.className,
+        classEnrollment.studentId,
+      );
+
+    const masteryBands = {
+      excellent: 0,
+      good: 0,
+      average: 0,
+      atRisk: 0,
+    };
+
+    const atRiskByClassMap = new Map<string, { classId: string; className: string; atRiskStudents: number; totalStudents: number }>();
+
+    for (const row of studentAvgRows) {
+      const mastery = Math.round(parseFloat(row.avgMastery.toString()));
+
+      if (mastery >= 85) masteryBands.excellent += 1;
+      else if (mastery >= 70) masteryBands.good += 1;
+      else if (mastery >= 50) masteryBands.average += 1;
+      else masteryBands.atRisk += 1;
+
+      const current = atRiskByClassMap.get(row.classId) || {
+        classId: row.classId,
+        className: row.className,
+        atRiskStudents: 0,
+        totalStudents: 0,
+      };
+      current.totalStudents += 1;
+      if (mastery < 50) {
+        current.atRiskStudents += 1;
+      }
+      atRiskByClassMap.set(row.classId, current);
+    }
+
+    const weeklyActivityRaw = await db
+      .select({
+        date: sql<string>`DATE(${questionAttempts.attemptTime})`,
+        attempts: count(questionAttempts.id),
+        activeStudents: sql<number>`COUNT(DISTINCT ${questionAttempts.studentId})`,
+      })
+      .from(questionAttempts)
+      .innerJoin(
+        classEnrollment,
+        eq(questionAttempts.studentId, classEnrollment.studentId),
+      )
+      .where(
+        and(
+          inArray(classEnrollment.classId, classIds),
+          eq(classEnrollment.status, 'active'),
+          gte(questionAttempts.attemptTime, start),
+          lte(questionAttempts.attemptTime, end),
+        ),
+      )
+      .groupBy(sql`DATE(${questionAttempts.attemptTime})`)
+      .orderBy(asc(sql`DATE(${questionAttempts.attemptTime})`));
+
+    const trackedStudents = studentAvgRows.length;
+    const atRiskStudents = masteryBands.atRisk;
+    const averageClassMastery =
+      classRankingRaw.length > 0
+        ? Math.round(
+            classRankingRaw.reduce(
+              (sum, item) => sum + parseFloat(item.avgMastery.toString()),
+              0,
+            ) / classRankingRaw.length,
+          )
+        : 0;
+
+    return {
+      classRanking: classRankingRaw.map((item) => ({
+        classId: item.classId,
+        className: item.className,
+        gradeLevel: item.gradeLevel,
+        studentCount: item.studentCount,
+        avgMastery: Math.round(parseFloat(item.avgMastery.toString())),
+      })),
+      masteryBands,
+      weeklyActivity: weeklyActivityRaw.map((item) => ({
+        date: item.date,
+        attempts: item.attempts,
+        activeStudents: item.activeStudents,
+      })),
+      atRiskByClass: Array.from(atRiskByClassMap.values())
+        .sort((a, b) => b.atRiskStudents - a.atRiskStudents)
+        .map((item) => ({
+          ...item,
+          atRiskRate:
+            item.totalStudents > 0
+              ? Math.round((item.atRiskStudents / item.totalStudents) * 1000) /
+                10
+              : 0,
+        })),
+      summary: {
+        trackedStudents,
+        atRiskStudents,
+        averageClassMastery,
+      },
+    };
+  }
 }

@@ -242,3 +242,4 @@ temp/
 .mcp.json
 
 node-compile-cache/
+.temp
