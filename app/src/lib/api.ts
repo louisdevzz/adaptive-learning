@@ -1461,6 +1461,37 @@ export const api = {
     },
   },
 
+  learningProfile: {
+    getMyProfile: async () => {
+      const response = await apiClient.get('/learning-profile/me');
+      return response.data;
+    },
+
+    getByStudentId: async (studentId: string) => {
+      const response = await apiClient.get(`/learning-profile/${studentId}`);
+      return response.data;
+    },
+
+    getAssessmentQuestions: async () => {
+      const response = await apiClient.get('/learning-profile/assessment/questions');
+      return response.data;
+    },
+
+    submitAssessment: async (data: {
+      answers: { questionId: string; selectedOptionKey: 'a' | 'b' | 'c' | 'd' }[];
+    }) => {
+      const response = await apiClient.post('/learning-profile/assessment', data);
+      return response.data;
+    },
+
+    updateMyPace: async (data: {
+      pacePreference: 'slow' | 'moderate' | 'fast';
+    }) => {
+      const response = await apiClient.patch('/learning-profile/me/pace', data);
+      return response.data;
+    },
+  },
+
   notifications: {
     getMy: async (params?: {
       page?: number;

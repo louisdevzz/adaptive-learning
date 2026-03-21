@@ -19,6 +19,7 @@ import {
   ChevronsRight,
   UserCircle,
   ClipboardList,
+  Brain,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
@@ -73,6 +74,7 @@ const menuItems: Record<string, MenuItem[]> = {
     { icon: ClipboardList, label: "Bài tập", href: "/dashboard/assignments" },
     { icon: TrendingUp, label: "Lộ trình học tập", href: "/dashboard/learning-path" },
     { icon: Award, label: "Tiến độ", href: "/dashboard/progress" },
+    { icon: Brain, label: "Hồ sơ học tập", href: "/dashboard/learning-profile" },
   ],
   parent: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },

@@ -23,6 +23,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { StudentInsightsModule } from './student-insights/student-insights.module';
+import { LearningProfileModule } from './learning-profile/learning-profile.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 
 @Module({
@@ -60,6 +61,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
     ActivityLogModule,
     NotificationsModule,
     StudentInsightsModule,
+    LearningProfileModule,
   ],
   providers: [
     {

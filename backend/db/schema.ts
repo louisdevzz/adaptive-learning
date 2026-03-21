@@ -708,6 +708,62 @@ export const studentInsights = pgTable(
   }),
 );
 
+export const studentLearningProfiles = pgTable(
+  'student_learning_profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    visualScore: integer('visual_score').notNull().default(50),
+    auditoryScore: integer('auditory_score').notNull().default(50),
+    readingScore: integer('reading_score').notNull().default(50),
+    kinestheticScore: integer('kinesthetic_score').notNull().default(50),
+    pacePreference: varchar('pace_preference', { length: 20 })
+      .notNull()
+      .default('moderate'),
+    learningMemory: json('learning_memory').notNull(),
+    profileSource: varchar('profile_source', { length: 20 })
+      .notNull()
+      .default('default'),
+    assessmentVersion: integer('assessment_version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    studentIdIdx: index('student_learning_profiles_student_id_idx').on(
+      table.studentId,
+    ),
+    studentIdUnique: unique('student_learning_profiles_student_id_unique').on(
+      table.studentId,
+    ),
+    paceIdx: index('student_learning_profiles_pace_idx').on(
+      table.pacePreference,
+    ),
+  }),
+);
+
+export const learningStyleAssessments = pgTable(
+  'learning_style_assessments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    responses: json('responses').notNull(),
+    computedScores: json('computed_scores').notNull(),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    studentCreatedIdx: index('learning_style_assessments_student_created_idx').on(
+      table.studentId,
+      table.createdAt,
+    ),
+    versionIdx: index('learning_style_assessments_version_idx').on(table.version),
+  }),
+);
+
 export const studentSession = pgTable(
   'student_session',
   {
