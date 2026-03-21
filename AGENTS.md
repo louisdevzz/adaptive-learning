@@ -1,171 +1,189 @@
 # AGENTS.md - Adaptive Learning Platform
 
-> **Tài liệu dành cho AI Agents** - Hướng dẫn này giúp AI agents hiểu rõ cấu trúc, quy ước và cách làm việc với dự án.
+> **For AI Agents** — This guide helps AI agents understand the project structure, conventions, and how to work with the codebase.
 
 ---
 
-## 📋 Tổng quan dự án
+## Project Overview
 
-**Adaptive Learning Platform** là nền tảng học tập thông minh với khả năng cá nhân hóa lộ trình học cho từng học sinh. Hệ thống dựa trên các khái niệm cốt lõi:
+**Adaptive Learning Platform** is an AI-powered learning system that personalizes each student's learning journey. The system decomposes curriculum into atomic Knowledge Points, tracks mastery in real time, and uses AI to generate content, assess understanding, and adapt learning paths.
 
-| Khái niệm | Mô tả |
-|-----------|-------|
-| **Knowledge Point (KP)** | Đơn vị kiến thức nhỏ nhất (VD: "Nhân đa thức với đơn thức") |
-| **Mastery** | Mức độ nắm vững kiến thức của học sinh (0-100%) |
-| **Learning Path** | Lộ trình học động, tự điều chỉnh theo năng lực |
+| Concept | Description |
+|---------|-------------|
+| **Knowledge Point (KP)** | Smallest unit of knowledge (e.g., "Polynomial multiplication with monomials") |
+| **Mastery** | Dynamic estimate of student understanding per KP (0-100) |
+| **Learning Path** | Personalized sequence of learning actions, adjusted based on mastery |
 | **Course Structure** | Course → Module → Section → Knowledge Point |
 
+### AI Integration
+
+AI is used for three core functions:
+1. **Content Generation** — Interactive HTML visualizations/games per KP topic via LangChain (OpenAI/Gemini/Kimi)
+2. **Automated Grading** — Cron-based pipeline: extract text from PDF/DOCX submissions, grade against rubric, teacher reviews
+3. **[Planned] Adaptation** — AI-powered diagnosis, recommendation, remediation, and learning path generation
+
 ---
 
-## 🏗️ Cấu trúc dự án
+## Project Structure
 
 ```
 adaptive-learning/
-├── backend/                    # NestJS API
+├── backend/                    # NestJS API (port 8000)
 │   ├── src/
 │   │   ├── auth/              # JWT + Firebase Auth
-│   │   ├── users/             # Quản lý user cơ bản
-│   │   ├── students/          # Học sinh + tiến độ
-│   │   ├── teachers/          # Giáo viên
-│   │   ├── parents/           # Phụ huynh
-│   │   ├── admins/            # Admin
-│   │   ├── classes/           # Lớp học + enrollment
-│   │   ├── courses/           # Khóa học, Module, Section
-│   │   ├── knowledge-points/  # Knowledge Point + AI content
-│   │   ├── question-bank/     # Ngân hàng câu hỏi
-│   │   ├── assignments/       # Bài tập, bài kiểm tra
-│   │   ├── student-progress/  # Theo dõi tiến độ
-│   │   ├── learning-paths/    # Lộ trình học
-│   │   ├── course-analytics/  # Phân tích khóa học
-│   │   ├── dashboard/         # Dashboard data
-│   │   ├── explorer/          # Public course explorer
-│   │   ├── upload/            # File upload (R2)
-│   │   └── firebase/          # Firebase Admin SDK
+│   │   ├── users/             # Base user CRUD
+│   │   ├── students/          # Student profiles + dashboard stats
+│   │   ├── teachers/          # Teacher profiles + class assignments
+│   │   ├── parents/           # Parent profiles + children access
+│   │   ├── admins/            # Admin management (super/system/support)
+│   │   ├── classes/           # Classes + enrollment + teacher assignment
+│   │   ├── courses/           # Courses, Modules, Sections
+│   │   ├── knowledge-points/  # KPs + prerequisites + AI content generation
+│   │   ├── question-bank/     # Question bank + IRT metadata
+│   │   ├── assignments/       # Assignments + AI grading pipeline
+│   │   ├── student-progress/  # Mastery tracking + attempts + time-on-task
+│   │   ├── learning-paths/    # Learning path CRUD
+│   │   ├── course-analytics/  # Per-course/module analytics
+│   │   ├── dashboard/         # Role-aware dashboard + stats
+│   │   ├── explorer/          # Public course browsing + cloning
+│   │   ├── activity-log/      # Audit trail + session tracking
+│   │   ├── notifications/     # Event-driven notifications
+│   │   ├── upload/            # File upload (Cloudflare R2)
+│   │   ├── firebase/          # Firebase Admin SDK
+│   │   └── common/
+│   │       └── ai/            # AI model factory (OpenAI/Gemini/Kimi)
 │   └── db/
-│       ├── schema.ts          # Database schema (24 tables)
-│       └── index.ts           # Database connection
+│       ├── schema.ts          # Drizzle schema (24 tables)
+│       └── index.ts           # Database connection (Neon serverless)
 │
-└── app/                        # Next.js Frontend
+└── app/                        # Next.js Frontend (port 3000)
     ├── src/
     │   ├── app/               # Next.js App Router
-    │   │   ├── (auth)/dashboard/  # Dashboard pages
+    │   │   ├── (auth)/dashboard/  # Protected dashboard pages
     │   │   ├── login/
-    │   │   └── ...
-    │   ├── components/
-    │   │   ├── dashboards/    # Dashboard components
-    │   │   └── ui/            # UI components
+    │   │   └── ...            # Public pages (/, /about, /contact)
+    │   ├── components/        # React components
     │   ├── lib/
-    │   │   └── api.ts         # API client
-    │   ├── hooks/             # Custom hooks
-    │   └── types/             # TypeScript types
+    │   │   └── api.ts         # Centralized Axios API client
+    │   ├── hooks/             # Custom hooks (useUser, etc.)
+    │   ├── contexts/          # React contexts
+    │   └── types/             # TypeScript interfaces
     └── ...
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
 | **Backend** | NestJS 11, TypeScript, Drizzle ORM |
-| **Database** | PostgreSQL (Neon Database) |
-| **Frontend** | Next.js 16, React 19, TypeScript |
-| **UI** | HeroUI v2.8.5, TailwindCSS v4, Framer Motion |
-| **Auth** | JWT + Firebase Admin SDK |
-| **AI** | LangChain + OpenAI GPT-4o-mini + Google Gemini 1.5-flash |
+| **Database** | PostgreSQL (Neon Serverless) |
+| **Frontend** | Next.js 16, React (with React Compiler), TypeScript |
+| **UI** | HeroUI, TailwindCSS 4, Framer Motion |
+| **Auth** | JWT (HTTP-only cookies) + Firebase Admin SDK (Google sign-in) |
+| **AI** | LangChain + OpenAI (gpt-4o-mini) + Gemini (1.5-flash) + Kimi |
 | **Storage** | Cloudflare R2 (S3-compatible) |
-| **Package Manager** | pnpm (backend), npm (frontend) |
+| **Data Fetching** | SWR + Axios |
+| **Package Manager** | pnpm (workspace root + backend), npm (frontend) |
 
 ---
 
-## 🔐 Xác thực & Phân quyền
+## Authentication & Authorization
 
 ### API Key
-Tất cả API endpoints đều yêu cầu header `x-api-key`:
+All API endpoints require the `x-api-key` header:
 ```
 x-api-key: your-api-key-here
 ```
 
-### Cookie-Based Authentication
-- Login/Register trả về HTTP-only cookie `access_token`
-- Cookie tự động gửi kèm mỗi request
-- Không cần thêm Authorization header
+### Cookie-Based Auth
+- Login/Register sets an HTTP-only cookie `access_token`
+- Cookie is sent automatically with every request
+- No Authorization header needed
 
 ### User Roles
-| Role | Quyền |
-|------|-------|
-| `admin` | Full access, quản lý tất cả |
-| `teacher` | Quản lý lớp học, khóa học, xem tiến độ |
-| `student` | Học tập, làm bài tập, xem tiến độ |
-| `parent` | Xem tiến độ con cái |
+| Role | Access |
+|------|--------|
+| `admin` | Full system access (levels: super, system, support) |
+| `teacher` | Manage courses, classes, assignments; view student progress |
+| `student` | Study content, submit assignments, track own progress |
+| `parent` | View children's progress, receive notifications |
+
+### Guards
+- `JwtAuthGuard` — Validates JWT from cookie
+- `RolesGuard` — Enforces role-based access via `@Roles()` decorator
+- `ApiKeyGuard` — Global API key validation
 
 ---
 
-## 📊 Database Schema (24 tables)
+## Database Schema (24 tables)
 
-### Users & Auth (5 tables)
-- `users` - Base user (email, password, role)
-- `students` - Student info (studentCode, gradeLevel, school)
-- `teachers` - Teacher info (specialization, experience)
-- `parents` - Parent info (phone, address)
-- `parent_student_map` - Parent-Student relationship
+### Users & Auth
+- `users` — Base user (email, passwordHash, fullName, role, status)
+- `user_roles` — Role + permissions JSON per user
+- `students` — studentCode, gradeLevel, schoolName, dateOfBirth, gender
+- `teachers` — specialization JSON, experienceYears, certifications JSON
+- `parents` — phone, address, relationshipType
+- `admins` — adminLevel (super/system/support), permissions JSON
+- `parent_student_map` — Parent-student relationship
 
-### Courses (5 tables)
-- `courses` - Khóa học
-- `modules` - Module trong khóa học
-- `sections` - Section trong module
-- `teacher_course_map` - Teacher-Course assignment
-- `course_analytics` - Analytics khóa học
+### Courses
+- `courses` — title, subject, gradeLevel, visibility (public/private), originCourseId
+- `modules` — courseId, title, orderIndex
+- `sections` — moduleId, title, orderIndex
+- `teacher_course_map` — teacherId, courseId, role (creator/collaborator)
+- `course_analytics` — completionRate, averageMastery, highFailureKps JSON
 
-### Knowledge Points (4 tables)
-- `knowledge_point` - Đơn vị kiến thức
-- `kp_prerequisites` - KP phụ thuộc
-- `kp_resources` - Tài nguyên học tập
-- `section_kp_map` - Section-KP mapping
+### Knowledge Points
+- `knowledge_point` — title, description, content JSON (slideUrl, youtubeUrl), difficultyLevel (1-5)
+- `kp_prerequisites` — kpId → prerequisiteKpId (self-referential many-to-many)
+- `kp_resources` — resourceType (video/article/interactive/quiz/other), url, orderIndex
+- `section_kp_map` — sectionId → kpId with orderIndex
+- `kp_exercises` — kpId → questionId with difficulty
 
-### Questions & Assignments (7 tables)
-- `question_bank` - Ngân hàng câu hỏi
-- `question_metadata` - Metadata câu hỏi (IRT params)
-- `kp_exercises` - Bài tập cho KP
-- `assignments` - Bài tập/bài kiểm tra
-- `assignment_items` - Câu hỏi trong assignment
-- `section_assignments` - Auto-assign to section
-- `assignment_targets` - Target (student/class/section)
-- `assignment_attempts` - Lần làm bài
-- `student_assignments` - Assignment của học sinh
-- `student_assignment_results` - Kết quả làm bài
-- `question_attempts` - Từng câu trả lởi
+### Questions & Assignments
+- `question_bank` — questionText, options JSON, correctAnswer, questionType
+- `question_metadata` — difficulty (1-10), discrimination (IRT 0-1), skillId (KP ref), tags JSON
+- `assignments` — title, assignmentType, aiGradingEnabled, gradingRubric, dueDate
+- `section_assignments` — Links assignments to sections
+- `assignment_targets` — Polymorphic target (student/class/group/section)
+- `student_assignments` — Per-student state: not_started/in_progress/submitted/graded
+- `student_assignment_results` — totalScore, maxScore, accuracy, gradingSource (manual/ai_approved)
+- `assignment_grading_runs` — AI grading job queue (status, provider, suggestedScore, feedback, confidence)
+- `question_attempts` — Per-question answer record with isCorrect, timeSpent, kpId
 
-### Student Progress (5 tables)
-- `student_kp_progress` - Mastery score theo KP
-- `student_kp_history` - Lịch sử mastery thay đổi
-- `student_mastery` - Tổng hợp mastery theo course
-- `student_insights` - Phân tích học sinh
-- `student_session` - Session tracking
-- `time_on_task` - Thờigian làm bài
-- `activity_log` - Hoạt động log
+### Student Progress
+- `student_kp_progress` — Per-student per-KP masteryScore (0-100), confidence (0-100)
+- `student_kp_history` — Immutable history: oldScore, newScore, source (assessment/practice/review)
+- `student_mastery` — Per-student per-course aggregate: overallMasteryScore, strengths/weaknesses JSON
+- `student_insights` — strengths, weaknesses, riskKps, learningPattern JSON, engagementScore
+- `student_session` — Session lifecycle: startTime, endTime, deviceInfo, ipAddress
+- `time_on_task` — Seconds spent per student per KP or section
+- `activity_log` — Full audit: actorUserId, activityType, action, targetType, metadata JSON
 
-### Classes (4 tables)
-- `classes` - Lớp học
-- `class_enrollment` - Học sinh trong lớp
-- `teacher_class_map` - Giáo viên dạy lớp
-- `class_courses` - Khóa học gán cho lớp
+### Classes
+- `classes` — className, gradeLevel, schoolYear, homeroomTeacherId
+- `class_enrollment` — classId + studentId + status (active/withdrawn/completed)
+- `teacher_class_map` — teacherId + classId + role (homeroom/subject_teacher/assistant)
+- `class_courses` — Links courses to classes
 
-### Learning Paths (3 tables)
-- `learning_path` - Lộ trình học
-- `learning_path_items` - Items trong path
-- `recommendation_events` - Sự kiện gợi ý
+### Learning Paths
+- `learning_path` — studentId, createdBy (system/teacher/student), title, status
+- `learning_path_items` — itemType (kp/section/assignment), itemId, orderIndex, status
+- `recommendation_events` — type (practice/review/advance), student action (accepted/rejected/ignored)
+
+### Notifications
+- `notifications` — recipientId, type, title, message, actionUrl, isRead
 
 ---
 
-## 🔌 API Patterns
+## API Patterns
 
 ### Response Format
 ```typescript
-// Success
-{
-  // Data directly or wrapped
-}
+// Success — data returned directly or wrapped
+{ ... }
 
 // Error
 {
@@ -175,31 +193,71 @@ x-api-key: your-api-key-here
 }
 ```
 
-### Common Endpoints Pattern
+### Standard CRUD
 ```
-GET    /api/entities          # List all
-POST   /api/entities          # Create
-GET    /api/entities/:id      # Get one
-PATCH  /api/entities/:id      # Update
-DELETE /api/entities/:id      # Delete
+GET    /api/{entities}          # List all
+POST   /api/{entities}          # Create
+GET    /api/{entities}/:id      # Get one
+PATCH  /api/{entities}/:id      # Update
+DELETE /api/{entities}/:id      # Delete
 ```
 
-### Class-specific Patterns
+### Key Endpoints
+
+**Auth:**
 ```
-GET    /api/classes/:id/students              # Get enrolled students
-GET    /api/classes/:id/available-students    # Get students NOT enrolled
-POST   /api/classes/:id/students              # Enroll student
-DELETE /api/classes/:id/students/:studentId   # Remove student
-GET    /api/classes/:id/progress              # Class progress
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/google          # Firebase ID token → JWT cookie
+POST /api/auth/logout
+GET  /api/auth/me
+```
+
+**Knowledge Points:**
+```
+POST /api/knowledge-points/generate-content    # AI content generation
+POST /api/knowledge-points/assign-to-section
+GET  /api/knowledge-points/:id/prerequisites
+GET  /api/knowledge-points/:id/dependents
+```
+
+**Student Progress:**
+```
+POST /api/student-progress/submit-question         # Submit answer, update mastery
+POST /api/student-progress/submit-content-question  # Embedded quiz answers
+POST /api/student-progress/track-time
+GET  /api/student-progress/students/:id/all-progress
+GET  /api/student-progress/students/:id/mastery/:courseId
+GET  /api/student-progress/students/:id/weekly-activity
+```
+
+**Assignments:**
+```
+POST /api/assignments/assign-to-students
+POST /api/assignments/submit                        # File upload submission
+PATCH /api/assignments/student-assignments/:id/grade # Manual grading
+GET  /api/assignments/student-assignments/:id/ai-suggestion  # AI grading result
+```
+
+**Classes:**
+```
+GET  /api/classes/:id/students
+POST /api/classes/:id/students              # Enroll student
+DELETE /api/classes/:id/students/:studentId  # Remove student
+```
+
+**Explorer:**
+```
+GET  /api/explorer/courses                  # Browse public courses
+POST /api/explorer/courses/:id/clone        # Deep-clone course for teacher
 ```
 
 ---
 
-## 🎨 Frontend Patterns
+## Frontend Patterns
 
-### Component Structure
+### Page Component
 ```typescript
-// Page component
 "use client";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
@@ -209,111 +267,132 @@ export default function PageName() {
   const { user } = useUser();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Fetch data
+
   useEffect(() => {
     api.endpoint.getAll().then(setData).finally(() => setLoading(false));
   }, []);
-  
-  // Render
 }
 ```
 
 ### API Client
 ```typescript
-// All API calls go through api object
 import { api } from "@/lib/api";
 
-// Usage
 api.classes.getAll();
 api.classes.enrollStudent(classId, { studentId, status: "active" });
 api.students.getById(studentId);
 ```
 
-### UI Components
-- Sử dụng **HeroUI** cho components (Button, Modal, Input, v.v.)
-- Sử dụng **TailwindCSS** cho styling
-- Icons từ **Lucide React**
-- Toast notifications từ **sonner**
+### UI Libraries
+- **HeroUI** — Component library (Button, Modal, Input, Table, etc.)
+- **TailwindCSS 4** — Utility-first styling
+- **Lucide React** — Icons
+- **sonner** — Toast notifications
+- **Framer Motion** — Animations
 
 ---
 
-## 🔧 Development Guidelines
+## Development Guidelines
 
 ### Backend
-1. **Always use Drizzle ORM** - Không viết raw SQL
-2. **Validation with class-validator** - DTOs phải có decorator
-3. **Guards cho security** - JWT + Roles
-4. **Service layer** - Business logic trong service, không trong controller
+1. **Always use Drizzle ORM** — No raw SQL
+2. **Validate with class-validator** — DTOs must have decorators
+3. **Guards for security** — JwtAuthGuard + RolesGuard on all protected routes
+4. **Service layer** — Business logic in services, not controllers
+5. **NestJS module pattern** — `*.module.ts`, `*.controller.ts`, `*.service.ts`, `dto/*.ts`
 
 ### Frontend
-1. **"use client"** cho interactive components
-2. **Server components** mặc định cho static content
-3. **TypeScript strict** - Không dùng `any`
-4. **Loading states** - Luôn có loading và error states
+1. **"use client"** for interactive components
+2. **Server components** by default for static content
+3. **TypeScript strict** — No `any`
+4. **Loading states** — Always handle loading and error states
+5. **Path alias** — `@/*` maps to `./src/*`
 
 ### Git
-1. **Conventional commits**:
-   - `feat:` New feature
-   - `fix:` Bug fix
-   - `docs:` Documentation
-   - `refactor:` Code refactoring
-   - `chore:` Maintenance
-
-2. **Branch naming**:
-   - `feature/description`
-   - `fix/description`
-   - `docs/description`
+- **Conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `perf:`
+- **Branch naming**: `feature/description`, `fix/description`
 
 ---
 
-## 🚨 Common Issues & Solutions
+## AI Integration Details
+
+### Model Factory (`backend/src/common/ai/chat-model.factory.ts`)
+- Supports 3 providers: `openai`, `gemini`, `kimi-code`
+- Provider/model resolved from env vars or request body
+- Default: OpenAI gpt-4o-mini
+
+### Content Generation
+- Endpoint: `POST /api/knowledge-points/generate-content`
+- Input: topic, theoryContent, description, optional prompt
+- Output: Self-contained HTML with scoped CSS (unique class prefixes) and IIFE JavaScript
+- No external dependencies in generated content
+
+### AI Grading Pipeline
+- Cron job runs every minute, processes up to 5 pending jobs
+- Downloads submission from R2 → extracts text (pdf-parse / mammoth)
+- Grades via configured LLM at temperature 0.2
+- Output: suggestedScore (0-10), feedback, criteriaBreakdown, confidence (0-100)
+- Teacher must review and approve (grading source: `ai_approved`)
+- Retries up to 2 times on failure
+
+### Mastery Calculation (current)
+- **Exercise mastery**: Binary — correct = 100%, incorrect = 0%
+- **Content question mastery**: Incremental — each correct answer adds `100/totalQuestions`
+- **Confidence**: Increases by 10% per attempt (max 100%)
+- **[Planned]** IRT-based and Bayesian Knowledge Tracing models
+
+---
+
+## Common Issues & Solutions
 
 ### Backend
 | Issue | Solution |
 |-------|----------|
-| Drizzle relation error | Check foreign key, use `.leftJoin()` |
-| JWT invalid | Check cookie, verify secret |
-| API Key missing | Add `x-api-key` header |
+| Drizzle relation error | Check foreign key references, use `.leftJoin()` |
+| JWT invalid | Check cookie, verify JWT_SECRET matches |
+| API Key missing | Add `x-api-key` header to all requests |
+| AI grading stuck | Check `assignment_grading_runs` for stale jobs (>10min) |
 
 ### Frontend
 | Issue | Solution |
 |-------|----------|
-| Hydration mismatch | Check "use client", initial data |
-| API 401 | Check login, cookie settings |
-| Type error | Check types in `types/` folder |
+| Hydration mismatch | Ensure "use client" directive, check initial data |
+| API 401 | Check login state, cookie settings, CORS_ORIGIN |
+| Type error | Check interfaces in `types/` folder |
 
 ---
 
-## 📝 File Locations
+## Key File Locations
 
 | Purpose | Path |
 |---------|------|
 | API Client | `app/src/lib/api.ts` |
-| Types | `app/src/types/*.ts` |
+| TypeScript Types | `app/src/types/*.ts` |
+| User Hook | `app/src/hooks/useUser.ts` |
+| Auth Middleware | `app/src/middleware.ts` |
 | Backend DTOs | `backend/src/*/dto/*.dto.ts` |
 | Database Schema | `backend/db/schema.ts` |
+| AI Model Factory | `backend/src/common/ai/chat-model.factory.ts` |
 | Environment | `backend/.env`, `app/.env.local` |
 
 ---
 
-## 🔗 Important Notes
+## Environment Variables
 
-1. **API Key Required** - Tất cả requests cần `x-api-key` header
-2. **Role-based Access** - Teacher chỉ thấy data của mình
-3. **Mastery Calculation** - Tự động tính toán qua `student_kp_progress`
-4. **AI Integration** - LangChain + OpenAI/Gemini cho content generation
-5. **File Upload** - S3-compatible (Cloudflare R2)
+### Backend (`backend/.env`)
+Required: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `API_KEY`, `PORT`, `CORS_ORIGIN`, Firebase credentials, R2 credentials, `OPENAI_API_KEY`
 
----
-
-## 📚 References
-
-- [README.md](./README.md) - Tổng quan dự án
-- [CHANGELOGS.md](./CHANGELOGS.md) - Lịch sử thay đổi
-- [PROJECT_STATUS.md](./PROJECT_STATUS.md) - Trạng thái features
-- [backend/API_DOCUMENTATION.md](./backend/API_DOCUMENTATION.md) - API docs
+### Frontend (`app/.env.local`)
+Required: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_API_KEY`
 
 ---
 
-*Last Updated: 2026-03-03*
+## References
+
+- [README.md](./README.md) — Project overview and adaptive learning definition
+- [PROJECT_STATUS.md](./PROJECT_STATUS.md) — Feature status tracking
+- [backend/API_DOCUMENTATION.md](./backend/API_DOCUMENTATION.md) — API documentation
+
+---
+
+*Last Updated: 2026-03-21*

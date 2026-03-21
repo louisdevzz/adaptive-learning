@@ -1,290 +1,348 @@
-# 🎓 Adaptive Learning Platform v3.0
+# Adaptive Learning Platform
 
-> Adaptive Learning là nền tảng học tập thông minh được thiết kế để cá nhân hoá hành trình học của từng học sinh. Hệ thống phân rã kiến thức thành các đơn vị nhỏ (Knowledge Points), theo dõi mức độ nắm vững theo thời gian thực và tự động đề xuất nội dung phù hợp với năng lực hiện tại. Dựa trên phân tích hành vi, mô hình dự đoán và bản đồ kiến thức, nền tảng liên tục điều chỉnh bài học, đánh giá và lộ trình để tạo trải nghiệm học tập hiệu quả hơn, giảm quá tải và tối ưu tốc độ tiến bộ của mỗi người học.
+> An AI-powered adaptive learning platform that personalizes each student's learning journey — decomposing knowledge into atomic units, tracking mastery in real time, and using AI to continuously adjust content, assessments, and learning paths based on learner behavior.
 
-![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-FF6B6B?style=for-the-badge)
+![LangChain](https://img.shields.io/badge/LangChain-AI-orange?style=for-the-badge)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-## 📖 Abstract
+---
 
-Adaptive Learning Platform v3.0 là hệ thống cá nhân hóa học tập dựa trên phân rã kiến thức, mô hình dự đoán và theo dõi năng lực theo thời gian thực. Hệ thống được thiết kế để giúp mỗi học sinh nhận được lộ trình học phù hợp với năng lực và tốc độ riêng. Bằng cách sử dụng kiến trúc Course → Module → Section → Knowledge Point và mô hình Mastery Tracking, nền tảng cung cấp khả năng đánh giá, gợi ý học tập và điều chỉnh nội dung một cách tự động nhằm tối ưu hiệu quả học tập.
+## What is Adaptive Learning?
 
-## 🎯 Core Concepts
+### Traditional definition
 
-### 2.1 Knowledge Point (KP)
+Adaptive learning is typically understood as: track learner performance, estimate understanding, suggest the next lesson. This is a **reactive** model — the system only responds when new data arrives.
 
-Knowledge Point là đơn vị kiến thức nhỏ nhất. Mỗi KP đại diện cho một kỹ năng hoặc khái niệm cụ thể, ví dụ:
+### Our definition
 
-- "Nhân đa thức với đơn thức"
-- "Định luật Newton 1"
-- "Phân biệt câu bị động"
+This project extends adaptive learning into a **closed-loop system** with AI at the center:
 
-### 2.2 Mastery
+```
+Student interacts with content
+    ↓
+Collect signals (scores, time, errors, behavior patterns)
+    ↓
+AI analyzes learner state (mastery, weaknesses, prerequisite gaps)
+    ↓
+AI decides next action + generates appropriate content
+    ↓
+Adjust learning path / create exercises / personalized feedback
+    ↓
+Student interacts again (loop repeats)
+```
 
-Mastery mô tả mức độ hiểu biết của học sinh đối với một KP. Nó được đo bằng nhiều tín hiệu:
+Key differences:
 
-- Điểm số bài tập
-- Số lần sai
-- Tốc độ giải
-- Lịch sử học
-- Mức độ khó của câu hỏi đã làm
+| Traditional adaptive learning | This project |
+|---|---|
+| Recommends next lesson based on fixed rules | AI analyzes context and decides the best action |
+| Pre-made content, only changes order | AI generates new content tailored to specific mistakes |
+| Measures mastery by test scores alone | Measures mastery from multiple signals: scores, time, history, prerequisites |
+| One-directional: system → student | Closed-loop: student ↔ AI ↔ content |
 
-### 2.3 Learning Path
+### Five layers of adaptation
 
-Learning Path là lộ trình học động, được hệ thống tự động sắp xếp dựa trên:
+1. **Observation** — Capture all signals: attempts, scores, time on task, activity history, specific errors
+2. **Diagnosis** — AI analyzes: estimate mastery, detect weak KPs, identify prerequisite gaps, recognize learning patterns
+3. **Decision** — AI selects the optimal action: continue, review, fill prerequisite gaps, assess, adjust difficulty, branch
+4. **Generation** — AI produces appropriate content: explanations, interactive visualizations, exercises at the right difficulty, personalized feedback
+5. **Feedback Loop** — Update learner state after every interaction, continuously adjust the path
 
-- Mastery hiện tại
-- Mục tiêu khóa học
-- Các KP phụ thuộc nhau (dependency graph)
+### Role of AI in the system
 
-## 🏗️ System Architecture
+**Analysis & Diagnosis:**
+- Estimate mastery from multiple signals (not just scores)
+- Detect prerequisite gaps and misconceptions
+- Identify each student's learning patterns
+- Generate diagnostic reports for teachers
+
+**Adaptive Content Generation:**
+- Generate theory content and interactive visualizations per Knowledge Point
+- Generate questions matched to current proficiency level
+- Create supplementary exercises when weaknesses are detected
+- Explain errors in a personalized way
+
+**Automated Assessment:**
+- Grade written assignments with detailed rubric-based analysis
+- Classify understanding level through answer patterns
+- Provide specific, actionable feedback
+
+**Path Recommendation:**
+- Decide next action: learn / practice / review / assess / remediate
+- Automatically update Learning Paths based on current mastery
+- Record every adaptation decision (auditable)
+
+---
+
+## Core Concepts
+
+### Knowledge Point (KP)
+
+The smallest unit of knowledge — each KP represents a specific skill or concept:
+
+- "Polynomial multiplication with monomials"
+- "Newton's First Law"
+- "Identifying passive voice"
+
+Each KP can link to: theory, videos, interactive visualizations, exercises, prerequisites, and mastery state.
+
+### Mastery
+
+A dynamic estimate of how well a student understands a KP. Mastery is not a fixed number — it changes continuously based on:
+
+- Answer correctness
+- Number of attempts and error patterns
+- Time on task
+- Difficulty of questions attempted
+- Prerequisite readiness
+
+### Learning Path
+
+A personalized sequence of learning actions. Not just "next lesson" — it can include: learn new content, practice, review, assess, fill prerequisite gaps, or accelerate.
+
+### Recommendation Event
+
+A record of every adaptation decision made by the system. Important because adaptive learning must be **auditable** — the system should explain why it recommended a specific action.
+
+---
+
+## System Architecture
 
 ### Course Structure
-
-Hệ thống được xây dựng theo mô hình phân cấp:
 
 ```
 Course → Module → Section → Knowledge Point
 ```
 
-Mỗi lớp dữ liệu được thiết kế để hỗ trợ:
+Each level supports: hierarchical content management, KP reuse across courses, precise linking to exercises and assessments.
 
-- Quản lý nội dung mạch lạc
-- Tái sử dụng nội dung giữa các khóa học
-- Liên kết KP chính xác với bài tập, video, và bài kiểm tra
+### High-Level Architecture
 
-### Mastery Engine
+```
+Frontend (Next.js 16 + React + HeroUI)
+    ↓
+Backend API (NestJS 11)
+    ├── Auth & Role Management (JWT + Firebase)
+    ├── Curriculum Layer (Courses, Modules, Sections, KPs)
+    ├── Learner State Layer (Progress, Mastery, Attempts, Time-on-task)
+    ├── Assessment Layer (Question Bank, Assignments, AI Grading)
+    ├── AI Generation Layer (Content, Visualizations, Questions)
+    ├── Analytics Layer (Course Analytics, Dashboard, Insights)
+    └── [Planned] Adaptation Layer (AI Recommendations, Learning Paths)
+         ↓
+    PostgreSQL (Neon Serverless) via Drizzle ORM
+```
 
-Mastery Engine là trung tâm phân tích dữ liệu học tập.
+---
 
-**Chức năng chính**:
+## Current Status
 
-- Tính toán mastery score theo thời gian thực
-- Dự đoán KP mà học sinh sẽ gặp khó
-- Cập nhật trạng thái "Ready to Learn", "Struggling", "Mastered"
+### Built and functional
 
-Các mô hình có thể ứng dụng:
+**Curriculum & Knowledge Modeling**
+- Full Course → Module → Section → Knowledge Point structure
+- Prerequisite system (dependency graph between KPs)
+- Resources (video, articles, interactive) attached to each KP
+- Public course cloning (deep-copy entire structure + KPs + questions)
 
-- Item Response Theory (IRT)
-- Bayesian Knowledge Tracing
-- Deep Knowledge Tracing (DL, LSTM)
-- Rule-based Mastery Models
+**Learner State Tracking**
+- Mastery score (0-100) per KP per student
+- Confidence score that increases with attempts
+- Immutable mastery history (every score change is recorded)
+- Question attempts with time tracking
+- Time-on-task per KP and section
+- Weekly activity (attempts + study minutes per day)
 
-### Recommendation Engine
+**AI Features (operational)**
+- **Interactive content generation**: AI creates self-contained HTML visualizations/games per KP topic (scoped CSS + JS)
+- **Automated grading**: Cron-based pipeline — downloads files from R2, extracts text (PDF/DOCX), AI grades against rubric, teacher reviews results. Supports OpenAI, Gemini, Kimi
+- **Multi-provider AI**: Factory pattern supporting OpenAI (gpt-4o-mini), Gemini (gemini-1.5-flash), Kimi via LangChain
 
-Engine gợi ý học tập dựa trên:
+**Assessment & Assignments**
+- Question bank (multiple choice, true/false, short answer) with IRT metadata (difficulty, discrimination)
+- Assign to students/classes/sections, submit via file upload (R2), manual + AI grading
+- Exercises linked to KPs by difficulty level
 
-- Mức độ nắm vững
-- Dependency graph của KP
-- Learning Path hiện tại
-- Mục tiêu và tiến độ của khóa học
+**Role-based System**
+- 4 roles: Admin, Teacher, Student, Parent
+- JWT cookies + Google Firebase sign-in
+- Authorization at both backend (Guards + Decorators) and frontend (Middleware + conditional UI)
+- Parent access to children's progress
 
-Nó quyết định:
+**Analytics & Notifications**
+- Dashboard analytics: completion rate, high-failure KPs, difficult modules, weekly performance
+- Automatic notifications when mastery crosses thresholds (60%, 80%) or drops below 50%
+- Comprehensive activity log (audit trail)
 
-- Bài học tiếp theo
-- Bài tập luyện tập tương ứng
-- Thời điểm cần kiểm tra lại
-- Thời điểm cần "remediation" (ôn lại)
+### Schema exists, logic not yet implemented
 
-### Assessment Engine
+| Component | Schema | Logic needed |
+|---|---|---|
+| `student_mastery` (aggregate mastery per course) | Yes | Auto-computation service |
+| `student_insights` (strengths, weaknesses, risk KPs) | Yes | AI-powered analysis |
+| `recommendation_events` (adaptation decisions) | Yes | AI recommendation logic |
+| `learning_path` created_by=system | Yes | AI auto-generation |
+| IRT parameters in mastery calculation | Yes | Currently unused; mastery uses binary logic |
+| Question difficulty auto-calibration | Yes | Currently hardcoded at difficulty=5 |
 
-Máy chấm điểm & phân tích:
+---
 
-- Tự sinh bài tập theo KP
-- Phân cấp độ khó câu hỏi
-- Phân tích lỗi thường gặp
-- Sinh diagnostic report cho học sinh và giáo viên
+## Roadmap: AI-Powered Adaptive Learning
 
-## 📊 Data Flow
+The current codebase has the full data foundation. Next steps are deeper AI integration to make the system truly adaptive:
 
-### Input Data
+### Phase 1: Advanced Mastery Engine
+- Apply IRT parameters to mastery calculation (replace binary 0/100)
+- Bayesian Knowledge Tracing or rule-based model
+- Auto-update `student_mastery` and `student_insights`
 
-- Hành vi học tập (clicks, thời gian xem)
-- Bài tập, điểm số
-- Bảng mastery theo KP
-- Thứ tự kiến thức phụ thuộc nhau
-- Metadata của khóa học
+### Phase 2: AI Diagnosis
+- AI detects misconceptions and prerequisite gaps
+- Analyze error patterns (not just right/wrong, but where and why)
+- Generate diagnostic reports for teachers
 
-### Processing
+### Phase 3: AI Recommendation
+- AI decides next action: learn / practice / review / assess / remediate
+- Auto-generate and update Learning Paths
+- Record recommendation_events (auditable)
 
-1. Dữ liệu được thu thập và chuẩn hóa
-2. Mastery Engine cập nhật trạng thái
-3. Recommendation Engine chọn mục học tiếp
-4. Learning Path được cập nhật
-5. Dashboard phản hồi giáo viên + học sinh
+### Phase 4: AI Remediation
+- AI generates explanations tailored to specific errors
+- Create supplementary exercises at the right difficulty
+- Adjust explanation style based on student's learning pattern
 
-### Output
+### Phase 5: Teacher Copilot
+- AI summarizes class status for teachers
+- Suggest interventions for struggling students
+- Explain the reasoning behind each recommendation
 
-- Lộ trình học cá nhân hóa
-- Report tiến độ
-- Gợi ý nội dung phù hợp
-- Chẩn đoán điểm yếu
+---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
-- **NestJS** - Progressive Node.js framework
-- **PostgreSQL** - Primary database
-- **Drizzle ORM** - Type-safe ORM
-- **TypeScript** - Type-safe JavaScript
-- **JWT** - Authentication & authorization
+- **NestJS 11** — Node.js framework
+- **PostgreSQL** (Neon Serverless) — Database
+- **Drizzle ORM** — Type-safe ORM
+- **TypeScript** — Type safety
+- **JWT + Firebase Admin** — Authentication
+- **LangChain** — AI orchestration (OpenAI + Gemini + Kimi)
+- **Cloudflare R2** — File storage (S3-compatible)
 
 ### Frontend
-- **Next.js 15** - React framework with App Router
-- **React 19** - UI library
-- **TypeScript** - Type-safe JavaScript
-- **TailwindCSS** - Utility-first CSS framework
-- **Framer Motion** - Animation library
+- **Next.js 16** — React framework (App Router)
+- **React** with React Compiler
+- **HeroUI** — Component library
+- **TailwindCSS 4** — Styling
+- **Framer Motion** — Animations
+- **SWR** — Data fetching
+- **Axios** — HTTP client
 
-## 🚀 Quick Start
+---
+
+## Project Structure
+
+```
+adaptive-learning/
+├── app/                        # Next.js frontend
+│   └── src/
+│       ├── app/               # Pages (App Router)
+│       │   ├── (auth)/dashboard/  # Protected dashboard pages
+│       │   ├── login/         # Login page
+│       │   └── ...            # Public pages (/, /about, /contact)
+│       ├── components/        # React components
+│       ├── hooks/             # Custom hooks (useUser, etc.)
+│       ├── lib/               # API client, utilities
+│       ├── contexts/          # React contexts
+│       └── types/             # TypeScript interfaces
+├── backend/                   # NestJS backend
+│   ├── src/
+│   │   ├── auth/             # JWT + Firebase Google sign-in
+│   │   ├── users/            # User CRUD
+│   │   ├── students/         # Student profiles + dashboard
+│   │   ├── teachers/         # Teacher profiles
+│   │   ├── parents/          # Parent profiles + children access
+│   │   ├── admins/           # Admin management
+│   │   ├── classes/          # Classes + enrollment + teacher assignment
+│   │   ├── courses/          # Courses + modules + sections
+│   │   ├── knowledge-points/ # KPs + prerequisites + AI content generation
+│   │   ├── question-bank/    # Questions + IRT metadata
+│   │   ├── assignments/      # Assignments + AI grading pipeline
+│   │   ├── student-progress/ # Mastery tracking + attempts + time-on-task
+│   │   ├── learning-paths/   # Learning path CRUD
+│   │   ├── course-analytics/ # Analytics (completion, failure, difficulty)
+│   │   ├── dashboard/        # Role-aware dashboard + stats
+│   │   ├── explorer/         # Public course browsing + cloning
+│   │   ├── activity-log/     # Audit trail + session tracking
+│   │   ├── notifications/    # Event-driven notifications
+│   │   ├── upload/           # Cloudflare R2 file storage
+│   │   └── firebase/         # Firebase Admin SDK
+│   └── db/
+│       └── schema.ts         # Drizzle schema (24 tables)
+└── docs/
+```
+
+---
+
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL 14+
 - pnpm
 
-### Workspace Setup (Recommended)
+### Setup
 
 ```bash
-# Install dependencies for all packages (app + backend)
+# Install dependencies
 pnpm install
 
-# Copy environment files
+# Configure environment
 cp backend/.env.example backend/.env
 cp app/.env.example app/.env.local
-# Edit env files with your values
+# Edit .env files with your values
 
-# Run database migrations (backend)
+# Push database schema
 pnpm db:push
 
-# Start app + backend together
+# Start development (frontend + backend)
 pnpm dev
 ```
 
-### Install Packages From Root (No `cd` Needed)
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000
+
+### Package Management
 
 ```bash
-# Install all existing dependencies for all workspace packages
-pnpm install
-
-# Add dependency to frontend app only
+# Add dependency to frontend
 pnpm --filter app add <package>
 
-# Add dependency to backend only
+# Add dependency to backend
 pnpm --filter backend-nestjs add <package>
 
-# Add dev dependency to backend only
+# Add dev dependency to backend
 pnpm --filter backend-nestjs add -D <package>
-
-# Add shared tooling to root workspace (eslint/prettier/turbo, ...)
-pnpm add -w -D <package>
 ```
 
-### Run Individual Services (from root)
+---
 
-```bash
-# Frontend only
-pnpm dev:app
+## User Roles
 
-# Backend only
-pnpm dev:backend
-```
+| Role | Capabilities |
+|---|---|
+| **Admin** | Full system management, users, analytics |
+| **Teacher** | Create courses, manage classes, assign work, view student progress |
+| **Student** | Study content, complete assignments, track own progress |
+| **Parent** | View children's progress, receive notifications |
 
-### Backend Setup (Optional, standalone)
+---
 
-```bash
-cd backend
-pnpm install
+## License
 
-# Copy environment file
-cp .env.example .env
-# Edit .env with your database URL and API keys
-
-# Run database migrations
-pnpm run db:push
-
-# Start development server
-pnpm run start:dev
-```
-
-Backend API will be available at `http://localhost:8000`
-
-### Frontend Setup (Optional, standalone)
-
-```bash
-cd app
-pnpm install
-
-# Copy environment file
-cp .env.example .env.local
-# Edit .env.local with your API URL
-
-# Start development server
-pnpm run dev
-```
-
-Frontend will be available at `http://localhost:3000`
-
-## 👥 User Roles
-
-- **Admin** - Full system access
-- **Teacher** - Create/manage content, view progress
-- **Student** - Access content, track progress
-- **Parent** - View child's progress
-
-## 🔐 Authentication Notes
-
-- **Email normalization**: Email is stored and checked in lowercase to avoid login mismatch between uppercase/lowercase inputs.
-- **Password policy**: Password remains case-sensitive.
-- **Remember me session**:
-	- Check **Ghi nhớ đăng nhập** → session cookie lasts **7 days**.
-	- Unchecked → session cookie lasts **1 day**.
-- **Google login popup**: If user closes popup manually, loading state is cleared gracefully.
-
-## 📈 Evaluation
-
-Hệ thống được đánh giá dựa trên:
-
-- Tốc độ nắm vững kiến thức
-- Tỉ lệ giảm lỗi lặp lại
-- Thời gian hoàn thành khóa học
-- Mức độ phù hợp của gợi ý
-- Độ chính xác của mô hình mastery
-
-Kết quả ban đầu cho thấy adaptive learning giảm 20–40% thời gian học và tăng đáng kể khả năng ghi nhớ dài hạn.
-
-## 📚 Project Structure
-
-```
-adaptive-learning/
-├── backend/          # NestJS backend API
-│   ├── src/         # Source code
-│   ├── db/          # Database schema & migrations
-│   └── dist/        # Compiled output
-├── app/             # Next.js frontend
-│   └── src/
-│       ├── app/     # Next.js App Router pages
-│       ├── components/  # React components
-│       └── lib/     # Utilities & API client
-└── README.md        # This file
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 💬 Support
-
-For questions and support, please open an issue in the GitHub repository.
+MIT
