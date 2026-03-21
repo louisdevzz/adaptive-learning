@@ -169,9 +169,10 @@ export class AuthService {
     requestContext: AuthRequestContext = {},
   ): Promise<AuthResponseDto & { sessionId?: string }> {
     const context = this.normalizeRequestContext(requestContext);
+    const normalizedEmail = loginDto.email.trim().toLowerCase();
 
     // Find user by email
-    const user = await this.usersService.findByEmail(loginDto.email);
+    const user = await this.usersService.findByEmail(normalizedEmail);
     if (!user) {
       this.activityLogService
         .logEvent({
@@ -184,7 +185,7 @@ export class AuthService {
           requestId: context.requestId,
           source: context.source,
           metadata: {
-            email: loginDto.email,
+            email: normalizedEmail,
             reason: 'user_not_found',
           },
         })
@@ -195,7 +196,7 @@ export class AuthService {
           );
         });
       this.logger.warn(
-        `Login attempt failed: User not found for email ${loginDto.email}`,
+        `Login attempt failed: User not found for email ${normalizedEmail}`,
       );
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -237,7 +238,7 @@ export class AuthService {
           );
         });
       this.logger.warn(
-        `Login attempt failed: Invalid password for email ${loginDto.email}`,
+        `Login attempt failed: Invalid password for email ${normalizedEmail}`,
       );
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -270,7 +271,7 @@ export class AuthService {
           );
         });
       this.logger.warn(
-        `Login attempt failed: Account inactive for email ${loginDto.email}`,
+        `Login attempt failed: Account inactive for email ${normalizedEmail}`,
       );
       throw new UnauthorizedException('Account is inactive');
     }

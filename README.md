@@ -145,15 +145,59 @@ Máy chấm điểm & phân tích:
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL 14+
-- pnpm (recommended) or npm
+- pnpm
 
-### Backend Setup
+### Workspace Setup (Recommended)
 
 ```bash
-# Navigate to backend
-cd backend
+# Install dependencies for all packages (app + backend)
+pnpm install
 
-# Install dependencies
+# Copy environment files
+cp backend/.env.example backend/.env
+cp app/.env.example app/.env.local
+# Edit env files with your values
+
+# Run database migrations (backend)
+pnpm db:push
+
+# Start app + backend together
+pnpm dev
+```
+
+### Install Packages From Root (No `cd` Needed)
+
+```bash
+# Install all existing dependencies for all workspace packages
+pnpm install
+
+# Add dependency to frontend app only
+pnpm --filter app add <package>
+
+# Add dependency to backend only
+pnpm --filter backend-nestjs add <package>
+
+# Add dev dependency to backend only
+pnpm --filter backend-nestjs add -D <package>
+
+# Add shared tooling to root workspace (eslint/prettier/turbo, ...)
+pnpm add -w -D <package>
+```
+
+### Run Individual Services (from root)
+
+```bash
+# Frontend only
+pnpm dev:app
+
+# Backend only
+pnpm dev:backend
+```
+
+### Backend Setup (Optional, standalone)
+
+```bash
+cd backend
 pnpm install
 
 # Copy environment file
@@ -167,23 +211,20 @@ pnpm run db:push
 pnpm run start:dev
 ```
 
-API will be available at `http://localhost:3000/api`
+Backend API will be available at `http://localhost:8000`
 
-### Frontend Setup
+### Frontend Setup (Optional, standalone)
 
 ```bash
-# Navigate to app directory
 cd app
-
-# Install dependencies
-npm install
+pnpm install
 
 # Copy environment file
 cp .env.example .env.local
 # Edit .env.local with your API URL
 
 # Start development server
-npm run dev
+pnpm run dev
 ```
 
 Frontend will be available at `http://localhost:3000`

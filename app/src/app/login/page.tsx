@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@heroui/button";
@@ -72,6 +72,18 @@ function getErrorMessage(err: unknown, fallback: string) {
   return fallback;
 }
 
+function isPopupClosedByUserError(err: unknown): boolean {
+  if (typeof err === "object" && err !== null && "code" in err) {
+    const code = (err as { code?: unknown }).code;
+    return (
+      code === "auth/popup-closed-by-user" ||
+      code === "auth/cancelled-popup-request"
+    );
+  }
+
+  return false;
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
@@ -82,6 +94,32 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const isGooglePopupPendingRef = useRef(false);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (!isGooglePopupPendingRef.current) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (!isGooglePopupPendingRef.current) {
+          return;
+        }
+
+        if (!auth.currentUser) {
+          isGooglePopupPendingRef.current = false;
+          setLoading(false);
+        }
+      }, 250);
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,14 +127,17 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await api.auth.login(email, password);
+      const response = await api.auth.login(email, password, rememberMe);
 
       if (response?.accessToken) {
         try {
           await fetch("/api/auth/set-cookie", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ accessToken: response.accessToken }),
+            body: JSON.stringify({
+              accessToken: response.accessToken,
+              rememberMe,
+            }),
           });
         } catch (cookieError) {
           console.error("Failed to set frontend cookie:", cookieError);
@@ -129,20 +170,28 @@ function LoginForm() {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) {
+      return;
+    }
+
     setError("");
     setLoading(true);
+    isGooglePopupPendingRef.current = true;
 
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
-      const response = await api.auth.loginWithGoogle(idToken);
+      const response = await api.auth.loginWithGoogle(idToken, rememberMe);
 
       if (response?.accessToken) {
         try {
           await fetch("/api/auth/set-cookie", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ accessToken: response.accessToken }),
+            body: JSON.stringify({
+              accessToken: response.accessToken,
+              rememberMe,
+            }),
           });
         } catch (cookieError) {
           console.error("Failed to set frontend cookie:", cookieError);
@@ -159,9 +208,14 @@ function LoginForm() {
       await new Promise((resolve) => setTimeout(resolve, 200));
       window.location.href = redirectTo;
     } catch (err: unknown) {
+      if (isPopupClosedByUserError(err)) {
+        return;
+      }
+
       console.error("Google login error:", err);
       setError(getErrorMessage(err, "Đăng nhập Google thất bại. Vui lòng thử lại."));
     } finally {
+      isGooglePopupPendingRef.current = false;
       setLoading(false);
     }
   };

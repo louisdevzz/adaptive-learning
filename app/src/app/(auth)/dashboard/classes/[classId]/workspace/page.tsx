@@ -363,7 +363,7 @@ export default function ClassWorkspacePage() {
               </button>
               <button
                 onClick={() => setActiveTab("announcements")}
-                className={`py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
+                className={`py-4 text-sm cursor-pointer font-medium flex items-center gap-2 border-b-2 transition-colors ${
                   activeTab === "announcements"
                     ? "border-primary text-primary"
                     : "border-transparent text-[#717680] hover:text-[#181d27]"

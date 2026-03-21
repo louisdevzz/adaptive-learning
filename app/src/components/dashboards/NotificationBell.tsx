@@ -169,7 +169,7 @@ export function NotificationBell({ collapsed = false }: NotificationBellProps) {
     >
       <DropdownTrigger>
         <button
-          className={`relative rounded-xl border border-[#E5E5E5] bg-white hover:bg-gray-50 transition-colors ${
+          className={`relative cursor-pointer rounded-xl border border-[#E5E5E5] bg-white hover:bg-gray-50 transition-colors ${
             collapsed
               ? "w-9 h-9 flex items-center justify-center"
               : "flex items-center gap-2 px-3 py-2"

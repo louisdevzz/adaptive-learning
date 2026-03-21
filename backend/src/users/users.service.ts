@@ -4,7 +4,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db, userRoles, users } from '../../db';
 import * as bcrypt from 'bcrypt';
 
@@ -18,11 +18,14 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
+    const normalizedEmail = this.normalizeEmail(email);
+
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+
     return user;
   }
 
@@ -81,11 +84,13 @@ export class UsersService {
     role: string;
     avatarUrl?: string;
   }) {
+    const normalizedEmail = this.normalizeEmail(userData.email);
+
     // Check if user already exists
-    const existingUser = await this.findByEmail(userData.email);
+    const existingUser = await this.findByEmail(normalizedEmail);
     if (existingUser) {
       this.logger.warn(
-        `User creation failed: Email already exists - ${userData.email}`,
+        `User creation failed: Email already exists - ${normalizedEmail}`,
       );
       throw new ConflictException('Email already exists');
     }
@@ -94,14 +99,14 @@ export class UsersService {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(userData.password, saltRounds);
     this.logger.debug(
-      `Password hashed for user: ${userData.email}, role: ${userData.role}`,
+      `Password hashed for user: ${normalizedEmail}, role: ${userData.role}`,
     );
 
     // Create user
     const [newUser] = await db
       .insert(users)
       .values({
-        email: userData.email,
+        email: normalizedEmail,
         passwordHash: passwordHash,
         fullName: userData.fullName,
         role: userData.role,
@@ -179,6 +184,11 @@ export class UsersService {
   ) {
     // Hash password if provided
     const updatePayload: Partial<typeof users.$inferInsert> = { ...updateData };
+
+    if (typeof updatePayload.email === 'string') {
+      updatePayload.email = this.normalizeEmail(updatePayload.email);
+    }
+
     if ('password' in updateData && updateData.password) {
       const saltRounds = 10;
       updatePayload.passwordHash = await bcrypt.hash(
@@ -274,5 +284,9 @@ export class UsersService {
 
     this.logger.log(`Password reset successfully for user: ${user.email}`);
     return updatedUser;
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 }

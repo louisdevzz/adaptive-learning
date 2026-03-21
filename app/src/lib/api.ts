@@ -63,13 +63,20 @@ apiClient.interceptors.response.use(
 export const api = {
   // Auth endpoints
   auth: {
-    login: async (email: string, password: string) => {
-      const response = await apiClient.post("/auth/login", { email, password });
+    login: async (email: string, password: string, rememberMe = false) => {
+      const response = await apiClient.post("/auth/login", {
+        email,
+        password,
+        rememberMe,
+      });
       return response.data;
     },
 
-    loginWithGoogle: async (idToken: string) => {
-      const response = await apiClient.post("/auth/google", { idToken });
+    loginWithGoogle: async (idToken: string, rememberMe = false) => {
+      const response = await apiClient.post("/auth/google", {
+        idToken,
+        rememberMe,
+      });
       return response.data;
     },
 

@@ -17,6 +17,9 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
 
+const REMEMBER_ME_MAX_AGE_DAYS = 7;
+const STANDARD_MAX_AGE_DAYS = 1;
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -51,12 +54,13 @@ export class AuthController {
   ) {
     const { sessionId, ...response } =
       await this.authService.login(loginDto, this.buildRequestContext(req));
+    const maxAge = this.resolveCookieMaxAge(loginDto.rememberMe);
 
     res.cookie('access_token', response.accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge,
       path: '/',
     });
 
@@ -65,7 +69,7 @@ export class AuthController {
         httpOnly: true,
         secure: true,
         sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge,
         path: '/',
       });
     }
@@ -79,6 +83,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async loginWithGoogle(
     @Body('idToken') idToken: string,
+    @Body('rememberMe') rememberMe?: boolean,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -87,12 +92,13 @@ export class AuthController {
         idToken,
         this.buildRequestContext(req),
       );
+    const maxAge = this.resolveCookieMaxAge(rememberMe);
 
     res.cookie('access_token', response.accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge,
       path: '/',
     });
 
@@ -101,7 +107,7 @@ export class AuthController {
         httpOnly: true,
         secure: true,
         sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge,
         path: '/',
       });
     }
@@ -164,5 +170,13 @@ export class AuthController {
       requestId,
       source: 'web_app',
     };
+  }
+
+  private resolveCookieMaxAge(rememberMe?: boolean): number {
+    const maxAgeDays = rememberMe
+      ? REMEMBER_ME_MAX_AGE_DAYS
+      : STANDARD_MAX_AGE_DAYS;
+
+    return maxAgeDays * 24 * 60 * 60 * 1000;
   }
 }

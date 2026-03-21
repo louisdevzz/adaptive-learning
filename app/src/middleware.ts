@@ -5,15 +5,6 @@ export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
   const pathname = request.nextUrl.pathname;
 
-  // Log for debugging (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Middleware]', {
-      pathname,
-      hasToken: !!accessToken,
-      cookies: request.cookies.getAll().map(c => c.name),
-    });
-  }
-
   // Public routes that don't require authentication
   const publicRoutes = ['/', '/about', '/contact', '/login', '/signup'];
   const isPublicRoute = publicRoutes.includes(pathname) ||

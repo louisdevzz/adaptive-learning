@@ -1,0 +1,17 @@
+{
+  "name": "adaptive-learning-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:app": "pnpm --filter app run dev",
+    "dev:backend": "pnpm --filter backend-nestjs run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm --filter backend-nestjs run test",
+    "test:e2e": "pnpm --filter backend-nestjs run test:e2e",
+    "db:generate": "pnpm --filter backend-nestjs run db:generate",
+    "db:push": "pnpm --filter backend-nestjs run db:push",
+    "db:studio": "pnpm --filter backend-nestjs run db:studio"
+  }
+}
