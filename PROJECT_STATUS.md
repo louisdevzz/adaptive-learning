@@ -1,6 +1,6 @@
 # 📊 Adaptive Learning Platform - Project Overview
 
-> **Last Updated:** 04/03/2026
+> **Last Updated:** 21/03/2026
 
 ---
 
@@ -118,6 +118,29 @@ adaptive-learning/
   - Project conventions
   - Development guidelines
   - API patterns
+
+## 🆕 Recent Updates (2026-03-21)
+
+### Monorepo & Package Management
+- **pnpm Workspace Root Setup**
+  - Added root workspace config (`pnpm-workspace.yaml`)
+  - Added root-level scripts to run app/backend without `cd` into each folder
+  - Consolidated lockfile management to root `pnpm-lock.yaml`
+
+### Authentication Hardening
+- **Remember-Me Session TTL**
+  - `rememberMe=true`: cookie/session expiry in 7 days
+  - `rememberMe=false`: cookie/session expiry in 1 day
+  - Applied to both email/password login and Google login
+- **Email Case Consistency**
+  - Email normalized to lowercase on create/update/find
+  - Login no longer fails due to uppercase/lowercase email variations
+  - Password remains case-sensitive by design
+
+### Frontend Login UX
+- **Google Popup Close Handling**
+  - Fixed stuck loading when Google popup is closed by user
+  - Gracefully handles Firebase `auth/popup-closed-by-user`
 
 ---
 
@@ -429,6 +452,8 @@ adaptive-learning/
 | CORS | Configurable origins |
 | Input Validation | class-validator |
 | SQL Injection Prevention | Drizzle ORM parameterized queries |
+| Email Normalization | Lowercase normalization at service layer |
+| Session Lifetime Policy | 1 day default / 7 days with remember-me |
 
 ---
 
@@ -579,6 +604,21 @@ Based on code review, the following features may need further development:
 
 ## 🔧 Running the Project
 
+### Workspace (Recommended)
+```bash
+pnpm install
+cp backend/.env.example backend/.env
+cp app/.env.example app/.env.local
+pnpm db:push
+pnpm dev
+```
+
+Run each app independently from root:
+```bash
+pnpm dev:app
+pnpm dev:backend
+```
+
 ### Backend
 ```bash
 cd backend
@@ -592,10 +632,10 @@ pnpm run start:dev
 ### Frontend
 ```bash
 cd app
-npm install
+pnpm install
 cp .env.example .env.local
 # Edit .env.local with your API URL
-npm run dev
+pnpm run dev
 ```
 
 ---
@@ -615,4 +655,4 @@ Project developed by Adaptive Learning Team.
 
 ---
 
-*Last Updated: 03/03/2026*
+*Last Updated: 21/03/2026*

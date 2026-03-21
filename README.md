@@ -236,6 +236,15 @@ Frontend will be available at `http://localhost:3000`
 - **Student** - Access content, track progress
 - **Parent** - View child's progress
 
+## 🔐 Authentication Notes
+
+- **Email normalization**: Email is stored and checked in lowercase to avoid login mismatch between uppercase/lowercase inputs.
+- **Password policy**: Password remains case-sensitive.
+- **Remember me session**:
+	- Check **Ghi nhớ đăng nhập** → session cookie lasts **7 days**.
+	- Unchecked → session cookie lasts **1 day**.
+- **Google login popup**: If user closes popup manually, loading state is cleared gracefully.
+
 ## 📈 Evaluation
 
 Hệ thống được đánh giá dựa trên:

@@ -1,5 +1,39 @@
 # Changelogs - Adaptive Learning Platform
 
+## [Unreleased] - 2026-03-21
+
+### Added
+- **pnpm Workspace at Root**: Standardized monorepo package management from root
+  - Added `pnpm-workspace.yaml` with `app` and `backend` packages
+  - Added root `package.json` scripts for `dev`, `dev:app`, `dev:backend`, `build`, `lint`, `test`, and DB tasks
+  - Added root `.npmrc` for workspace lockfile and shared hoisting behavior
+
+### Changed
+- **Session Policy for Login**: Implemented explicit remember-me behavior
+  - `rememberMe = true` → auth/session cookie expiry is **7 days**
+  - `rememberMe = false` → auth/session cookie expiry is **1 day**
+  - Applied consistently for email login and Google login
+- **Email Normalization**: Unified email handling in auth/user services
+  - Emails are normalized to lowercase before lookup/create/update
+  - Login is now case-insensitive by email
+  - Password matching remains case-sensitive
+- **Workspace Lockfile Strategy**: Moved to a single root `pnpm-lock.yaml`
+  - Removed package-level lockfiles from `app/` and `backend/`
+
+### Fixed
+- **Google Login UX**: Fixed loading state when user closes Google popup
+  - Prevents stuck loading when popup is dismissed
+  - Handles Firebase `auth/popup-closed-by-user` without showing failure state
+- **UI Interaction Consistency**
+  - Added pointer cursor for notification trigger and class workspace tab buttons
+  - Removed development-only middleware cookie debug logs
+
+### Documentation
+- Updated `README.md`, `PROJECT_STATUS.md`, and `backend/API_DOCUMENTATION.md` to reflect:
+  - Root workspace workflow with pnpm
+  - Remember-me cookie TTL policy
+  - Email normalization and authentication behavior
+
 ## [Unreleased] - 2026-03-04
 
 ### Added

@@ -75,6 +75,14 @@ The API uses HTTP-only cookies for authentication, which is more secure than Bea
 3. Your browser automatically sends this cookie with every request
 4. No need to manually include Authorization headers
 
+**Session lifetime policy:**
+- Login with `rememberMe = true` → cookie expires in **7 days**
+- Login with `rememberMe = false` (or omitted) → cookie expires in **1 day**
+
+**Credential behavior:**
+- Email is normalized to lowercase (case-insensitive login)
+- Password is case-sensitive
+
 **Required Headers:**
 ```
 x-api-key: your-api-key-here
@@ -316,9 +324,15 @@ Set-Cookie: access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOn
 ```json
 {
   "email": "user@example.com",
-  "password": "password123"
+  "password": "password123",
+  "rememberMe": true
 }
 ```
+
+**Request Body Fields:**
+- `email` (required)
+- `password` (required)
+- `rememberMe` (optional, boolean)
 
 **Response (200 OK):**
 ```json
@@ -335,12 +349,55 @@ Set-Cookie: access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOn
 
 **Set-Cookie Header:**
 ```
-Set-Cookie: access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800
+Set-Cookie: access_token=...; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=86400 (rememberMe=false)
+Set-Cookie: access_token=...; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=604800 (rememberMe=true)
 ```
 
 **Error Responses:**
 - `401 Unauthorized` - Invalid credentials
 - `401 Unauthorized` - Account is inactive
+
+---
+
+### Google Login
+
+**Endpoint:** `POST /api/auth/google`
+
+**Request Body:**
+```json
+{
+  "idToken": "firebase-google-id-token",
+  "rememberMe": true
+}
+```
+
+**Request Body Fields:**
+- `idToken` (required)
+- `rememberMe` (optional, boolean)
+
+**Response (200 OK):**
+```json
+{
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "fullName": "User Name",
+    "role": "student",
+    "avatarUrl": "https://example.com/avatar.jpg"
+  },
+  "accessToken": "jwt-token"
+}
+```
+
+**Set-Cookie Header:**
+```
+Set-Cookie: access_token=...; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=86400 (rememberMe=false)
+Set-Cookie: access_token=...; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=604800 (rememberMe=true)
+```
+
+**Error Responses:**
+- `400 Bad Request` - Email not found in Google account
+- `401 Unauthorized` - Invalid Google token or account inactive
 
 ---
 
@@ -837,7 +894,7 @@ Make sure to set these in your `.env` file:
 DATABASE_URL=postgresql://user:password@localhost:5432/adaptive_learning
 JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=7d
-PORT=3000
+PORT=8000
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173
 ```
