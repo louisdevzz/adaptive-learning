@@ -1652,6 +1652,76 @@ export const api = {
     },
   },
 
+  teacherInterventions: {
+    getClassOverview: async (classId: string) => {
+      const response = await apiClient.get(
+        `/teacher-interventions/class/${classId}/overview`,
+      );
+      return response.data;
+    },
+
+    getStudentDetail: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/teacher-interventions/student/${studentId}/detail`,
+      );
+      return response.data;
+    },
+
+    getStudentSuggestions: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/teacher-interventions/student/${studentId}/suggestions`,
+      );
+      return response.data;
+    },
+
+    createIntervention: async (data: {
+      studentId: string;
+      classId?: string;
+      type: 'ai_suggestion' | 'manual' | 'recommendation_override';
+      title: string;
+      description: string;
+      suggestedActions?: unknown[];
+      status?: 'pending' | 'in_progress' | 'completed' | 'dismissed';
+      priority?: 'low' | 'medium' | 'high' | 'critical';
+      relatedKpIds?: string[];
+      aiConfidence?: number;
+      teacherNotes?: string;
+    }) => {
+      const response = await apiClient.post('/teacher-interventions', data);
+      return response.data;
+    },
+
+    updateIntervention: async (
+      id: string,
+      data: {
+        title?: string;
+        description?: string;
+        status?: 'pending' | 'in_progress' | 'completed' | 'dismissed';
+        priority?: 'low' | 'medium' | 'high' | 'critical';
+        teacherNotes?: string;
+        aiConfidence?: number;
+      },
+    ) => {
+      const response = await apiClient.patch(`/teacher-interventions/${id}`, data);
+      return response.data;
+    },
+
+    createRecommendationOverride: async (data: {
+      studentId: string;
+      recommendationEventId: string;
+      action: 'approved' | 'rejected' | 'modified';
+      originalRecommendation: Record<string, unknown>;
+      modifiedRecommendation?: Record<string, unknown>;
+      reason: string;
+    }) => {
+      const response = await apiClient.post(
+        '/teacher-interventions/recommendation-override',
+        data,
+      );
+      return response.data;
+    },
+  },
+
   // Dashboard endpoints
   dashboard: {
     getTeacherStats: async () => {

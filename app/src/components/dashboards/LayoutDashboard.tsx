@@ -214,6 +214,7 @@ export default function LayoutDashboard({
       "my-courses": "Khóa học của tôi",
       "learning-path": "Lộ trình học tập",
       "learning-profile": "Hồ sơ học tập",
+      interventions: "Interventions",
       progress: "Tiến độ",
       "children-progress": "Tiến độ con",
       parent: "Dashboard phụ huynh",

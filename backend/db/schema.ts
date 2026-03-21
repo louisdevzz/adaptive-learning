@@ -1117,6 +1117,76 @@ export const classCourses = pgTable(
   }),
 );
 
+export const teacherInterventions = pgTable(
+  'teacher_interventions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    teacherId: uuid('teacher_id')
+      .notNull()
+      .references(() => teachers.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    classId: uuid('class_id').references(() => classes.id, {
+      onDelete: 'set null',
+    }),
+    type: varchar('type', { length: 30 }).notNull(),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    suggestedActions: json('suggested_actions').notNull().default([]),
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    priority: varchar('priority', { length: 20 }).notNull().default('medium'),
+    relatedKpIds: json('related_kp_ids').notNull().default([]),
+    aiConfidence: integer('ai_confidence'),
+    teacherNotes: text('teacher_notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    teacherStudentIdx: index('teacher_interventions_teacher_student_idx').on(
+      table.teacherId,
+      table.studentId,
+    ),
+    classIdx: index('teacher_interventions_class_idx').on(table.classId),
+    statusIdx: index('teacher_interventions_status_idx').on(table.status),
+    priorityIdx: index('teacher_interventions_priority_idx').on(table.priority),
+    createdAtIdx: index('teacher_interventions_created_at_idx').on(
+      table.createdAt,
+    ),
+  }),
+);
+
+export const recommendationOverrides = pgTable(
+  'recommendation_overrides',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    teacherId: uuid('teacher_id')
+      .notNull()
+      .references(() => teachers.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    recommendationEventId: uuid('recommendation_event_id')
+      .notNull()
+      .references(() => recommendationEvents.id, { onDelete: 'cascade' }),
+    action: varchar('action', { length: 20 }).notNull(),
+    originalRecommendation: json('original_recommendation').notNull(),
+    modifiedRecommendation: json('modified_recommendation'),
+    reason: text('reason').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    teacherStudentIdx: index('recommendation_overrides_teacher_student_idx').on(
+      table.teacherId,
+      table.studentId,
+    ),
+    recommendationIdx: index('recommendation_overrides_recommendation_idx').on(
+      table.recommendationEventId,
+    ),
+    actionIdx: index('recommendation_overrides_action_idx').on(table.action),
+  }),
+);
+
 // =============================================
 // LEARNING PATH & RECOMMENDATIONS
 // =============================================

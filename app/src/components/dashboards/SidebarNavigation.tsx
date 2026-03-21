@@ -65,6 +65,7 @@ const menuItems: Record<string, MenuItem[]> = {
     { icon: BookOpen, label: "Khóa học", href: "/dashboard/courses", hasSubmenu: true, submenu: courseManagementSubmenu },
     { icon: ClipboardList, label: "Bài tập", href: "/dashboard/assignments" },
     { icon: Users, label: "Quản lý học sinh", href: "/dashboard/students" },
+    { icon: Brain, label: "Interventions", href: "/dashboard/interventions" },
     { icon: School, label: "Quản lý Lớp học", href: "/dashboard/classes" },
     { icon: TrendingUp, label: "Báo cáo", href: "/dashboard/reports" },
   ],
