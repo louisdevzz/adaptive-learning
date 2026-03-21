@@ -27,6 +27,7 @@ import { LearningProfileModule } from './learning-profile/learning-profile.modul
 import { ResourceRecommendationsModule } from './resource-recommendations/resource-recommendations.module';
 import { ParentDashboardModule } from './parent-dashboard/parent-dashboard.module';
 import { TeacherInterventionsModule } from './teacher-interventions/teacher-interventions.module';
+import { SmartAlertsModule } from './smart-alerts/smart-alerts.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 
 @Module({
@@ -68,6 +69,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
     ResourceRecommendationsModule,
     ParentDashboardModule,
     TeacherInterventionsModule,
+    SmartAlertsModule,
   ],
   providers: [
     {

@@ -10,6 +10,7 @@ import {
   students,
   users,
 } from '../../db';
+import { AlertDispatcherService } from '../smart-alerts/alert-dispatcher.service';
 import { CreateProgressAlertDto } from './dto/create-progress-alert.dto';
 import { GetNotificationsQueryDto } from './dto/get-notifications-query.dto';
 
@@ -34,6 +35,8 @@ interface ProgressUpdatedEvent {
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+
+  constructor(private readonly alertDispatcher: AlertDispatcherService) {}
 
   async getMyNotifications(
     userId: string,
@@ -455,17 +458,6 @@ export class NotificationsService {
   private async createMany(payloads: CreateNotificationInput[]) {
     if (payloads.length === 0) return;
 
-    await db.insert(notifications).values(
-      payloads.map((payload) => ({
-        recipientId: payload.recipientId,
-        actorUserId: payload.actorUserId || null,
-        relatedStudentId: payload.relatedStudentId || null,
-        type: payload.type,
-        title: payload.title,
-        message: payload.message,
-        actionUrl: payload.actionUrl || null,
-        metadata: payload.metadata ?? {},
-      })),
-    );
+    await this.alertDispatcher.dispatchMany(payloads);
   }
 }

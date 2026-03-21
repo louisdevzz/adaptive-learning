@@ -3,7 +3,7 @@
 import { SidebarNavigation } from "./SidebarNavigation";
 import { DashboardBreadcrumbs } from "./DashboardBreadcrumbs";
 import { SearchModal } from "./SearchModal";
-import { NotificationBell } from "./NotificationBell";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
@@ -215,6 +215,8 @@ export default function LayoutDashboard({
       "learning-path": "Lộ trình học tập",
       "learning-profile": "Hồ sơ học tập",
       interventions: "Interventions",
+      notifications: "Thông báo",
+      preferences: "Tùy chọn",
       progress: "Tiến độ",
       "children-progress": "Tiến độ con",
       parent: "Dashboard phụ huynh",
@@ -310,7 +312,7 @@ export default function LayoutDashboard({
           </button>
           {user && (
             <div className="ml-auto">
-              <NotificationBell />
+              <NotificationCenter />
             </div>
           )}
 

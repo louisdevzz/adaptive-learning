@@ -952,6 +952,66 @@ export const notifications = pgTable(
   }),
 );
 
+export const notificationPreferences = pgTable(
+  'notification_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    enabledTypes: json('enabled_types').notNull().default({
+      progress_alert: true,
+      assignment_assigned: true,
+      assignment_graded: true,
+      progress_update: true,
+      system: true,
+    }),
+    digestFrequency: varchar('digest_frequency', { length: 20 })
+      .notNull()
+      .default('realtime'),
+    quietHoursStart: varchar('quiet_hours_start', { length: 5 }),
+    quietHoursEnd: varchar('quiet_hours_end', { length: 5 }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: unique('notification_preferences_user_unique').on(table.userId),
+    digestIdx: index('notification_preferences_digest_idx').on(
+      table.digestFrequency,
+    ),
+  }),
+);
+
+export const notificationDigests = pgTable(
+  'notification_digests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    digestType: varchar('digest_type', { length: 20 }).notNull(),
+    periodStart: timestamp('period_start').notNull(),
+    periodEnd: timestamp('period_end').notNull(),
+    notificationIds: json('notification_ids').notNull().default([]),
+    aiSummary: text('ai_summary'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    deliveredAt: timestamp('delivered_at'),
+  },
+  (table) => ({
+    userTypeIdx: index('notification_digests_user_type_idx').on(
+      table.userId,
+      table.digestType,
+    ),
+    periodIdx: index('notification_digests_period_idx').on(
+      table.periodStart,
+      table.periodEnd,
+    ),
+    deliveredIdx: index('notification_digests_delivered_idx').on(
+      table.deliveredAt,
+    ),
+  }),
+);
+
 export const parentWeeklyReports = pgTable(
   'parent_weekly_reports',
   {

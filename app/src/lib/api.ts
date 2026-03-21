@@ -1722,6 +1722,34 @@ export const api = {
     },
   },
 
+  smartAlerts: {
+    getPreferences: async () => {
+      const response = await apiClient.get('/smart-alerts/preferences');
+      return response.data;
+    },
+
+    updatePreferences: async (data: {
+      enabledTypes?: Record<string, boolean>;
+      digestFrequency?: 'realtime' | 'daily' | 'weekly';
+      quietHoursStart?: string;
+      quietHoursEnd?: string;
+    }) => {
+      const response = await apiClient.patch('/smart-alerts/preferences', data);
+      return response.data;
+    },
+
+    getDigests: async (params?: { page?: number; limit?: number }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const query = queryParams.toString();
+      const url = query ? `/smart-alerts/digests?${query}` : '/smart-alerts/digests';
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+  },
+
   // Dashboard endpoints
   dashboard: {
     getTeacherStats: async () => {
