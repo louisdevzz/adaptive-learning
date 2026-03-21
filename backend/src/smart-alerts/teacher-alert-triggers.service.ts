@@ -6,7 +6,6 @@ import {
   classes,
   teacherInterventions,
   teacherClassMap,
-  users,
 } from '../../db';
 import { AlertDispatcherService } from './alert-dispatcher.service';
 
@@ -70,6 +69,7 @@ export class TeacherAlertTriggersService {
         classId,
         className,
       },
+      dedupeWindowMinutes: 24 * 60,
     });
   }
 
@@ -104,6 +104,7 @@ export class TeacherAlertTriggersService {
           interventionId: item.id,
           studentId: item.studentId,
         },
+        dedupeWindowMinutes: 24 * 60,
       });
     }
   }

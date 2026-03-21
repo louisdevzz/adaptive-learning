@@ -1731,8 +1731,8 @@ export const api = {
     updatePreferences: async (data: {
       enabledTypes?: Record<string, boolean>;
       digestFrequency?: 'realtime' | 'daily' | 'weekly';
-      quietHoursStart?: string;
-      quietHoursEnd?: string;
+      quietHoursStart?: string | null;
+      quietHoursEnd?: string | null;
     }) => {
       const response = await apiClient.patch('/smart-alerts/preferences', data);
       return response.data;

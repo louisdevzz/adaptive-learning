@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq, gte, isNull, lte } from 'drizzle-orm';
+import { and, eq, gte } from 'drizzle-orm';
 import {
   db,
   notificationDigests,
@@ -16,7 +16,29 @@ export interface DispatchNotificationInput {
   message: string;
   actionUrl?: string | null;
   metadata?: Record<string, unknown>;
+  forceRealtime?: boolean;
+  dedupeWindowMinutes?: number;
 }
+
+export const DEFAULT_NOTIFICATION_TYPE_PREFERENCES: Record<string, boolean> = {
+  progress_alert: true,
+  child_progress_alert: true,
+  progress_update: true,
+  child_progress_update: true,
+  assignment_assigned: true,
+  child_assignment_assigned: true,
+  assignment_graded: true,
+  child_assignment_graded: true,
+  study_inactivity: true,
+  failure_streak: true,
+  mastery_celebration: true,
+  parent_risk_escalation: true,
+  weekly_report_ready: true,
+  teacher_outlier_detected: true,
+  teacher_intervention_overdue: true,
+  digest_ready: true,
+  system: true,
+};
 
 @Injectable()
 export class AlertDispatcherService {
@@ -38,13 +60,22 @@ export class AlertDispatcherService {
       return { mode: 'disabled' as const };
     }
 
+    if (payload.dedupeWindowMinutes && payload.dedupeWindowMinutes > 0) {
+      const duplicate = await this.hasRecentDuplicate(payload);
+      if (duplicate) {
+        return { mode: 'suppressed' as const };
+      }
+    }
+
     const inQuietHours = this.isInQuietHours(
       preference.quietHoursStart,
       preference.quietHoursEnd,
     );
 
     const shouldDigest =
-      preference.digestFrequency !== 'realtime' || inQuietHours;
+      !payload.forceRealtime &&
+      payload.type !== 'digest_ready' &&
+      (preference.digestFrequency !== 'realtime' || inQuietHours);
 
     const [createdNotification] = await db
       .insert(notifications)
@@ -77,10 +108,13 @@ export class AlertDispatcherService {
           eq(notificationDigests.digestType, digestType),
           eq(notificationDigests.periodStart, periodStart),
           eq(notificationDigests.periodEnd, periodEnd),
-          isNull(notificationDigests.deliveredAt),
         ),
       )
       .limit(1);
+
+    if (existingDigest?.deliveredAt) {
+      return { mode: 'realtime' as const, notification: createdNotification };
+    }
 
     if (!existingDigest) {
       await db.insert(notificationDigests).values({
@@ -97,6 +131,10 @@ export class AlertDispatcherService {
     const currentIds = Array.isArray(existingDigest.notificationIds)
       ? existingDigest.notificationIds.map((item) => String(item))
       : [];
+
+    if (currentIds.includes(createdNotification.id)) {
+      return { mode: 'digest' as const, notification: createdNotification };
+    }
 
     await db
       .update(notificationDigests)
@@ -123,18 +161,36 @@ export class AlertDispatcherService {
       .insert(notificationPreferences)
       .values({
         userId,
-        enabledTypes: {
-          progress_alert: true,
-          assignment_assigned: true,
-          assignment_graded: true,
-          progress_update: true,
-          system: true,
-        },
+        enabledTypes: DEFAULT_NOTIFICATION_TYPE_PREFERENCES,
         digestFrequency: 'realtime',
       })
       .returning();
 
     return created;
+  }
+
+  private async hasRecentDuplicate(payload: DispatchNotificationInput) {
+    const threshold = new Date(
+      Date.now() - payload.dedupeWindowMinutes! * 60 * 1000,
+    );
+
+    const conditions = [
+      eq(notifications.recipientId, payload.recipientId),
+      eq(notifications.type, payload.type),
+      gte(notifications.createdAt, threshold),
+    ];
+
+    if (payload.relatedStudentId) {
+      conditions.push(eq(notifications.relatedStudentId, payload.relatedStudentId));
+    }
+
+    const [existing] = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(and(...conditions))
+      .limit(1);
+
+    return Boolean(existing);
   }
 
   private isInQuietHours(start?: string | null, end?: string | null) {

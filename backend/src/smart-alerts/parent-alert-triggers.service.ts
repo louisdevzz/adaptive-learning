@@ -76,6 +76,7 @@ export class ParentAlertTriggersService {
         studentId,
         riskWeeks: 2,
       },
+      dedupeWindowMinutes: 7 * 24 * 60,
     });
   }
 
@@ -115,6 +116,7 @@ export class ParentAlertTriggersService {
         reportId: latestReport.id,
         studentId,
       },
+      dedupeWindowMinutes: 7 * 24 * 60,
     });
   }
 }

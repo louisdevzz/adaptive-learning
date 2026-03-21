@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt } from 'drizzle-orm';
 import {
   db,
   questionAttempts,
-  studentKpProgress,
   studentKpHistory,
   students,
   users,
@@ -52,6 +51,7 @@ export class StudentAlertTriggersService {
       message: `${fullName}, bạn đã 3 ngày chưa luyện tập. Hãy quay lại để duy trì tiến độ!`,
       actionUrl: '/dashboard/my-courses',
       metadata: { studentId },
+      dedupeWindowMinutes: 24 * 60,
     });
   }
 
@@ -75,6 +75,7 @@ export class StudentAlertTriggersService {
       message: `${fullName}, bạn đang có chuỗi 5 câu sai liên tiếp. Hãy xem lại tài liệu hoặc hỏi giáo viên để được hỗ trợ.`,
       actionUrl: '/dashboard/progress',
       metadata: { studentId, streak: 5 },
+      dedupeWindowMinutes: 12 * 60,
     });
   }
 
@@ -103,6 +104,7 @@ export class StudentAlertTriggersService {
       message: `${fullName}, bạn đã nắm vững ${uniqueKpIds.length} điểm kiến thức trong tuần này. Tiếp tục phát huy nhé!`,
       actionUrl: '/dashboard/progress',
       metadata: { studentId, masteredCount: uniqueKpIds.length },
+      dedupeWindowMinutes: 7 * 24 * 60,
     });
   }
 }

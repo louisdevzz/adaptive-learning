@@ -1,4 +1,10 @@
-import { IsIn, IsObject, IsOptional, Matches } from 'class-validator';
+import {
+  IsIn,
+  IsObject,
+  IsOptional,
+  Matches,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateNotificationPreferencesDto {
   @IsOptional()
@@ -10,10 +16,12 @@ export class UpdateNotificationPreferencesDto {
   digestFrequency?: 'realtime' | 'daily' | 'weekly';
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
-  quietHoursStart?: string;
+  quietHoursStart?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
-  quietHoursEnd?: string;
+  quietHoursEnd?: string | null;
 }

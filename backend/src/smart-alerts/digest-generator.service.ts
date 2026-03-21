@@ -99,6 +99,8 @@ export class DigestGeneratorService {
         digestId: digest.id,
         digestType: digest.digestType,
       },
+      forceRealtime: true,
+      dedupeWindowMinutes: 12 * 60,
     });
   }
 

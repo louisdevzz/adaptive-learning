@@ -961,9 +961,21 @@ export const notificationPreferences = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     enabledTypes: json('enabled_types').notNull().default({
       progress_alert: true,
-      assignment_assigned: true,
-      assignment_graded: true,
+      child_progress_alert: true,
       progress_update: true,
+      child_progress_update: true,
+      assignment_assigned: true,
+      child_assignment_assigned: true,
+      assignment_graded: true,
+      child_assignment_graded: true,
+      study_inactivity: true,
+      failure_streak: true,
+      mastery_celebration: true,
+      parent_risk_escalation: true,
+      weekly_report_ready: true,
+      teacher_outlier_detected: true,
+      teacher_intervention_overdue: true,
+      digest_ready: true,
       system: true,
     }),
     digestFrequency: varchar('digest_frequency', { length: 20 })
@@ -998,6 +1010,12 @@ export const notificationDigests = pgTable(
     deliveredAt: timestamp('delivered_at'),
   },
   (table) => ({
+    userTypePeriodUnique: unique('notification_digests_user_type_period_unique').on(
+      table.userId,
+      table.digestType,
+      table.periodStart,
+      table.periodEnd,
+    ),
     userTypeIdx: index('notification_digests_user_type_idx').on(
       table.userId,
       table.digestType,

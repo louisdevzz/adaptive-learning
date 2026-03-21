@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
-import { Card, CardBody, Checkbox, Select, SelectItem, TimeInput } from "@heroui/react";
+import { Card, CardBody, Checkbox, Select, SelectItem } from "@heroui/react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -14,12 +14,23 @@ const digestOptions = [
 ];
 
 const allTypes = [
-  { key: "progress_alert", label: "Progress alert" },
-  { key: "assignment_assigned", label: "Assignment assigned" },
-  { key: "assignment_graded", label: "Assignment graded" },
-  { key: "progress_update", label: "Progress update" },
-  { key: "digest_ready", label: "Digest ready" },
-  { key: "system", label: "System" },
+  { key: "progress_alert", label: "Cảnh báo tiến độ" },
+  { key: "child_progress_alert", label: "Cảnh báo tiến độ của con" },
+  { key: "progress_update", label: "Cập nhật tiến độ" },
+  { key: "child_progress_update", label: "Cập nhật tiến độ của con" },
+  { key: "assignment_assigned", label: "Bài tập được giao" },
+  { key: "child_assignment_assigned", label: "Con được giao bài tập" },
+  { key: "assignment_graded", label: "Bài tập đã chấm" },
+  { key: "child_assignment_graded", label: "Bài tập của con đã chấm" },
+  { key: "study_inactivity", label: "Nhắc nhở không học" },
+  { key: "failure_streak", label: "Chuỗi làm sai" },
+  { key: "mastery_celebration", label: "Chúc mừng tiến bộ" },
+  { key: "parent_risk_escalation", label: "Cảnh báo rủi ro học tập" },
+  { key: "weekly_report_ready", label: "Báo cáo tuần sẵn sàng" },
+  { key: "teacher_outlier_detected", label: "Lớp có outlier" },
+  { key: "teacher_intervention_overdue", label: "Intervention quá hạn" },
+  { key: "digest_ready", label: "Digest sẵn sàng" },
+  { key: "system", label: "Hệ thống" },
 ];
 
 export default function NotificationPreferencesPage() {
@@ -56,8 +67,8 @@ export default function NotificationPreferencesPage() {
       setSaving(true);
       await api.smartAlerts.updatePreferences({
         digestFrequency: digestFrequency as "realtime" | "daily" | "weekly",
-        quietHoursStart: quietHoursStart || undefined,
-        quietHoursEnd: quietHoursEnd || undefined,
+        quietHoursStart: quietHoursStart.trim() ? quietHoursStart.trim() : null,
+        quietHoursEnd: quietHoursEnd.trim() ? quietHoursEnd.trim() : null,
         enabledTypes,
       });
       toast.success("Đã lưu tùy chọn thông báo");

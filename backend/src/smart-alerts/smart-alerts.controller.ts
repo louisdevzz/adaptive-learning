@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { GetDigestsQueryDto } from './dto/get-digests-query.dto';
 import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
 import { SmartAlertsService } from './smart-alerts.service';
 
@@ -29,13 +30,8 @@ export class SmartAlertsController {
   @Get('digests')
   getDigests(
     @CurrentUser() user: ICurrentUser,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: GetDigestsQueryDto,
   ) {
-    return this.smartAlertsService.getDigests(
-      user.userId,
-      page ? Number(page) : 1,
-      limit ? Number(limit) : 20,
-    );
+    return this.smartAlertsService.getDigests(user.userId, query.page, query.limit);
   }
 }
