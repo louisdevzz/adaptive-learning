@@ -83,9 +83,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async loginWithGoogle(
     @Body('idToken') idToken: string,
-    @Body('rememberMe') rememberMe?: boolean,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
+    @Body('rememberMe') rememberMe?: boolean,
   ) {
     const { sessionId, ...response } =
       await this.authService.loginWithGoogle(
