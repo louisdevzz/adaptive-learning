@@ -127,6 +127,13 @@
       "when": 1774095442733,
       "tag": "0017_careful_grey_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774100395773,
+      "tag": "0018_little_hedge_knight",
+      "breakpoints": true
     }
   ]
 }

@@ -216,6 +216,7 @@ export default function LayoutDashboard({
       "learning-profile": "Hồ sơ học tập",
       progress: "Tiến độ",
       "children-progress": "Tiến độ con",
+      parent: "Dashboard phụ huynh",
       assessment: "Đánh giá",
       create: "Tạo",
       edit: "Sửa",

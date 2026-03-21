@@ -409,6 +409,79 @@ export const api = {
     },
   },
 
+  parentDashboard: {
+    getOverview: async () => {
+      const response = await apiClient.get('/parent-dashboard/overview');
+      return response.data;
+    },
+
+    getChildSummary: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/parent-dashboard/children/${studentId}/summary`,
+      );
+      return response.data;
+    },
+
+    getChildWeeklyReports: async (
+      studentId: string,
+      params?: { page?: number; limit?: number },
+    ) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const query = queryParams.toString();
+      const url = query
+        ? `/parent-dashboard/children/${studentId}/weekly-reports?${query}`
+        : `/parent-dashboard/children/${studentId}/weekly-reports`;
+
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    getChildRecommendations: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/parent-dashboard/children/${studentId}/recommendations`,
+      );
+      return response.data;
+    },
+
+    getChildRiskAlerts: async (studentId: string) => {
+      const response = await apiClient.get(
+        `/parent-dashboard/children/${studentId}/risk-alerts`,
+      );
+      return response.data;
+    },
+
+    getMessages: async (
+      studentId: string,
+      params?: { page?: number; limit?: number },
+    ) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const query = queryParams.toString();
+      const url = query
+        ? `/parent-dashboard/messages/${studentId}?${query}`
+        : `/parent-dashboard/messages/${studentId}`;
+
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+
+    sendMessage: async (
+      studentId: string,
+      data: { message: string; recipientTeacherId?: string },
+    ) => {
+      const response = await apiClient.post(
+        `/parent-dashboard/messages/${studentId}`,
+        data,
+      );
+      return response.data;
+    },
+  },
+
   // Classes endpoints
   classes: {
     getAll: async () => {

@@ -952,6 +952,72 @@ export const notifications = pgTable(
   }),
 );
 
+export const parentWeeklyReports = pgTable(
+  'parent_weekly_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    parentId: uuid('parent_id')
+      .notNull()
+      .references(() => parents.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    weekStart: timestamp('week_start').notNull(),
+    weekEnd: timestamp('week_end').notNull(),
+    overallMastery: integer('overall_mastery').notNull().default(0),
+    masteryChange: integer('mastery_change').notNull().default(0),
+    studyTimeMinutes: integer('study_time_minutes').notNull().default(0),
+    attemptsCount: integer('attempts_count').notNull().default(0),
+    strengthsCount: integer('strengths_count').notNull().default(0),
+    weaknessesCount: integer('weaknesses_count').notNull().default(0),
+    riskKpsCount: integer('risk_kps_count').notNull().default(0),
+    aiSummary: text('ai_summary').notNull(),
+    detailedData: json('detailed_data').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    parentStudentWeekIdx: index('parent_weekly_reports_parent_student_week_idx').on(
+      table.parentId,
+      table.studentId,
+      table.weekStart,
+    ),
+    studentWeekIdx: index('parent_weekly_reports_student_week_idx').on(
+      table.studentId,
+      table.weekStart,
+    ),
+  }),
+);
+
+export const parentTeacherMessages = pgTable(
+  'parent_teacher_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    senderId: uuid('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    recipientId: uuid('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    message: text('message').notNull(),
+    isRead: boolean('is_read').notNull().default(false),
+    readAt: timestamp('read_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    studentCreatedIdx: index('parent_teacher_messages_student_created_idx').on(
+      table.studentId,
+      table.createdAt,
+    ),
+    recipientReadIdx: index('parent_teacher_messages_recipient_read_idx').on(
+      table.recipientId,
+      table.isRead,
+    ),
+  }),
+);
+
 // =============================================
 // CLASSES & ENROLLMENTS
 // =============================================

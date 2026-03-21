@@ -25,6 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { StudentInsightsModule } from './student-insights/student-insights.module';
 import { LearningProfileModule } from './learning-profile/learning-profile.module';
 import { ResourceRecommendationsModule } from './resource-recommendations/resource-recommendations.module';
+import { ParentDashboardModule } from './parent-dashboard/parent-dashboard.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 
 @Module({
@@ -64,6 +65,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
     StudentInsightsModule,
     LearningProfileModule,
     ResourceRecommendationsModule,
+    ParentDashboardModule,
   ],
   providers: [
     {

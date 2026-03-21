@@ -78,7 +78,7 @@ const menuItems: Record<string, MenuItem[]> = {
   ],
   parent: [
     { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
-    { icon: Users, label: "Tiến độ con", href: "/dashboard/children-progress" },
+    { icon: Users, label: "Dashboard phụ huynh", href: "/dashboard/parent" },
   ],
 };
 
