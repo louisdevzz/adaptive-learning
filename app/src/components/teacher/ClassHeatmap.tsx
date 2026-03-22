@@ -1,7 +1,5 @@
 "use client";
 
-import { Card, CardBody } from "@heroui/react";
-
 interface StudentCell {
   studentId: string;
   fullName: string;
@@ -23,39 +21,35 @@ export function ClassHeatmap({
   students: StudentCell[];
 }) {
   return (
-    <Card>
-      <CardBody className="p-4">
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-[#717680] border-b border-[#e9eaeb]">
-                <th className="py-2 pr-3">Học sinh</th>
-                <th className="py-2 pr-3">Mastery</th>
-                <th className="py-2 pr-3">Engagement</th>
-                <th className="py-2 pr-3">Risk KPs</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student) => (
-                <tr key={student.studentId} className="border-b border-[#f2f4f7]">
-                  <td className="py-2 pr-3 font-medium">{student.fullName}</td>
-                  <td className="py-2 pr-3">
-                    <span
-                      className={`inline-flex rounded-md px-2 py-1 font-medium ${getCellClass(
-                        student.avgMastery,
-                      )}`}
-                    >
-                      {student.avgMastery}%
-                    </span>
-                  </td>
-                  <td className="py-2 pr-3">{student.engagementScore}%</td>
-                  <td className="py-2 pr-3">{student.riskKpsCount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardBody>
-    </Card>
+    <div className="overflow-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="text-left text-[#717680] border-b border-[#e9eaeb]">
+            <th className="py-2 pr-3">Học sinh</th>
+            <th className="py-2 pr-3">Mức thành thạo</th>
+            <th className="py-2 pr-3">Mức tham gia</th>
+            <th className="py-2 pr-3">KP rủi ro</th>
+          </tr>
+        </thead>
+        <tbody>
+          {students.map((student) => (
+            <tr key={student.studentId} className="border-b border-[#f2f4f7]">
+              <td className="py-2 pr-3 font-medium">{student.fullName}</td>
+              <td className="py-2 pr-3">
+                <span
+                  className={`inline-flex rounded-md px-2 py-1 font-medium ${getCellClass(
+                    student.avgMastery,
+                  )}`}
+                >
+                  {student.avgMastery}%
+                </span>
+              </td>
+              <td className="py-2 pr-3">{student.engagementScore}%</td>
+              <td className="py-2 pr-3">{student.riskKpsCount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

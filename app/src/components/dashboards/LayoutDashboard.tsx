@@ -214,7 +214,7 @@ export default function LayoutDashboard({
       "my-courses": "Khóa học của tôi",
       "learning-path": "Lộ trình học tập",
       "learning-profile": "Hồ sơ học tập",
-      interventions: "Interventions",
+      interventions: "Can thiệp học tập",
       notifications: "Thông báo",
       preferences: "Tùy chọn",
       progress: "Tiến độ",
