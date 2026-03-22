@@ -18,8 +18,13 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  Lightbulb,
+  Sparkles,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@/hooks/useUser";
 
 interface CourseProgress {
   courseId: string;
@@ -62,6 +67,19 @@ interface KpProgress {
   lastAttempt?: string;
 }
 
+interface AiSuggestion {
+  title: string;
+  actions: string[];
+  kpIds: string[];
+  priority: "low" | "medium" | "high" | "critical";
+}
+
+interface AiSuggestionsData {
+  studentId: string;
+  source: "ai" | "fallback";
+  suggestions: AiSuggestion[];
+}
+
 interface MasteryTrend {
   date: string;
   score: number;
@@ -102,6 +120,9 @@ interface StudentCourseWithProgressResponse {
 export default function StudentProgressPage() {
   const params = useParams();
   const studentId = params.studentId as string;
+  const { user } = useUser();
+
+  const isTeacher = user?.role?.toLowerCase() === "teacher";
 
   const [studentName, setStudentName] = useState("");
   const [courses, setCourses] = useState<CourseProgress[]>([]);
@@ -110,6 +131,9 @@ export default function StudentProgressPage() {
   const [loading, setLoading] = useState(true);
   const [masteryTrend, setMasteryTrend] = useState<MasteryTrend[]>([]);
   const [skillBreakdown, setSkillBreakdown] = useState<SkillBreakdown[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestionsData | null>(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsExpanded, setSuggestionsExpanded] = useState(true);
 
   // Stats
   const [stats, setStats] = useState({
@@ -232,6 +256,16 @@ export default function StudentProgressPage() {
       fetchProgressData();
     }
   }, [studentId, fetchProgressData]);
+
+  // Fetch AI intervention suggestions for teachers
+  useEffect(() => {
+    if (!isTeacher || !studentId) return;
+    setSuggestionsLoading(true);
+    api.teacherInterventions.getStudentSuggestions(studentId)
+      .then((data: AiSuggestionsData) => setAiSuggestions(data))
+      .catch(() => {/* silently ignore — non-critical */})
+      .finally(() => setSuggestionsLoading(false));
+  }, [studentId, isTeacher]);
 
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
@@ -381,6 +415,106 @@ export default function StudentProgressPage() {
             iconColor="text-[#6244F4]"
           />
         </div>
+
+        {/* AI Intervention Suggestions (teachers only) */}
+        {isTeacher && (suggestionsLoading || aiSuggestions) && (
+          <div className="bg-white dark:bg-[#1a202c] rounded-xl border border-[#E5E5E5] dark:border-gray-700 overflow-hidden">
+            <button
+              onClick={() => setSuggestionsExpanded((v) => !v)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-[#010101] dark:text-white text-sm">
+                    Gợi ý can thiệp AI
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {aiSuggestions?.source === "ai" ? "Được tạo bởi AI" : "Gợi ý dựa trên dữ liệu"}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${suggestionsExpanded ? "rotate-180" : ""}`} />
+            </button>
+
+            {suggestionsExpanded && (
+              <div className="px-6 pb-5 pt-0">
+                {suggestionsLoading ? (
+                  <div className="flex items-center gap-2 py-4 text-gray-500 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Đang phân tích dữ liệu học sinh...
+                  </div>
+                ) : aiSuggestions?.suggestions && aiSuggestions.suggestions.length > 0 ? (
+                  <div className="space-y-3">
+                    {aiSuggestions.suggestions.map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg border ${
+                          suggestion.priority === "critical"
+                            ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+                            : suggestion.priority === "high"
+                            ? "bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800"
+                            : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                            suggestion.priority === "critical"
+                              ? "bg-red-100 dark:bg-red-900/30"
+                              : suggestion.priority === "high"
+                              ? "bg-orange-100 dark:bg-orange-900/30"
+                              : "bg-purple-100 dark:bg-purple-900/30"
+                          }`}>
+                            <Lightbulb className={`w-4 h-4 ${
+                              suggestion.priority === "critical"
+                                ? "text-red-600 dark:text-red-400"
+                                : suggestion.priority === "high"
+                                ? "text-orange-600 dark:text-orange-400"
+                                : "text-purple-600 dark:text-purple-400"
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-sm text-[#010101] dark:text-white">
+                                {suggestion.title}
+                              </h4>
+                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                suggestion.priority === "critical"
+                                  ? "bg-red-200 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                                  : suggestion.priority === "high"
+                                  ? "bg-orange-200 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
+                                  : suggestion.priority === "medium"
+                                  ? "bg-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
+                                  : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                              }`}>
+                                {suggestion.priority === "critical" ? "Khẩn cấp" : suggestion.priority === "high" ? "Cao" : suggestion.priority === "medium" ? "TB" : "Thấp"}
+                              </span>
+                            </div>
+                            <ul className="space-y-1">
+                              {suggestion.actions.map((action, actionIdx) => (
+                                <li key={actionIdx} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                                  <span className="text-gray-400 mt-1 shrink-0">•</span>
+                                  {action}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Không có gợi ý can thiệp nào cho học sinh này</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Course List */}

@@ -18,12 +18,14 @@ import {
   MoreVertical,
   BarChart3,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button, Avatar, Progress, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Spinner } from "@heroui/react";
 import { api } from "@/lib/api";
+import { useUser } from "@/hooks/useUser";
 
 interface StudentProgress {
   id: string;
@@ -97,14 +99,35 @@ function formatLastActive(dateStr: string | null): string {
   return date.toLocaleDateString("vi-VN");
 }
 
+interface OutlierStudent {
+  studentId: string;
+  fullName: string;
+  avgMastery: number;
+  engagementScore: number;
+  riskKpsCount: number;
+}
+
+interface ClassOverviewData {
+  classId: string;
+  studentCount: number;
+  meanMastery: number;
+  averageEngagement: number;
+  outlierCount: number;
+  outliers: OutlierStudent[];
+}
+
 export default function ClassProgressPage() {
   const params = useParams();
   const classId = params.classId as string;
+  const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ClassProgressData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [classOverview, setClassOverview] = useState<ClassOverviewData | null>(null);
+
+  const isTeacher = user?.role?.toLowerCase() === "teacher";
 
   const fetchProgress = useCallback(async () => {
     try {
@@ -119,6 +142,14 @@ export default function ClassProgressPage() {
     }
   }, [classId]);
 
+  // Fetch outlier detection data for teachers
+  useEffect(() => {
+    if (!isTeacher || !classId) return;
+    api.teacherInterventions.getClassOverview(classId)
+      .then(setClassOverview)
+      .catch(() => {/* silently ignore — non-critical */});
+  }, [classId, isTeacher]);
+
   useEffect(() => {
     fetchProgress();
   }, [fetchProgress]);
@@ -131,6 +162,10 @@ export default function ClassProgressPage() {
     excellentCount: 0,
     totalKpsMastered: 0,
   };
+
+  const outlierIds = new Set(
+    classOverview?.outliers?.map((o) => o.studentId) ?? []
+  );
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -304,6 +339,38 @@ export default function ClassProgressPage() {
             color="bg-purple-50 text-purple-600 dark:bg-purple-900/20"
           />
         </div>
+
+        {/* Outlier Detection Alert (teachers only) */}
+        {isTeacher && classOverview && classOverview.outlierCount > 0 && (
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-orange-800 dark:text-orange-300">
+                  Phát hiện {classOverview.outlierCount} học sinh ngoại lai
+                </h3>
+                <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+                  Các học sinh dưới đây có điểm mastery thấp hơn đáng kể so với trung bình lớp ({classOverview.meanMastery}%), tương tác thấp, hoặc nhiều KP rủi ro. Hãy xem xét can thiệp sớm.
+                </p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {classOverview.outliers.map((outlier) => (
+                    <Link
+                      key={outlier.studentId}
+                      href={`/dashboard/students/${outlier.studentId}/progress`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 rounded-lg text-sm hover:shadow-md transition-shadow"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                      <span className="font-medium text-orange-800 dark:text-orange-300">{outlier.fullName}</span>
+                      <span className="text-orange-600 dark:text-orange-400 text-xs">({outlier.avgMastery}%)</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -480,8 +547,8 @@ export default function ClassProgressPage() {
                           </Button>
                         </DropdownTrigger>
                         <DropdownMenu>
-                          <DropdownItem key="view">Xem chi tiết</DropdownItem>
-                          <DropdownItem key="progress">Tiến độ chi tiết</DropdownItem>
+                          <DropdownItem key="view" as={Link} href={`/dashboard/students/${student.id}`}>Xem chi tiết</DropdownItem>
+                          <DropdownItem key="progress" as={Link} href={`/dashboard/students/${student.id}/progress`}>Tiến độ chi tiết</DropdownItem>
                           <DropdownItem key="contact">Liên hệ phụ huynh</DropdownItem>
                         </DropdownMenu>
                       </Dropdown>
@@ -491,6 +558,12 @@ export default function ClassProgressPage() {
                     <div className="flex flex-wrap gap-2 mb-4">
                       {getStatusBadge(student.status)}
                       {getRiskBadge(student.riskLevel)}
+                      {isTeacher && outlierIds.has(student.id) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                          <Zap className="w-3 h-3" />
+                          Ngoại lai
+                        </span>
+                      )}
                     </div>
 
                     {/* Progress Stats */}
