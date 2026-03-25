@@ -4,8 +4,8 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
 import { StudentProgressService } from './student-progress.service';
 import { UpdateKpProgressDto } from './dto/update-kp-progress.dto';
@@ -111,6 +111,22 @@ export class StudentProgressController {
     return this.progressService.getStudentQuestionAttempts(
       actualStudentId,
       kpId,
+    );
+  }
+
+  @Get('students/:studentId/kps/:kpId/adaptive-questions')
+  @Roles('admin', 'teacher', 'student')
+  getAdaptiveQuestions(
+    @Param('studentId') studentId: string,
+    @Param('kpId') kpId: string,
+    @Query('forceRefresh') forceRefresh: string | undefined,
+    @CurrentUser() user: ICurrentUser,
+  ) {
+    const actualStudentId = user.role === 'student' ? user.userId : studentId;
+    return this.progressService.getAdaptiveQuestions(
+      actualStudentId,
+      kpId,
+      forceRefresh === 'true',
     );
   }
 

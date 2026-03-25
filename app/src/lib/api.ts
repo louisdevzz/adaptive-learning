@@ -1033,6 +1033,24 @@ export const api = {
       const response = await apiClient.post("/question-bank/generate", data);
       return response.data;
     },
+
+    generateBatch: async (data: {
+      kpId: string;
+      count: number;
+      difficulty: number;
+      questionType:
+        | "multiple_choice"
+        | "true_false"
+        | "fill_in_blank"
+        | "short_answer";
+      aiModel?: "openai" | "gemini" | "kimi-code" | "kimi";
+      useSlides?: boolean;
+      useResources?: boolean;
+      useExistingQuestions?: boolean;
+    }) => {
+      const response = await apiClient.post("/question-bank/generate-batch", data);
+      return response.data;
+    },
   },
 
   // Assignments endpoints
@@ -1499,6 +1517,24 @@ export const api = {
     getStudentQuestionAttempts: async (studentId: string, kpId: string) => {
       const response = await apiClient.get(
         `/student-progress/students/${studentId}/kps/${kpId}/attempts`
+      );
+      return response.data;
+    },
+
+    getAdaptiveQuestions: async (
+      studentId: string,
+      kpId: string,
+      options?: { forceRefresh?: boolean }
+    ) => {
+      const params = new URLSearchParams();
+      if (options?.forceRefresh) {
+        params.append("forceRefresh", "true");
+      }
+      const query = params.toString();
+      const response = await apiClient.get(
+        `/student-progress/students/${studentId}/kps/${kpId}/adaptive-questions${
+          query ? `?${query}` : ""
+        }`
       );
       return response.data;
     },

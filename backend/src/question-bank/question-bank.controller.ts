@@ -18,9 +18,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUser as ICurrentUser } from '../common/interfaces/current-user.interface';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { GenerateBatchQuestionsDto } from './dto/generate-batch-questions.dto';
 
 @Controller('question-bank')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class QuestionBankController {
   constructor(private readonly questionBankService: QuestionBankService) {}
 
@@ -88,6 +90,7 @@ export class QuestionBankController {
   }
 
   @Get('kps/:kpId/questions')
+  @Roles('admin', 'teacher')
   getQuestionsByKp(@Param('kpId') kpId: string) {
     return this.questionBankService.getQuestionsByKp(kpId);
   }
@@ -106,5 +109,14 @@ export class QuestionBankController {
   @Roles('admin', 'teacher')
   generateQuestion(@Body() generateDto: GenerateQuestionDto) {
     return this.questionBankService.generateQuestion(generateDto);
+  }
+
+  @Post('generate-batch')
+  @Roles('admin', 'teacher')
+  generateBatchQuestions(
+    @Body() generateDto: GenerateBatchQuestionsDto,
+    @CurrentUser() user: ICurrentUser,
+  ) {
+    return this.questionBankService.generateBatchQuestions(generateDto, user.userId);
   }
 }

@@ -73,6 +73,9 @@ const KnowledgePointModal = ({
     explanation: "",
     gameType: "flashcard" as "flashcard" | "matching" | "sorting",
   });
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const [generateCount, setGenerateCount] = useState(5);
+  const [generateDifficulty, setGenerateDifficulty] = useState(3);
 
   // Form States
   const [formData, setFormData] = useState({
@@ -311,6 +314,65 @@ const KnowledgePointModal = ({
     updatedQuestions.splice(index, 1);
     setFormData({ ...formData, questions: updatedQuestions });
     addToast({ description: "Đã xóa câu hỏi", color: "success" });
+  };
+
+  const handleGenerateQuestions = async () => {
+    if (!initialData?.id) {
+      addToast({
+        description: "Vui lòng lưu KP trước khi generate câu hỏi bằng AI",
+        color: "warning",
+      });
+      return;
+    }
+
+    try {
+      setGeneratingQuestions(true);
+      const result = await api.questionBank.generateBatch({
+        kpId: initialData.id,
+        count: generateCount,
+        difficulty: generateDifficulty,
+        questionType: "multiple_choice",
+        useSlides: true,
+        useResources: true,
+        useExistingQuestions: true,
+      });
+
+      const generated = Array.isArray(result?.questions) ? result.questions : [];
+      if (generated.length === 0) {
+        addToast({
+          description: "Không tạo được câu hỏi mới. Thử lại với độ khó hoặc số lượng khác.",
+          color: "warning",
+        });
+        return;
+      }
+
+      const mappedGenerated = generated.map((question: any, index: number) => ({
+        type: question.questionType || "multiple_choice",
+        questionType: question.questionType || "multiple_choice",
+        questionText: question.questionText,
+        options: Array.isArray(question.options) ? question.options : [],
+        correctAnswer: question.correctAnswer || "",
+        explanation: "",
+        orderIndex: formData.questions.length + index,
+      }));
+
+      setFormData((prev) => ({
+        ...prev,
+        questions: [...prev.questions, ...mappedGenerated],
+      }));
+      addToast({
+        description: `Đã tạo ${mappedGenerated.length} câu hỏi mới`,
+        color: "success",
+      });
+    } catch (error) {
+      console.error("Generate questions failed", error);
+      addToast({
+        description: "Không thể generate câu hỏi bằng AI",
+        color: "danger",
+      });
+    } finally {
+      setGeneratingQuestions(false);
+    }
   };
 
   const updateQuestionOption = (index: number, value: string) => {
@@ -694,6 +756,79 @@ const KnowledgePointModal = ({
                     <Plus className="w-4 h-4" />
                     {showQuestionForm ? "Đóng form" : "Thêm câu hỏi"}
                   </button>
+                </div>
+
+                <div className="bg-[#f8f9fb] dark:bg-gray-800/40 p-4 rounded-xl border border-[#e9eaeb] dark:border-gray-700 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-full border border-[#e9eaeb] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#535862] dark:text-gray-300">
+                      Tổng câu hiện tại: {formData.questions.length}
+                    </span>
+                    <span
+                      className={`px-2.5 py-1 rounded-full border ${
+                        formData.questions.length >= 8
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-amber-200 bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      Yêu cầu tối thiểu để xuất bản: 8 câu/KP
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                      <label className="block text-xs font-medium text-[#535862] dark:text-gray-300 mb-1">
+                        Số câu generate
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={generateCount}
+                        onChange={(e) => setGenerateCount(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+                        className="w-full px-3 py-2 border border-card-border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[#535862] dark:text-gray-300 mb-1">
+                        Độ khó
+                      </label>
+                      <select
+                        value={generateDifficulty}
+                        onChange={(e) => setGenerateDifficulty(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-card-border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
+                      >
+                        {[1, 2, 3, 4, 5].map((difficulty) => (
+                          <option key={difficulty} value={difficulty}>
+                            {difficulty}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-3">
+                      <button
+                        onClick={handleGenerateQuestions}
+                        disabled={generatingQuestions || !initialData?.id}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#6244F4] text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                      >
+                        {generatingQuestions ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Đang generate...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            Generate câu hỏi bằng AI (slide/docs/pptx + câu cũ)
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {!initialData?.id && (
+                    <p className="text-xs text-amber-700">
+                      Cần lưu KP trước để dùng chức năng generate AI.
+                    </p>
+                  )}
                 </div>
 
                 {/* Question Form */}

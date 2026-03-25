@@ -15,6 +15,7 @@ import {
   students,
   knowledgePoint,
   questionAttempts,
+  studentQuestionState,
   questionBank,
   questionMetadata,
   kpExercises,
@@ -28,14 +29,20 @@ import { UpdateKpProgressDto } from './dto/update-kp-progress.dto';
 import { SubmitQuestionAttemptDto } from './dto/submit-question-attempt.dto';
 import { SubmitContentQuestionDto } from './dto/submit-content-question.dto';
 import { BktMasteryService } from './bkt-mastery.service';
+import { QuestionBankService } from '../question-bank/question-bank.service';
 
 @Injectable()
 export class StudentProgressService {
   private readonly logger = new Logger(StudentProgressService.name);
+  private readonly requiredUniqueEvidence = 8;
+  private readonly adaptivePoolTarget = 8;
+  private readonly adaptiveWrongRetryThreshold = 2;
+  private readonly masteryThreshold = 80;
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly bktMasteryService: BktMasteryService,
+    private readonly questionBankService: QuestionBankService,
   ) {}
 
   // ==================== STUDENT KP PROGRESS ====================
@@ -174,7 +181,18 @@ export class StudentProgressService {
       return null;
     }
 
-    return result[0];
+    const uniqueEvidenceCount = await this.countUniqueEvidence(studentId, kpId);
+    const status = this.resolveKpStatus(
+      result[0].masteryScore,
+      uniqueEvidenceCount,
+    );
+
+    return {
+      ...result[0],
+      status,
+      uniqueEvidenceCount,
+      requiredEvidence: this.requiredUniqueEvidence,
+    };
   }
 
   async getAllStudentProgress(studentId: string) {
@@ -379,6 +397,22 @@ export class StudentProgressService {
       String(submitDto.selectedAnswer) === String(correctAnswer);
 
     const txResult = await db.transaction(async (tx) => {
+      const existingState = await tx
+        .select()
+        .from(studentQuestionState)
+        .where(
+          and(
+            eq(studentQuestionState.studentId, submitDto.studentId),
+            eq(studentQuestionState.kpId, submitDto.kpId),
+            eq(studentQuestionState.questionId, submitDto.questionId),
+          ),
+        )
+        .limit(1);
+
+      const attemptNo =
+        existingState.length > 0 ? existingState[0].attemptCount + 1 : 1;
+      const attemptWeight = this.getAttemptWeight(attemptNo);
+
       // Create question attempt
       const [attempt] = await tx
         .insert(questionAttempts)
@@ -392,23 +426,37 @@ export class StudentProgressService {
         })
         .returning();
 
-      // Count total attempts for confidence calculation
-      const [attemptCount] = await tx
-        .select({
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(questionAttempts)
-        .where(
-          and(
-            eq(questionAttempts.studentId, submitDto.studentId),
-            eq(questionAttempts.kpId, submitDto.kpId),
-          ),
-        );
-
-      const totalAttempts = Number(attemptCount?.count || 1);
+      if (existingState.length > 0) {
+        const state = existingState[0];
+        const nextCorrectCount = state.correctCount + (isCorrect ? 1 : 0);
+        await tx
+          .update(studentQuestionState)
+          .set({
+            attemptCount: state.attemptCount + 1,
+            correctCount: nextCorrectCount,
+            retiredForStudent:
+              state.retiredForStudent ||
+              (state.firstAttemptCorrect && nextCorrectCount >= 2),
+            lastAttemptAt: new Date(),
+            lastAttemptCorrect: isCorrect,
+            updatedAt: new Date(),
+          })
+          .where(eq(studentQuestionState.id, state.id));
+      } else {
+        await tx.insert(studentQuestionState).values({
+          studentId: submitDto.studentId,
+          kpId: submitDto.kpId,
+          questionId: submitDto.questionId,
+          firstAttemptCorrect: isCorrect,
+          attemptCount: 1,
+          correctCount: isCorrect ? 1 : 0,
+          retiredForStudent: false,
+          lastAttemptAt: new Date(),
+          lastAttemptCorrect: isCorrect,
+        });
+      }
 
       // BKT mastery calculation
-      // Get question metadata for BKT parameter derivation
       const qMeta = await tx
         .select({
           difficulty: questionMetadata.difficulty,
@@ -424,7 +472,6 @@ export class StudentProgressService {
         kpDifficultyLevel: kpResult[0].difficultyLevel,
       });
 
-      // Get existing progress to use as prior
       const existingForBkt = await tx
         .select()
         .from(studentKpProgress)
@@ -441,21 +488,41 @@ export class StudentProgressService {
           ? this.bktMasteryService.masteryScoreToPL(
               existingForBkt[0].masteryScore,
             )
-          : bktParams.pL; // Use P(L0) default for first attempt
+          : bktParams.pL;
 
-      const bktResult = this.bktMasteryService.updateMastery(
+      const rawBktResult = this.bktMasteryService.updateMastery(
         priorPL,
         isCorrect,
         bktParams,
       );
 
-      const masteryScore = bktResult.masteryScore;
-      const confidence = Math.min(100, Math.round((totalAttempts / 10) * 100));
+      const weightedPL = Math.max(
+        0,
+        Math.min(1, priorPL + attemptWeight * (rawBktResult.pL - priorPL)),
+      );
+      const masteryScore = Math.round(weightedPL * 100);
+
+      const [uniqueEvidenceRows] = await tx
+        .select({
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(studentQuestionState)
+        .where(
+          and(
+            eq(studentQuestionState.studentId, submitDto.studentId),
+            eq(studentQuestionState.kpId, submitDto.kpId),
+          ),
+        );
+      const uniqueEvidenceCount = Number(uniqueEvidenceRows?.count || 0);
+      const confidence = Math.min(
+        100,
+        Math.round((uniqueEvidenceCount / this.requiredUniqueEvidence) * 100),
+      );
+      const status = this.resolveKpStatus(masteryScore, uniqueEvidenceCount);
 
       const oldScore =
         existingForBkt.length > 0 ? existingForBkt[0].masteryScore : 0;
 
-      // Update or create progress
       if (existingForBkt.length > 0) {
         await tx
           .update(studentKpProgress)
@@ -476,7 +543,6 @@ export class StudentProgressService {
         });
       }
 
-      // Create history record
       await tx.insert(studentKpHistory).values({
         studentId: submitDto.studentId,
         kpId: submitDto.kpId,
@@ -493,6 +559,9 @@ export class StudentProgressService {
         masteryScore,
         confidence,
         oldMasteryScore: oldScore,
+        status,
+        uniqueEvidenceCount,
+        requiredEvidence: this.requiredUniqueEvidence,
       };
     });
 
@@ -515,6 +584,9 @@ export class StudentProgressService {
       isCorrect: txResult.isCorrect,
       masteryScore: txResult.masteryScore,
       confidence: txResult.confidence,
+      status: txResult.status,
+      uniqueEvidenceCount: txResult.uniqueEvidenceCount,
+      requiredEvidence: txResult.requiredEvidence,
     };
   }
 
@@ -567,6 +639,229 @@ export class StudentProgressService {
     });
 
     return Object.values(latestAttemptsByQuestion);
+  }
+
+  async getAdaptiveQuestions(
+    studentId: string,
+    kpId: string,
+    forceRefresh = false,
+  ) {
+    // Validate student exists
+    const studentResult = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, studentId))
+      .limit(1);
+
+    if (studentResult.length === 0) {
+      throw new NotFoundException('Student not found');
+    }
+
+    // Validate KP exists
+    const kpResult = await db
+      .select()
+      .from(knowledgePoint)
+      .where(eq(knowledgePoint.id, kpId))
+      .limit(1);
+
+    if (kpResult.length === 0) {
+      throw new NotFoundException('Knowledge Point not found');
+    }
+
+    const kpDifficulty = Math.max(1, Math.min(5, kpResult[0].difficultyLevel));
+    const selectPool = async () => {
+      const questionRows = await db
+        .select({
+          question: questionBank,
+          difficulty: kpExercises.difficulty,
+        })
+        .from(kpExercises)
+        .innerJoin(questionBank, eq(kpExercises.questionId, questionBank.id))
+        .where(and(eq(kpExercises.kpId, kpId), eq(questionBank.isActive, true)));
+
+      const states = await db
+        .select()
+        .from(studentQuestionState)
+        .where(
+          and(
+            eq(studentQuestionState.studentId, studentId),
+            eq(studentQuestionState.kpId, kpId),
+          ),
+        );
+
+      const needRetire = states
+        .filter(
+          (state) =>
+            !state.retiredForStudent &&
+            state.firstAttemptCorrect &&
+            state.correctCount >= 2,
+        )
+        .map((state) => state.id);
+
+      if (needRetire.length > 0) {
+        for (const stateId of needRetire) {
+          await db
+            .update(studentQuestionState)
+            .set({
+              retiredForStudent: true,
+              updatedAt: new Date(),
+            })
+            .where(eq(studentQuestionState.id, stateId));
+        }
+      }
+
+      const refreshedStates = await db
+        .select()
+        .from(studentQuestionState)
+        .where(
+          and(
+            eq(studentQuestionState.studentId, studentId),
+            eq(studentQuestionState.kpId, kpId),
+          ),
+        );
+      const stateByQuestionId = new Map(
+        refreshedStates.map((state) => [state.questionId, state]),
+      );
+
+      const unseen: typeof questionRows = [];
+      const wrong: typeof questionRows = [];
+      const weak: typeof questionRows = [];
+
+      for (const row of questionRows) {
+        const state = stateByQuestionId.get(row.question.id);
+        if (!state) {
+          unseen.push(row);
+          continue;
+        }
+        if (state.retiredForStudent) {
+          continue;
+        }
+        if (!state.firstAttemptCorrect || !state.lastAttemptCorrect) {
+          wrong.push(row);
+          continue;
+        }
+        weak.push(row);
+      }
+
+      wrong.sort((a, b) => {
+        const aState = stateByQuestionId.get(a.question.id);
+        const bState = stateByQuestionId.get(b.question.id);
+        return (bState?.attemptCount ?? 0) - (aState?.attemptCount ?? 0);
+      });
+      weak.sort((a, b) => {
+        const aState = stateByQuestionId.get(a.question.id);
+        const bState = stateByQuestionId.get(b.question.id);
+        return (
+          new Date(aState?.lastAttemptAt || 0).getTime() -
+          new Date(bState?.lastAttemptAt || 0).getTime()
+        );
+      });
+
+      const selected: typeof questionRows = [];
+      for (const group of [unseen, wrong, weak]) {
+        for (const item of group) {
+          if (selected.length >= this.adaptivePoolTarget) {
+            break;
+          }
+          if (selected.find((selectedItem) => selectedItem.question.id === item.question.id)) {
+            continue;
+          }
+          selected.push(item);
+        }
+      }
+
+      const repeatedWrongCount = refreshedStates.filter(
+        (state) => !state.lastAttemptCorrect && state.attemptCount >= 2,
+      ).length;
+
+      return {
+        selected,
+        repeatedWrongCount,
+      };
+    };
+
+    let { selected, repeatedWrongCount } = await selectPool();
+
+    if (
+      selected.length < this.adaptivePoolTarget &&
+      (forceRefresh || repeatedWrongCount >= this.adaptiveWrongRetryThreshold)
+    ) {
+      const shortage = this.adaptivePoolTarget - selected.length;
+      await this.questionBankService.generateAdaptiveQuestionsForKp({
+        kpId,
+        count: shortage,
+        difficulty: kpDifficulty,
+        questionType: 'multiple_choice',
+        studentId,
+        useSlides: true,
+        useResources: true,
+        useExistingQuestions: true,
+      });
+
+      ({ selected, repeatedWrongCount } = await selectPool());
+    }
+
+    const safeQuestions = selected.map((row) => ({
+      id: row.question.id,
+      questionText: row.question.questionText,
+      options: row.question.options,
+      questionType: row.question.questionType,
+      difficulty: row.difficulty,
+      createdAt: row.question.createdAt,
+      updatedAt: row.question.updatedAt,
+    }));
+
+    const progress = await this.getStudentKpProgress(studentId, kpId);
+
+    return {
+      questions: safeQuestions,
+      poolSize: safeQuestions.length,
+      repeatedWrongCount,
+      progress: progress || {
+        masteryScore: 0,
+        confidence: 0,
+        status: 'learning',
+        uniqueEvidenceCount: 0,
+        requiredEvidence: this.requiredUniqueEvidence,
+      },
+    };
+  }
+
+  private getAttemptWeight(attemptNo: number) {
+    if (attemptNo <= 1) return 1;
+    if (attemptNo === 2) return 0.25;
+    return 0;
+  }
+
+  private resolveKpStatus(masteryScore: number, uniqueEvidenceCount: number) {
+    if (
+      masteryScore >= this.masteryThreshold &&
+      uniqueEvidenceCount >= this.requiredUniqueEvidence
+    ) {
+      return 'mastered';
+    }
+    if (
+      masteryScore >= this.masteryThreshold &&
+      uniqueEvidenceCount < this.requiredUniqueEvidence
+    ) {
+      return 'provisional';
+    }
+    return 'learning';
+  }
+
+  private async countUniqueEvidence(studentId: string, kpId: string) {
+    const [rows] = await db
+      .select({
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(studentQuestionState)
+      .where(
+        and(
+          eq(studentQuestionState.studentId, studentId),
+          eq(studentQuestionState.kpId, kpId),
+        ),
+      );
+    return Number(rows?.count || 0);
   }
 
   // ==================== CONTENT QUESTION PROGRESS ====================

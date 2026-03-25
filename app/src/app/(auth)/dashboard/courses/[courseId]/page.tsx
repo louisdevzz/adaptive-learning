@@ -144,6 +144,9 @@ export default function CoursePage() {
   const [retryingQuestions, setRetryingQuestions] = useState<Set<string>>(new Set());
   const [questionAttempts, setQuestionAttempts] = useState<Record<string, { isCorrect: boolean; selectedAnswer: string }>>({});
   const [kpProgress, setKpProgress] = useState<Record<string, { masteryScore: number; confidence: number }>>({});
+  const [kpAdaptiveMeta, setKpAdaptiveMeta] = useState<
+    Record<string, { status: "learning" | "provisional" | "mastered"; uniqueEvidenceCount: number; requiredEvidence: number }>
+  >({});
 
   const questionStartTimeRefs = useRef<Record<string, number>>({});
   const kpStartTimeRef = useRef<number | null>(null);
@@ -186,13 +189,29 @@ export default function CoursePage() {
         allKnowledgePoints.map(async ({ kp }) => {
           try {
             const p = await api.studentProgress.getStudentKpProgress(user.id, kp.id);
-            return p ? { kpId: kp.id, progress: { masteryScore: p.masteryScore, confidence: p.confidence } } : null;
+            return p
+              ? {
+                  kpId: kp.id,
+                  progress: { masteryScore: p.masteryScore, confidence: p.confidence },
+                  meta: {
+                    status: (p.status || "learning") as "learning" | "provisional" | "mastered",
+                    uniqueEvidenceCount: p.uniqueEvidenceCount || 0,
+                    requiredEvidence: p.requiredEvidence || 8,
+                  },
+                }
+              : null;
           } catch { return null; }
         })
       );
       const map: Record<string, { masteryScore: number; confidence: number }> = {};
-      results.forEach((r) => { if (r) map[r.kpId] = r.progress; });
+      const metaMap: Record<string, { status: "learning" | "provisional" | "mastered"; uniqueEvidenceCount: number; requiredEvidence: number }> = {};
+      results.forEach((r) => {
+        if (!r) return;
+        map[r.kpId] = r.progress;
+        metaMap[r.kpId] = r.meta;
+      });
       setKpProgress(map);
+      setKpAdaptiveMeta(metaMap);
     };
     loadAll();
   }, [course, user?.id, allKnowledgePoints.length]);
@@ -284,21 +303,39 @@ export default function CoursePage() {
     else if (targetKp?.content?.youtubeUrl) setMediaTab("video");
   };
 
-  const fetchQuestions = useCallback(async (kpId: string) => {
+  const fetchQuestions = useCallback(async (kpId: string, forceRefresh = false) => {
+    if (!user?.id) return;
     try {
       setLoadingQuestions(true);
-      let data: any[] = [];
-      try { const res = await api.questionBank.getQuestionsByKp(kpId); data = Array.isArray(res) ? res : []; } catch { /* no questions */ }
+      const adaptiveData = await api.studentProgress.getAdaptiveQuestions(user.id, kpId, { forceRefresh });
+      const data = Array.isArray(adaptiveData?.questions) ? adaptiveData.questions : [];
       setQuestions(data);
       setSelectedAnswers({});
       setSubmittedQuestions(new Set());
       setRetryingQuestions(new Set());
       setQuestionAttempts({});
       questionStartTimeRefs.current = {};
+      if (adaptiveData?.progress) {
+        setKpProgress((prev) => ({
+          ...prev,
+          [kpId]: {
+            masteryScore: adaptiveData.progress.masteryScore || 0,
+            confidence: adaptiveData.progress.confidence || 0,
+          },
+        }));
+        setKpAdaptiveMeta((prev) => ({
+          ...prev,
+          [kpId]: {
+            status: (adaptiveData.progress.status || "learning") as "learning" | "provisional" | "mastered",
+            uniqueEvidenceCount: adaptiveData.progress.uniqueEvidenceCount || 0,
+            requiredEvidence: adaptiveData.progress.requiredEvidence || 8,
+          },
+        }));
+      }
     } finally { setLoadingQuestions(false); }
-  }, []);
+  }, [user?.id]);
 
-  useEffect(() => { if (selectedKpId && course) fetchQuestions(selectedKpId); }, [selectedKpId, course, fetchQuestions]);
+  useEffect(() => { if (selectedKpId && course && user?.id) fetchQuestions(selectedKpId); }, [selectedKpId, course, user?.id, fetchQuestions]);
 
   const handlePrevious = () => {
     if (currentIndex > 0) handleSelectKp(allKnowledgePoints[currentIndex - 1].kp.id);
@@ -328,15 +365,11 @@ export default function CoursePage() {
 
   const hasKpBeenStudied = (kpId: string) => !!kpProgress[kpId] && kpProgress[kpId].masteryScore > 0;
 
-  const getCorrectAnswerText = (question: any): string => {
-    if (question.questionType === "multiple_choice" && Array.isArray(question.options)) {
-      const idx = parseInt(question.correctAnswer);
-      if (!isNaN(idx) && idx >= 1 && idx <= question.options.length) return question.options[idx - 1];
-    }
-    return question.correctAnswer;
+  const getStatusLabel = (status: "learning" | "provisional" | "mastered") => {
+    if (status === "mastered") return "Mastered";
+    if (status === "provisional") return "Provisional";
+    return "Learning";
   };
-
-  const isAnswerCorrect = (question: any) => selectedAnswers[question.id] === getCorrectAnswerText(question);
 
   const handleAnswerSelect = (questionId: string, answer: string) => {
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: answer }));
@@ -357,29 +390,47 @@ export default function CoursePage() {
     const timeSpent = Math.round((Date.now() - (questionStartTimeRefs.current[questionId] || Date.now())) / 1000);
     const question = questions.find((q) => q.id === questionId);
     if (!question) return;
-    const correctAnswerText = getCorrectAnswerText(question);
-    const isCorrect = selectedAnswer === correctAnswerText;
     setSubmittedQuestions((prev) => new Set(prev).add(questionId));
     setRetryingQuestions((prev) => { const n = new Set(prev); n.delete(questionId); return n; });
-    setQuestionAttempts((prev) => ({ ...prev, [questionId]: { isCorrect, selectedAnswer } }));
 
     const isContentQuestion = questionId.startsWith("content-q-");
     try {
       if (!isContentQuestion) {
         const result = await api.studentProgress.submitQuestionAttempt({ studentId: user.id, questionId, kpId: selectedKpId, selectedAnswer, timeSpent });
+        setQuestionAttempts((prev) => ({ ...prev, [questionId]: { isCorrect: !!result.isCorrect, selectedAnswer } }));
         setKpProgress((prev) => ({ ...prev, [selectedKpId]: { masteryScore: result.masteryScore, confidence: result.confidence } }));
+        setKpAdaptiveMeta((prev) => ({
+          ...prev,
+          [selectedKpId]: {
+            status: (result.status || "learning") as "learning" | "provisional" | "mastered",
+            uniqueEvidenceCount: result.uniqueEvidenceCount || 0,
+            requiredEvidence: result.requiredEvidence || 8,
+          },
+        }));
         if (result.isCorrect) toast.success(`Chính xác! Điểm nắm vững: ${result.masteryScore}%`);
         else toast.info(`Chưa đúng. Điểm nắm vững: ${result.masteryScore}%`);
       } else {
+        const isCorrect = question.correctAnswer ? selectedAnswer === question.correctAnswer : false;
         const result = await api.studentProgress.submitContentQuestion({ studentId: user.id, kpId: selectedKpId, questionIndex: questionId, isCorrect, timeSpent, totalQuestions: questions.length });
+        setQuestionAttempts((prev) => ({ ...prev, [questionId]: { isCorrect, selectedAnswer } }));
         setKpProgress((prev) => ({ ...prev, [selectedKpId]: { masteryScore: result.masteryScore, confidence: result.confidence } }));
         if (isCorrect) toast.success(`Chính xác! Điểm nắm vững: ${result.masteryScore}%`);
         else toast.info("Câu trả lời chưa đúng. Hãy thử lại!");
       }
     } catch {
-      if (isCorrect) toast.success("Chính xác!");
-      else toast.info("Câu trả lời chưa đúng");
+      setSubmittedQuestions((prev) => {
+        const n = new Set(prev);
+        n.delete(questionId);
+        return n;
+      });
+      toast.error("Không thể chấm câu hỏi. Vui lòng thử lại");
     }
+  };
+
+  const handleRedoCurrentKp = async () => {
+    if (!selectedKpId) return;
+    await fetchQuestions(selectedKpId, true);
+    toast.success("Đã làm mới bộ câu hỏi cho KP hiện tại");
   };
 
   const getQuestionTypeLabel = (type: string) => {
@@ -721,15 +772,40 @@ export default function CoursePage() {
                 {/* Questions tab */}
                 {activeTab === "questions" && (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <HelpCircle className="w-5 h-5 text-[#6244F4]" />
-                      <h3 className="font-semibold text-[#010101]">Câu hỏi luyện tập</h3>
-                      {questions.length > 0 && (
-                        <span className="text-xs text-[#666666] bg-[#f8f9fb] px-2.5 py-1 rounded-full border border-[#E5E5E5]">
-                          {questions.length} câu
-                        </span>
-                      )}
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <HelpCircle className="w-5 h-5 text-[#6244F4]" />
+                        <h3 className="font-semibold text-[#010101]">Câu hỏi luyện tập</h3>
+                        {questions.length > 0 && (
+                          <span className="text-xs text-[#666666] bg-[#f8f9fb] px-2.5 py-1 rounded-full border border-[#E5E5E5]">
+                            {questions.length} câu
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={handleRedoCurrentKp}
+                        className="px-3 py-1.5 rounded-lg border border-[#6244F4] text-[#6244F4] text-xs font-semibold hover:bg-[#6244F4]/10 transition-colors"
+                      >
+                        Làm lại KP này
+                      </button>
                     </div>
+
+                    {selectedKpId && (
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="px-2.5 py-1 rounded-full border border-[#E5E5E5] bg-white text-[#666666]">
+                          Mastery: {kpProgress[selectedKpId]?.masteryScore ?? 0}%
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full border border-[#E5E5E5] bg-white text-[#666666]">
+                          Confidence: {kpProgress[selectedKpId]?.confidence ?? 0}%
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full border border-[#E5E5E5] bg-white text-[#666666]">
+                          Evidence: {kpAdaptiveMeta[selectedKpId]?.uniqueEvidenceCount ?? 0}/{kpAdaptiveMeta[selectedKpId]?.requiredEvidence ?? 8}
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full border border-[#E5E5E5] bg-white text-[#6244F4] font-semibold">
+                          {getStatusLabel(kpAdaptiveMeta[selectedKpId]?.status || "learning")}
+                        </span>
+                      </div>
+                    )}
 
                     {loadingQuestions ? (
                       <div className="flex justify-center py-10">
@@ -745,7 +821,7 @@ export default function CoursePage() {
                         {questions.map((question, index) => {
                           const isSubmitted = submittedQuestions.has(question.id);
                           const isRetrying = retryingQuestions.has(question.id);
-                          const isCorrect = isSubmitted && !isRetrying && isAnswerCorrect(question);
+                          const isCorrect = isSubmitted && !isRetrying && (questionAttempts[question.id]?.isCorrect ?? false);
                           const selectedAnswer = selectedAnswers[question.id];
                           const canInteract = !isSubmitted || isRetrying;
 
@@ -772,11 +848,13 @@ export default function CoursePage() {
                                   {question.options.map((option: string, optIdx: number) => {
                                     const letter = String.fromCharCode(65 + optIdx);
                                     const isSelected = selectedAnswer === option;
-                                    const correctAnswerText = getCorrectAnswerText(question);
-                                    const isCorrectOption = option === correctAnswerText;
                                     let cls = "w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm ";
                                     if (isSubmitted && !isRetrying) {
-                                      cls += isCorrectOption ? "bg-green-50 border-green-400 text-green-700" : isSelected && !isCorrect ? "bg-red-50 border-red-400 text-red-700" : "bg-white border-gray-200 text-[#666666]";
+                                      cls += isSelected && isCorrect
+                                        ? "bg-green-50 border-green-400 text-green-700"
+                                        : isSelected && !isCorrect
+                                          ? "bg-red-50 border-red-400 text-red-700"
+                                          : "bg-white border-gray-200 text-[#666666]";
                                     } else {
                                       cls += isSelected ? "bg-[#6244F4/10] border-[#6244F4] text-[#6244F4]" : "bg-white border-gray-200 hover:border-[#6244F4]/40 text-[#666666]";
                                     }
@@ -785,7 +863,7 @@ export default function CoursePage() {
                                         <div className="flex items-center gap-3">
                                           <span className="font-semibold w-5 shrink-0">{letter}.</span>
                                           <span>{option}</span>
-                                          {isSubmitted && !isRetrying && isCorrectOption && <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />}
+                                          {isSubmitted && !isRetrying && isSelected && isCorrect && <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />}
                                           {isSubmitted && !isRetrying && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500 ml-auto" />}
                                         </div>
                                       </button>
@@ -799,11 +877,13 @@ export default function CoursePage() {
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                   {["Đúng", "Sai"].map((option) => {
                                     const isSelected = selectedAnswer === option;
-                                    const correctAnswerText = getCorrectAnswerText(question);
-                                    const isCorrectOption = option === correctAnswerText;
                                     let cls = "py-3 rounded-xl border-2 text-sm font-medium text-center transition-all ";
                                     if (isSubmitted && !isRetrying) {
-                                      cls += isCorrectOption ? "bg-green-50 border-green-400 text-green-700" : isSelected && !isCorrect ? "bg-red-50 border-red-400 text-red-700" : "bg-white border-gray-200 text-[#666666]";
+                                      cls += isSelected && isCorrect
+                                        ? "bg-green-50 border-green-400 text-green-700"
+                                        : isSelected && !isCorrect
+                                          ? "bg-red-50 border-red-400 text-red-700"
+                                          : "bg-white border-gray-200 text-[#666666]";
                                     } else {
                                       cls += isSelected ? "bg-[#6244F4/10] border-[#6244F4] text-[#6244F4]" : "bg-white border-gray-200 hover:border-[#6244F4]/40 text-[#666666]";
                                     }
@@ -834,7 +914,7 @@ export default function CoursePage() {
                                   <div className="flex items-center gap-2 mb-1">
                                     {isCorrect ? <><CheckCircle className="w-4 h-4 text-green-600" /><p className="text-sm font-semibold text-green-700">Chúc mừng! Bạn trả lời đúng</p></> : <><XCircle className="w-4 h-4 text-red-600" /><p className="text-sm font-semibold text-red-700">Câu trả lời chưa chính xác</p></>}
                                   </div>
-                                  {!isCorrect && <p className="text-xs text-red-600">Đáp án đúng: {getCorrectAnswerText(question)}</p>}
+                                  {!isCorrect && <p className="text-xs text-red-600">Hãy chọn "Làm lại" để thử lại câu hỏi này.</p>}
                                 </div>
                               )}
                             </div>

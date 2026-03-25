@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { eq, and, desc, SQL, or, inArray } from 'drizzle-orm';
+import { eq, and, desc, SQL, or, inArray, sql } from 'drizzle-orm';
 import {
   db,
   courses,
@@ -16,6 +16,7 @@ import {
   knowledgePoint,
   kpPrerequisites,
   kpResources,
+  kpExercises,
 } from '../../db';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -143,6 +144,10 @@ export class CoursesService {
       }
     }
 
+    if (updateCourseDto.active === true) {
+      await this.assertPublishableCourseQuestionCoverage(id);
+    }
+
     const updateData: any = { ...updateCourseDto, updatedAt: new Date() };
     if (userId) {
       updateData.updatedBy = userId;
@@ -155,6 +160,53 @@ export class CoursesService {
       .returning();
 
     return updated;
+  }
+
+  private async assertPublishableCourseQuestionCoverage(courseId: string) {
+    const kpRows = await db
+      .select({
+        kpId: sectionKpMap.kpId,
+      })
+      .from(modules)
+      .innerJoin(sections, eq(sections.moduleId, modules.id))
+      .innerJoin(sectionKpMap, eq(sectionKpMap.sectionId, sections.id))
+      .where(eq(modules.courseId, courseId));
+
+    const kpIds = [...new Set(kpRows.map((row) => row.kpId))];
+    if (kpIds.length === 0) {
+      return;
+    }
+
+    const questionCountRows = await db
+      .select({
+        kpId: kpExercises.kpId,
+        questionCount: sql<number>`COUNT(*)`,
+      })
+      .from(kpExercises)
+      .where(inArray(kpExercises.kpId, kpIds))
+      .groupBy(kpExercises.kpId);
+
+    const countByKp = new Map(
+      questionCountRows.map((row) => [row.kpId, Number(row.questionCount)]),
+    );
+
+    const failingKpIds = kpIds.filter((kpId) => (countByKp.get(kpId) ?? 0) < 8);
+    if (failingKpIds.length === 0) {
+      return;
+    }
+
+    const failingKps = await db
+      .select({
+        id: knowledgePoint.id,
+        title: knowledgePoint.title,
+      })
+      .from(knowledgePoint)
+      .where(inArray(knowledgePoint.id, failingKpIds));
+
+    const titles = failingKps.map((kp) => kp.title).join(', ');
+    throw new BadRequestException(
+      `Không thể xuất bản khóa học. Mỗi KP cần tối thiểu 8 câu hỏi. KP chưa đạt: ${titles}`,
+    );
   }
 
   async remove(id: string, userId?: string, userRole?: string) {

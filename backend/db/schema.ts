@@ -606,6 +606,40 @@ export const questionAttempts = pgTable(
   }),
 );
 
+export const studentQuestionState = pgTable(
+  'student_question_state',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+    kpId: uuid('kp_id')
+      .notNull()
+      .references(() => knowledgePoint.id, { onDelete: 'cascade' }),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => questionBank.id, { onDelete: 'cascade' }),
+    firstAttemptCorrect: boolean('first_attempt_correct').notNull(),
+    attemptCount: integer('attempt_count').notNull().default(1),
+    correctCount: integer('correct_count').notNull().default(0),
+    retiredForStudent: boolean('retired_for_student').notNull().default(false),
+    lastAttemptAt: timestamp('last_attempt_at').notNull().defaultNow(),
+    lastAttemptCorrect: boolean('last_attempt_correct').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    studentKpQuestionUnique: unique('student_question_state_student_kp_q_unique')
+      .on(table.studentId, table.kpId, table.questionId),
+    studentKpIdx: index('student_question_state_student_kp_idx').on(
+      table.studentId,
+      table.kpId,
+    ),
+    studentKpRetiredIdx: index('student_question_state_student_kp_retired_idx')
+      .on(table.studentId, table.kpId, table.retiredForStudent),
+  }),
+);
+
 // =============================================
 // STUDENT PROGRESS & ANALYTICS
 // =============================================
