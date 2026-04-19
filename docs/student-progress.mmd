@@ -1,0 +1,29 @@
+flowchart TD
+    classDef content fill:#e8fbfa,stroke:#1098ad,stroke-width:1.5px,rx:8,color:#12363d
+    classDef assign fill:#fff4db,stroke:#b7791f,stroke-width:1.5px,rx:8,color:#3b2f1a
+    classDef question fill:#eaf4ff,stroke:#3b6ea8,stroke-width:1.5px,rx:8,color:#1f2d3d
+    classDef progress fill:#f3ecff,stroke:#7a5cc2,stroke-width:1.5px,rx:8,color:#2d1f4d
+    classDef path fill:#ffe9ef,stroke:#c0567b,stroke-width:1.5px,rx:8,color:#4a2230
+
+    C["<b>Course</b>"]:::content --> M["<b>Module</b>"]:::content
+    M --> S["<b>Section</b>"]:::content
+    S --> KP["<b>Knowledge Point</b>"]:::content
+    
+    %% Nhánh Assignments (Bài tập / Luận)
+    S --> A["<b>Assignments</b><br/>section_assignments | targets"]:::assign
+    A --> SA["<b>Student Assignments</b><br/>student_assignments | results | grading_runs"]:::assign
+    
+    %% Nhánh Question Bank (Trắc nghiệm)
+    KP --> QB["<b>Question Bank</b><br/>question_metadata | kp_exercises"]:::question
+    KP --> KR["<b>KP Resources</b><br/>video | article | interactive"]:::content
+    QB --> QA["<b>Question Attempts</b><br/>question_attempts | student_question_state"]:::question
+    
+    %% Hội tụ tính toán Mastery
+    SA --> SP["<b>Student Progress</b><br/>student_kp_progress | history | mastery"]:::progress
+    QA --> SP
+    
+    %% Đường nét đứt chiếu Mastery ngược về KP
+    KP -. "Quy chiếu BKT Mastery theo KP" .-> SP
+    
+    %% Đầu ra 
+    SP --> LP["<b>Learning Path & Insights</b><br/>learning_path | events | student_insights"]:::path

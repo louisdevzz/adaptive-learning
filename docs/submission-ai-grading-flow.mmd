@@ -1,0 +1,94 @@
+---
+config:
+  layout: elk
+---
+flowchart TD
+    subgraph Frontend_App ["Frontend (Next.js)"]
+        S[Student]
+        T[Teacher]
+    end
+
+    subgraph Backend_Server ["Backend (NestJS API)"]
+        U["POST /upload/document"]
+        B1["POST /assignments/submit"]
+        C["Cron Job - EVERY_MINUTE<br/>AssignmentAiGradingService"]
+        B2["GET .../ai-suggestion<br/>PATCH .../grade"]
+    end
+
+    subgraph Database ["Database (Neon / Drizzle)"]
+        D1[(student_assignments)]
+        D2[(student_assignment_results)]
+        D3[(assignment_grading_runs)]
+    end
+
+    subgraph External_Services ["External Services"]
+        R2[Cloudflare R2]
+        AI["AI Model<br/>LangChain + OpenAI / Gemini / Kimi"]
+    end
+
+    S -->|1. Upload file| U
+    U -->|2. Store object| R2
+    R2 -.->|3. Return file URL| U
+    U -.->|4. Return file URL to frontend| S
+
+    S -->|5. Submit assignment with file URL| B1
+    B1 -->|6. Update status: submitted| D1
+    B1 -->|7. Create initial result record| D2
+    B1 -->|8. Create grading job: pending| D3
+
+    C -.->|9. Fetch pending grading jobs| D3
+    C -->|10. Download submission file| R2
+    C -->|"11. Extract text (pdf-parse / mammoth)"| C
+    C -->|12. Send rubric prompt to AI model| AI
+    AI -->|13. Return suggested score and feedback| C
+    C -->|14. Update job status: completed| D3
+
+    T -.->|15. View AI suggestion| B2
+    B2 -.->|Fetch suggestion| D3
+    T -->|16. Approve and finalize grade| B2
+    B2 -->|17. Update final score and grading source| D2
+    B2 -->|18. Update assignment status: graded| D1
+
+    %% ===== NODE STYLES =====
+    classDef actor fill:#eaf4ff,stroke:#3b6ea8,stroke-width:1.5px,color:#1f2d3d;
+    classDef backend fill:#fff4db,stroke:#b7791f,stroke-width:1.5px,color:#3b2f1a;
+    classDef db fill:#f3ecff,stroke:#7a5cc2,stroke-width:1.5px,color:#2d1f4d;
+    classDef ext fill:#ffe9ef,stroke:#c0567b,stroke-width:1.5px,color:#4a2230;
+
+    class S,T actor;
+    class U,B1,B2,C backend;
+    class D1,D2,D3 db;
+    class R2,AI ext;
+
+    %% ===== SUBGRAPH STYLES =====
+    style Frontend_App fill:#fbfdff,stroke:#3b6ea8,stroke-width:2px,stroke-dasharray: 4 4
+    style Backend_Server fill:#fffaf0,stroke:#d6a85f,stroke-width:2px,stroke-dasharray: 4 4
+    style Database fill:#f8f9fa,stroke:#6c757d,stroke-width:2px,stroke-dasharray: 4 4
+    style External_Services fill:#fff7fa,stroke:#d98aa5,stroke-width:2px,stroke-dasharray: 4 4
+
+    %% ===== LINK STYLES =====
+    %% Student / Teacher interaction
+    linkStyle 0 stroke:#1c7ed6,stroke-width:2.5px
+    linkStyle 3 stroke:#1c7ed6,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 4 stroke:#1c7ed6,stroke-width:2.5px
+    linkStyle 12 stroke:#1c7ed6,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 14 stroke:#1c7ed6,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 15 stroke:#1c7ed6,stroke-width:2.5px
+
+    %% Storage / AI interaction
+    linkStyle 1 stroke:#c0567b,stroke-width:2.5px
+    linkStyle 2 stroke:#c0567b,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 9 stroke:#c0567b,stroke-width:2.5px
+    linkStyle 11 stroke:#c0567b,stroke-width:2.5px
+
+    %% Database updates
+    linkStyle 5 stroke:#7a5cc2,stroke-width:2.5px
+    linkStyle 6 stroke:#7a5cc2,stroke-width:2.5px
+    linkStyle 7 stroke:#7a5cc2,stroke-width:2.5px
+    linkStyle 8 stroke:#7a5cc2,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 13 stroke:#7a5cc2,stroke-width:2.5px
+    linkStyle 16 stroke:#7a5cc2,stroke-width:2.5px
+    linkStyle 17 stroke:#7a5cc2,stroke-width:2.5px
+
+    %% Backend internal processing
+    linkStyle 10 stroke:#b7791f,stroke-width:2.5px

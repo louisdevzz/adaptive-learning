@@ -179,14 +179,19 @@ Backend API (NestJS 11)
 - Automatic notifications when mastery crosses thresholds (60%, 80%) or drops below 50%
 - Comprehensive activity log (audit trail)
 
-### Schema exists, logic not yet implemented
+**Advanced AI Analytics & Copilot Features (New)**
+- **Learning Profiles & Styles**: AI analysis of how students learn best (`student-insights`, `learning-profile`)
+- **Teacher Copilot & Interventions**: AI suggestions for teacher action on struggling students (`teacher-interventions`)
+- **Smart Alerts**: Proactive alert system based on student behavior (`smart-alerts`)
+- **Resource Recommendations**: AI-driven supplementary material suggestions (`resource-recommendations`)
+
+### Schema exists, logic under active refinement
 
 | Component | Schema | Logic needed |
 |---|---|---|
-| `student_mastery` (aggregate mastery per course) | Yes | Auto-computation service |
-| `student_insights` (strengths, weaknesses, risk KPs) | Yes | AI-powered analysis |
-| `recommendation_events` (adaptation decisions) | Yes | AI recommendation logic |
-| `learning_path` created_by=system | Yes | AI auto-generation |
+| `student_mastery` (aggregate mastery per course) | Yes | Auto-computation service under refinement |
+| `recommendation_events` (adaptation decisions) | Yes | Advanced AI recommendation logic refinement |
+| `learning_path` created_by=system | Yes | AI auto-generation refinement |
 | IRT parameters in mastery calculation | Yes | Currently unused; mastery uses binary logic |
 | Question difficulty auto-calibration | Yes | Currently hardcoded at difficulty=5 |
 
@@ -281,9 +286,15 @@ adaptive-learning/
 │   │   ├── activity-log/     # Audit trail + session tracking
 │   │   ├── notifications/    # Event-driven notifications
 │   │   ├── upload/           # Cloudflare R2 file storage
-│   │   └── firebase/         # Firebase Admin SDK
+│   │   ├── firebase/         # Firebase Admin SDK
+│   │   ├── learning-profile/ # Student learning pattern analysis
+│   │   ├── resource-recommendations/ # AI resource suggestions
+│   │   ├── smart-alerts/     # Automated alert system
+│   │   ├── student-insights/ # Deep analysis of student performance
+│   │   ├── teacher-interventions/ # Tools for teacher actions
+│   │   └── parent-dashboard/ # Parent-specific views and reports
 │   └── db/
-│       └── schema.ts         # Drizzle schema (24 tables)
+│       └── schema.ts         # Drizzle schema (52 tables)
 └── docs/
 ```
 

@@ -1,0 +1,71 @@
+flowchart LR
+    %% --- Phase 1: Setup & Authoring ---
+    subgraph Setup_Phase [1. Context Setup]
+        direction TB
+        A1[Admin creates Roles]
+        A2[Teacher creates Curriculum]
+        A3[Teacher populates Content]
+        A1 --> A2 --> A3
+    end
+
+    %% --- Phase 2: Enrollment ---
+    subgraph Enrollment_Phase [2. Class Config]
+        direction TB
+        E1[Teacher creates Class]
+        E2[Enroll Student]
+        E3[Assign Course]
+        E1 --> E2 --> E3
+    end
+
+    %% --- Phase 3: Learning Loop ---
+    subgraph Learning_Phase [3. Adaptive Learning]
+        direction TB
+        S1[Student Logs In & Accesses]
+        S2[Answers Adaptive Exercises]
+        S3[Backend updates BKT]
+        S1 --> S2 --> S3
+    end
+
+    %% --- Phase 4: Assignment Pipeline ---
+    subgraph Assessment_Phase [4. AI Grading Pipeline]
+        direction TB
+        T1[Teacher assigns Task]
+        S4[Student Uploads PDF/DOCX]
+        B1[AI Extract & Grade]
+        T2[Teacher reviews Score]
+        T1 --> S4 --> B1 --> T2
+    end
+
+    %% --- Phase 5: Insights & Parent ---
+    subgraph Analytics_Phase [5. Parent & Analytics]
+        direction TB
+        D1[Compute Student Insights]
+        P1[Parent Views Progress]
+        D1 --> P1
+    end
+
+    %% --- Inter-Phase Connections ---
+    Setup_Phase --> Enrollment_Phase
+    Enrollment_Phase --> Learning_Phase
+    Learning_Phase --> Assessment_Phase
+    Assessment_Phase --> Analytics_Phase
+
+    %% --- Styling ---
+    classDef phase1 fill:#fff3fc,stroke:#faa2e7,stroke-width:1.5px,rx:8,ry:8;
+    classDef phase2 fill:#fff9db,stroke:#fcc419,stroke-width:1.5px,rx:8,ry:8;
+    classDef phase3 fill:#e7f5ff,stroke:#339af0,stroke-width:1.5px,rx:8,ry:8;
+    classDef phase4 fill:#ffe3e3,stroke:#ff8787,stroke-width:1.5px,rx:8,ry:8;
+    classDef phase5 fill:#ebfbee,stroke:#51cf66,stroke-width:1.5px,rx:8,ry:8;
+
+    class A1,A2,A3 phase1;
+    class E1,E2,E3 phase2;
+    class S1,S2,S3 phase3;
+    class T1,S4,B1,T2 phase4;
+    class D1,P1 phase5;
+    
+    style Setup_Phase fill:#fdfcff,stroke:#b197fc,stroke-width:2px,rx:12,ry:12
+    style Enrollment_Phase fill:#fffdf4,stroke:#ffe066,stroke-width:2px,rx:12,ry:12
+    style Learning_Phase fill:#f4fafd,stroke:#74c0fc,stroke-width:2px,rx:12,ry:12
+    style Assessment_Phase fill:#fff5f5,stroke:#ffa8a8,stroke-width:2px,rx:12,ry:12
+    style Analytics_Phase fill:#fbfefc,stroke:#8ce99a,stroke-width:2px,rx:12,ry:12
+

@@ -1,0 +1,67 @@
+flowchart LR
+    %% --- Tiers ---
+    subgraph Clients [Client Applications]
+        direction TB
+        S1[Student: Uploads Document]
+        S2[Student: Submits Link]
+        
+        T1[Teacher: Reviews AI Suggestion]
+        T2[Teacher: Finalizes Score]
+    end
+
+    subgraph APIs [Backend Endpoints]
+        direction TB
+        U_API[POST /upload/document]
+        S_API[POST /assignments/submit]
+        G_API[PATCH /assignments/grade]
+    end
+
+    subgraph Async_Jobs [Automated AI Pipeline]
+        direction TB
+        Cron[Cron Job: Reads Pending Queue]
+        Extract[Parser: pdf-parse / mammoth]
+        LLM[LangChain: AI Evaluation]
+        
+        Cron --> Extract --> LLM
+    end
+
+    subgraph Databases [Data Persistence]
+        direction TB
+        R2[(Cloudflare R2 Storage)]
+        DB_QUEUE[(assignment_grading_runs)]
+        DB_RES[(student_assignment_results)]
+    end
+
+    %% --- Connections ---
+    %% 1. Student Flow
+    S1 --> U_API --> R2
+    R2 -.->|Returns File URL| S2
+    S2 --> S_API
+    S_API -->|Enqueues Job| DB_QUEUE
+
+    %% 2. Background AI Grading Flow
+    DB_QUEUE -.->|Polls 'pending' jobs| Cron
+    Cron -.->|Fetch File securely| R2
+    LLM -->|Updates Job: 'completed' <br/> saves Score & Feedback| DB_QUEUE
+
+    %% 3. Teacher Decision Flow
+    DB_QUEUE -.->|Load AI Suggestion| T1
+    T1 --> T2 --> G_API
+    G_API -->|Saves Final Score| DB_RES
+
+    %% --- Styling ---
+    classDef client fill:#e7f5ff,stroke:#339af0,stroke-width:1.5px,rx:8,ry:8;
+    classDef api fill:#fff9db,stroke:#fcc419,stroke-width:1.5px,rx:8,ry:8;
+    classDef async fill:#ffe3e3,stroke:#ff8787,stroke-width:1.5px,rx:8,ry:8;
+    classDef db fill:#ebfbee,stroke:#51cf66,stroke-width:1.5px,rx:8,ry:8;
+
+    class S1,S2,T1,T2 client;
+    class U_API,S_API,G_API api;
+    class Cron,Extract,LLM async;
+    class R2,DB_QUEUE,DB_RES db;
+
+    %% Subgraph Styling
+    style Clients fill:#fbfcfd,stroke:#dee2e6,stroke-width:2px,rx:12,ry:12
+    style APIs fill:#fffdfa,stroke:#dee2e6,stroke-width:2px,rx:12,ry:12
+    style Async_Jobs fill:#fffafb,stroke:#dee2e6,stroke-width:2px,rx:12,ry:12
+    style Databases fill:#fbfdfb,stroke:#dee2e6,stroke-width:2px,rx:12,ry:12

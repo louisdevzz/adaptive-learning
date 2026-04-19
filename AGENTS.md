@@ -50,10 +50,17 @@ adaptive-learning/
 │   │   ├── notifications/     # Event-driven notifications
 │   │   ├── upload/            # File upload (Cloudflare R2)
 │   │   ├── firebase/          # Firebase Admin SDK
+│   │   ├── config/            # Global configuration module
+│   │   ├── learning-profile/  # Student learning pattern analysis
+│   │   ├── parent-dashboard/  # Parent-specific views and reports
+│   │   ├── resource-recommendations/ # AI resource suggestions
+│   │   ├── smart-alerts/      # Automated alert system
+│   │   ├── student-insights/  # Deep analysis of student performance
+│   │   ├── teacher-interventions/ # Tools for teacher actions
 │   │   └── common/
 │   │       └── ai/            # AI model factory (OpenAI/Gemini/Kimi)
 │   └── db/
-│       ├── schema.ts          # Drizzle schema (24 tables)
+│       ├── schema.ts          # Drizzle schema (52 tables)
 │       └── index.ts           # Database connection (Neon serverless)
 │
 └── app/                        # Next.js Frontend (port 3000)
@@ -117,7 +124,7 @@ x-api-key: your-api-key-here
 
 ---
 
-## Database Schema (24 tables)
+## Database Schema (52 tables)
 
 ### Users & Auth
 - `users` — Base user (email, passwordHash, fullName, role, status)
